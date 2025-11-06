@@ -1,0 +1,8 @@
+﻿node_modules/
+release/
+dist/
+build/
+out/
+Desk-Support-main/
+*.log
+.DS_Store

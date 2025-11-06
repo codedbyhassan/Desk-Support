@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DeskSupport Pro</string>
+    <string name="title_activity_main">DeskSupport Pro</string>
+    <string name="package_name">desksupport.com</string>
+    <string name="custom_url_scheme">desksupport.com</string>
+</resources>

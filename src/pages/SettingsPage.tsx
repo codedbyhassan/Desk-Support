@@ -1,0 +1,1292 @@
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Switch } from '@/components/ui/switch'
+import { Settings, Bell, User, Building2, Palette, Shield, Loader2, Sparkles } from 'lucide-react'
+import { useAuth } from '@/lib/auth'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+// Predefined theme palettes
+interface ThemePalette {
+  primary: string
+  secondary: string
+  background: string
+  foreground: string
+  card: string
+  muted: string
+  mutedForeground: string
+}
+
+interface ThemePalettes {
+  [category: string]: {
+    [paletteName: string]: ThemePalette
+  }
+}
+
+const themePalettes: ThemePalettes = {
+  pastel: {
+    'Pastel Bloom': {
+      primary: '330 80% 80%',
+      secondary: '200 60% 75%',
+      background: '0 0% 98%',
+      foreground: '220 15% 25%',
+      card: '0 0% 100%',
+      muted: '210 40% 96%',
+      mutedForeground: '215 16% 47%',
+    },
+    'Dream Cloud': {
+      primary: '260 70% 78%',
+      secondary: '120 40% 75%',
+      background: '0 0% 99%',
+      foreground: '210 20% 20%',
+      card: '0 0% 100%',
+      muted: '210 40% 95%',
+      mutedForeground: '215 14% 50%',
+    },
+    'Sweet Peach': {
+      primary: '15 85% 75%',
+      secondary: '190 60% 80%',
+      background: '0 0% 97%',
+      foreground: '210 15% 25%',
+      card: '0 0% 100%',
+      muted: '20 40% 94%',
+      mutedForeground: '25 10% 45%',
+    },
+  },
+  vintage: {
+    'Old Photo': {
+      primary: '30 30% 45%',
+      secondary: '50 25% 55%',
+      background: '40 30% 95%',
+      foreground: '30 20% 20%',
+      card: '0 0% 100%',
+      muted: '40 15% 88%',
+      mutedForeground: '35 10% 40%',
+    },
+    'Retro Olive': {
+      primary: '65 35% 45%',
+      secondary: '15 40% 50%',
+      background: '40 30% 96%',
+      foreground: '30 20% 25%',
+      muted: '50 25% 90%',
+      mutedForeground: '45 10% 45%',
+    },
+    'Dust & Denim': {
+      primary: '220 25% 45%',
+      secondary: '30 30% 55%',
+      background: '45 20% 94%',
+      foreground: '210 20% 15%',
+      muted: '45 20% 90%',
+      mutedForeground: '215 10% 45%',
+    },
+  },
+  dark: {
+    'Midnight Blue': {
+      primary: '220 80% 60%',
+      secondary: '160 60% 50%',
+      background: '220 40% 8%',
+      foreground: '0 0% 98%',
+      card: '220 35% 10%',
+      muted: '220 30% 15%',
+      mutedForeground: '220 10% 60%',
+    },
+    'Obsidian': {
+      primary: '200 100% 60%',
+      secondary: '330 80% 60%',
+      background: '240 30% 5%',
+      foreground: '0 0% 100%',
+      card: '240 25% 8%',
+      muted: '240 20% 12%',
+      mutedForeground: '240 10% 60%',
+    },
+    'Deep Slate': {
+      primary: '210 70% 55%',
+      secondary: '50 60% 45%',
+      background: '240 20% 8%',
+      foreground: '0 0% 96%',
+      card: '240 18% 12%',
+      muted: '240 15% 15%',
+      mutedForeground: '240 8% 65%',
+    },
+  },
+  neon: {
+    'Cyber Night': {
+      primary: '160 100% 50%',
+      secondary: '280 100% 65%',
+      background: '240 30% 10%',
+      foreground: '0 0% 100%',
+      card: '240 25% 12%',
+      muted: '240 20% 18%',
+      mutedForeground: '160 30% 70%',
+    },
+    'Laser Grid': {
+      primary: '330 100% 60%',
+      secondary: '200 100% 55%',
+      background: '230 40% 5%',
+      foreground: '0 0% 100%',
+      card: '230 35% 8%',
+      muted: '230 30% 12%',
+      mutedForeground: '200 20% 70%',
+    },
+    'Night Drive': {
+      primary: '50 100% 60%',
+      secondary: '200 100% 50%',
+      background: '240 50% 6%',
+      foreground: '0 0% 98%',
+      card: '240 40% 10%',
+      muted: '240 35% 15%',
+      mutedForeground: '50 20% 75%',
+    },
+  },
+  nature: {
+    'Forest Trail': {
+      primary: '140 40% 40%',
+      secondary: '30 35% 45%',
+      background: '80 25% 95%',
+      foreground: '30 25% 25%',
+      card: '0 0% 100%',
+      muted: '80 20% 88%',
+      mutedForeground: '80 10% 45%',
+    },
+    'Earth Moss': {
+      primary: '90 40% 40%',
+      secondary: '60 30% 35%',
+      background: '80 25% 94%',
+      foreground: '30 20% 20%',
+      card: '0 0% 100%',
+      muted: '80 20% 88%',
+      mutedForeground: '80 10% 40%',
+    },
+    'Leaflight': {
+      primary: '110 50% 50%',
+      secondary: '45 40% 55%',
+      background: '90 35% 97%',
+      foreground: '210 20% 25%',
+      card: '0 0% 100%',
+      muted: '90 30% 90%',
+      mutedForeground: '90 15% 45%',
+    },
+  },
+  ocean: {
+    'Aqua Tide': {
+      primary: '190 90% 50%',
+      secondary: '170 70% 45%',
+      background: '190 70% 97%',
+      foreground: '210 25% 25%',
+      card: '0 0% 100%',
+      muted: '190 40% 92%',
+      mutedForeground: '190 20% 45%',
+    },
+    'Deep Ocean': {
+      primary: '200 70% 55%',
+      secondary: '220 50% 45%',
+      background: '220 30% 10%',
+      foreground: '0 0% 98%',
+      card: '220 25% 12%',
+      muted: '220 20% 18%',
+      mutedForeground: '200 15% 70%',
+    },
+    'Coral Reef': {
+      primary: '15 80% 60%',
+      secondary: '190 70% 50%',
+      background: '180 80% 96%',
+      foreground: '220 25% 25%',
+      card: '0 0% 100%',
+      muted: '180 40% 90%',
+      mutedForeground: '180 20% 45%',
+    },
+  },
+  sunset: {
+    'Golden Hour': {
+      primary: '30 90% 55%',
+      secondary: '10 80% 50%',
+      background: '45 70% 96%',
+      foreground: '25 25% 25%',
+      card: '0 0% 100%',
+      muted: '45 40% 90%',
+      mutedForeground: '45 20% 45%',
+    },
+    'Dusk Orange': {
+      primary: '20 80% 55%',
+      secondary: '330 70% 60%',
+      background: '45 70% 97%',
+      foreground: '210 25% 25%',
+      card: '0 0% 100%',
+      muted: '20 40% 92%',
+      mutedForeground: '20 20% 45%',
+    },
+    'Evening Glow': {
+      primary: '15 85% 55%',
+      secondary: '45 90% 55%',
+      background: '45 70% 96%',
+      foreground: '210 25% 25%',
+      card: '0 0% 100%',
+      muted: '45 40% 90%',
+      mutedForeground: '45 20% 45%',
+    },
+  },
+  professional: {
+    'Corporate Blue': {
+      primary: '217 91% 60%',
+      secondary: '162 73% 46%',
+      background: '0 0% 100%',
+      foreground: '222 47% 11%',
+      card: '0 0% 100%',
+      muted: '210 40% 96%',
+      mutedForeground: '215 16% 47%',
+    },
+    'Executive': {
+      primary: '220 70% 50%',
+      secondary: '200 60% 45%',
+      background: '0 0% 98%',
+      foreground: '220 20% 15%',
+      card: '0 0% 100%',
+      muted: '220 20% 93%',
+      mutedForeground: '220 15% 45%',
+    },
+    'Modern Office': {
+      primary: '210 80% 55%',
+      secondary: '180 50% 50%',
+      background: '210 30% 98%',
+      foreground: '210 25% 20%',
+      card: '0 0% 100%',
+      muted: '210 30% 94%',
+      mutedForeground: '210 15% 45%',
+    },
+  },
+}
+
+export default function SettingsPage() {
+  const { user, company, settings, loading, updateProfile, updateCompany, updateSettings } = useAuth()
+  const isAdmin = user?.role === 'admin'
+
+  const [companyName, setCompanyName] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [saving, setSaving] = useState(false)
+  
+  const [theme, setTheme] = useState({
+    // Colors in HSL format
+    primary: '217 91% 60%',
+    primaryForeground: '0 0% 100%',
+    secondary: '162 73% 46%',
+    secondaryForeground: '0 0% 100%',
+    background: '0 0% 100%',
+    foreground: '222 47% 11%',
+    card: '0 0% 100%',
+    cardForeground: '222 47% 11%',
+    popover: '0 0% 100%',
+    popoverForeground: '222 47% 11%',
+    muted: '210 40% 96%',
+    mutedForeground: '215 16% 47%',
+    accent: '210 40% 96%',
+    accentForeground: '222 47% 11%',
+    destructive: '0 84% 60%',
+    destructiveForeground: '0 0% 100%',
+    border: '214 32% 91%',
+    input: '214 32% 91%',
+    ring: '217 91% 60%',
+    // Typography
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontSize: '16',
+    fontWeight: '400',
+    // Radius
+    radius: '0.5',
+  })
+
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [selectedPalette, setSelectedPalette] = useState('')
+
+  // Initialize form values when data loads
+  useEffect(() => {
+    if (company) {
+      setCompanyName(company.name || '')
+    }
+    if (user) {
+      setFullName(user.full_name || '')
+      setPhone(user.phone || '')
+    }
+  }, [company, user])
+
+  // Load theme from settings
+  useEffect(() => {
+    if (settings?.theme) {
+      try {
+        const savedTheme = JSON.parse(settings.theme)
+        setTheme(savedTheme)
+        applyThemeToDOM(savedTheme)
+      } catch (error) {
+        console.error('Error loading theme:', error)
+      }
+    }
+  }, [settings])
+
+  const applyThemeToDOM = (themeObj: typeof theme) => {
+    const root = document.documentElement
+    
+    // Apply colors
+    Object.entries(themeObj).forEach(([key, value]) => {
+      if (key === 'fontFamily' || key === 'fontSize' || key === 'fontWeight' || key === 'radius') return
+      const cssVar = key.replace(/([A-Z])/g, '-$1').toLowerCase()
+      root.style.setProperty(`--${cssVar}`, value as string)
+    })
+    
+    // Apply typography
+    if (themeObj.fontFamily) {
+      root.style.setProperty('--font-sans', themeObj.fontFamily)
+      document.body.style.fontFamily = themeObj.fontFamily
+    }
+    if (themeObj.fontSize) {
+      root.style.fontSize = `${themeObj.fontSize}px`
+    }
+    if (themeObj.fontWeight) {
+      root.style.fontWeight = themeObj.fontWeight
+    }
+    
+    // Apply border radius
+    if (themeObj.radius) {
+      root.style.setProperty('--radius', `${themeObj.radius}rem`)
+    }
+  }
+
+  // Convert hex to HSL
+  const hexToHsl = (hex: string): string => {
+    const r = parseInt(hex.slice(1, 3), 16) / 255
+    const g = parseInt(hex.slice(3, 5), 16) / 255
+    const b = parseInt(hex.slice(5, 7), 16) / 255
+
+    const max = Math.max(r, g, b)
+    const min = Math.min(r, g, b)
+    let h = 0
+    let s = 0
+    const l = (max + min) / 2
+
+    if (max !== min) {
+      const d = max - min
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+      
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break
+        case g: h = ((b - r) / d + 2) / 6; break
+        case b: h = ((r - g) / d + 4) / 6; break
+      }
+    }
+
+    h = Math.round(h * 360)
+    s = Math.round(s * 100)
+    const lPercent = Math.round(l * 100)
+
+    return `${h} ${s}% ${lPercent}%`
+  }
+
+  // Convert HSL string to hex for color picker
+  const hslToHex = (hsl: string): string => {
+    const [h, s, l] = hsl.split(' ').map((v: string) => parseFloat(v))
+    const sDecimal = s / 100
+    const lDecimal = l / 100
+    
+    const c = (1 - Math.abs(2 * lDecimal - 1)) * sDecimal
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1))
+    const m = lDecimal - c / 2
+    
+    let r = 0, g = 0, b = 0
+    
+    if (h < 60) {
+      r = c; g = x; b = 0
+    } else if (h < 120) {
+      r = x; g = c; b = 0
+    } else if (h < 180) {
+      r = 0; g = c; b = x
+    } else if (h < 240) {
+      r = 0; g = x; b = c
+    } else if (h < 300) {
+      r = x; g = 0; b = c
+    } else {
+      r = c; g = 0; b = x
+    }
+    
+    const toHex = (val: number): string => {
+      const hex = Math.round((val + m) * 255).toString(16)
+      return hex.length === 1 ? '0' + hex : hex
+    }
+    
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+  }
+
+  const handleThemeChange = (key: string, value: string) => {
+    const newTheme = { ...theme, [key]: value }
+    setTheme(newTheme)
+    applyThemeToDOM(newTheme)
+  }
+
+  const applyPredefinedPalette = (category: string, paletteName: string) => {
+    const palette = themePalettes[category]?.[paletteName]
+    if (!palette) return
+
+    const newTheme = {
+      ...theme,
+      primary: palette.primary,
+      secondary: palette.secondary,
+      background: palette.background,
+      foreground: palette.foreground,
+      card: palette.card,
+      cardForeground: palette.foreground,
+      popover: palette.card,
+      popoverForeground: palette.foreground,
+      muted: palette.muted,
+      mutedForeground: palette.mutedForeground,
+      accent: palette.muted,
+      accentForeground: palette.foreground,
+      border: palette.muted,
+      input: palette.muted,
+      ring: palette.primary,
+      primaryForeground: '0 0% 100%',
+      secondaryForeground: '0 0% 100%',
+      destructive: '0 84% 60%',
+      destructiveForeground: '0 0% 100%',
+    }
+
+    setTheme(newTheme)
+    applyThemeToDOM(newTheme)
+    setSelectedCategory(category)
+    setSelectedPalette(paletteName)
+  }
+
+  const handleSaveTheme = async () => {
+    if (!isAdmin) {
+      alert('Only admins can update theme settings')
+      return
+    }
+
+    setSaving(true)
+    try {
+      await updateSettings({
+        theme: JSON.stringify(theme)
+      })
+      alert('Theme saved successfully!')
+    } catch (error) {
+      console.error('Error saving theme:', error)
+      alert('Failed to save theme')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const resetTheme = () => {
+    const defaultTheme = {
+      primary: '217 91% 60%',
+      primaryForeground: '0 0% 100%',
+      secondary: '162 73% 46%',
+      secondaryForeground: '0 0% 100%',
+      background: '0 0% 100%',
+      foreground: '222 47% 11%',
+      card: '0 0% 100%',
+      cardForeground: '222 47% 11%',
+      popover: '0 0% 100%',
+      popoverForeground: '222 47% 11%',
+      muted: '210 40% 96%',
+      mutedForeground: '215 16% 47%',
+      accent: '210 40% 96%',
+      accentForeground: '222 47% 11%',
+      destructive: '0 84% 60%',
+      destructiveForeground: '0 0% 100%',
+      border: '214 32% 91%',
+      input: '214 32% 91%',
+      ring: '217 91% 60%',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      fontSize: '16',
+      fontWeight: '400',
+      radius: '0.5',
+    }
+    setTheme(defaultTheme)
+    applyThemeToDOM(defaultTheme)
+  }
+
+  const handleUpdateCompany = async () => {
+    if (!isAdmin) {
+      alert('Only admins can update company information')
+      return
+    }
+
+    setSaving(true)
+    try {
+      await updateCompany({ name: companyName })
+      alert('Company name updated successfully!')
+    } catch (error) {
+      console.error('Error updating company:', error)
+      alert('Failed to update company')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleUpdateProfile = async () => {
+    setSaving(true)
+    try {
+      await updateProfile({ 
+        full_name: fullName,
+        phone: phone 
+      })
+      alert('Profile updated successfully!')
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      alert('Failed to update profile')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading settings...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-background p-4 lg:p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold text-foreground md:text-3xl flex items-center gap-2">
+            <Settings className="h-7 w-7" />
+            Settings
+          </h1>
+          <p className="text-sm text-muted-foreground md:text-base mt-1">
+            Manage your account settings and preferences
+          </p>
+        </div>
+
+        {/* Tabs */}
+        <Tabs defaultValue="profile" className="w-full">
+          <TabsList className="w-full justify-start overflow-x-auto bg-card rounded-lg p-1 shadow-sm">
+            <TabsTrigger value="profile" className="gap-2">
+              <User className="h-4 w-4" />
+              Profile
+            </TabsTrigger>
+            <TabsTrigger value="company" className="gap-2">
+              <Building2 className="h-4 w-4" />
+              Company
+            </TabsTrigger>
+            <TabsTrigger value="appearance" className="gap-2">
+              <Palette className="h-4 w-4" />
+              Appearance
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="gap-2">
+              <Bell className="h-4 w-4" />
+              Notifications
+            </TabsTrigger>
+            <TabsTrigger value="security" className="gap-2">
+              <Shield className="h-4 w-4" />
+              Security
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Profile Tab */}
+          <TabsContent value="profile" className="space-y-4 mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Profile Information</CardTitle>
+                <CardDescription>
+                  Update your account profile information
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={user?.email || ''}
+                    disabled
+                    className="bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input 
+                    id="name" 
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Enter your name" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input 
+                    id="phone" 
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="Enter your phone number" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Input
+                    value={user?.role || ''}
+                    disabled
+                    className="bg-muted capitalize"
+                  />
+                </div>
+                <Button onClick={handleUpdateProfile} disabled={saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Company Tab */}
+          <TabsContent value="company" className="space-y-4 mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Company Information</CardTitle>
+                <CardDescription>
+                  View and manage your company details
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!isAdmin && (
+                  <Alert>
+                    <AlertDescription>
+                      Only admins can update company information
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="company-name">Company Name</Label>
+                  <Input
+                    id="company-name"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    disabled={!isAdmin}
+                    className={!isAdmin ? 'bg-muted' : ''}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Company ID</Label>
+                  <Input
+                    value={company?.id || 'Loading...'}
+                    disabled
+                    className="font-mono text-xs bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This ID is used to isolate your company data
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Subscription Plan</Label>
+                  <Input
+                    value={company?.subscription_plan || 'Free'}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Created</Label>
+                  <Input
+                    value={company ? new Date(company.created_at).toLocaleDateString() : 'Loading...'}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                {isAdmin && (
+                  <Button onClick={handleUpdateCompany} disabled={saving}>
+                    {saving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Appearance Tab */}
+          <TabsContent value="appearance" className="space-y-4 mt-6">
+            {/* Predefined Palettes Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5" />
+                  Quick Theme Palettes
+                </CardTitle>
+                <CardDescription>
+                  Choose from professionally designed color palettes - perfect for those who want instant results
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {!isAdmin && (
+                  <Alert>
+                    <AlertDescription>
+                      Only admins can save theme changes for the entire company
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Palette Categories */}
+                <div className="grid gap-6">
+                  {Object.entries(themePalettes).map(([category, palettes]) => (
+                    <div key={category} className="space-y-3">
+                      <h3 className="text-sm font-semibold capitalize flex items-center gap-2">
+                        {category}
+                        <span className="text-xs text-muted-foreground font-normal">
+                          ({Object.keys(palettes).length} palettes)
+                        </span>
+                      </h3>
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {Object.entries(palettes).map(([paletteName, colors]) => (
+                          <button
+                            key={paletteName}
+                            onClick={() => applyPredefinedPalette(category, paletteName)}
+                            className={`
+                              relative rounded-lg border-2 p-4 text-left transition-all hover:shadow-md
+                              ${selectedCategory === category && selectedPalette === paletteName
+                                ? 'border-primary shadow-md'
+                                : 'border-border hover:border-primary/50'
+                              }
+                            `}
+                          >
+                            <div className="space-y-2">
+                              <p className="font-medium text-sm">{paletteName}</p>
+                              <div className="flex gap-1.5">
+                                {['primary', 'secondary', 'background', 'foreground'].map((key) => {
+                                  const hsl = colors[key]
+                                  return (
+                                    <div
+                                      key={key}
+                                      className="h-8 flex-1 rounded border border-gray-200"
+                                      style={{ background: `hsl(${hsl})` }}
+                                      title={key}
+                                    />
+                                  )
+                                })}
+                              </div>
+                            </div>
+                            {selectedCategory === category && selectedPalette === paletteName && (
+                              <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                                <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Alert>
+                  <AlertDescription>
+                    💡 <strong>Quick Start:</strong> Click any palette to apply it instantly. You can then customize individual colors below if needed.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+
+            {/* Custom Theme Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Complete Theme Customization</CardTitle>
+                <CardDescription>
+                  Customize every aspect of your app's appearance - colors, typography, and more
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {!isAdmin && (
+                  <Alert>
+                    <AlertDescription>
+                      Only admins can save theme changes for the entire company
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Typography Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Typography</h3>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="fontFamily">Font Family</Label>
+                      <Select 
+                        value={theme.fontFamily} 
+                        onValueChange={(value) => handleThemeChange('fontFamily', value)}
+                      >
+                        <SelectTrigger id="fontFamily">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="system-ui, -apple-system, sans-serif">System Default</SelectItem>
+                          <SelectItem value="'Inter', sans-serif">Inter</SelectItem>
+                          <SelectItem value="'Roboto', sans-serif">Roboto</SelectItem>
+                          <SelectItem value="'Open Sans', sans-serif">Open Sans</SelectItem>
+                          <SelectItem value="'Lato', sans-serif">Lato</SelectItem>
+                          <SelectItem value="'Poppins', sans-serif">Poppins</SelectItem>
+                          <SelectItem value="'Montserrat', sans-serif">Montserrat</SelectItem>
+                          <SelectItem value="Georgia, serif">Georgia (Serif)</SelectItem>
+                          <SelectItem value="'Courier New', monospace">Courier (Mono)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fontSize">Base Font Size (px)</Label>
+                      <Input
+                        id="fontSize"
+                        type="number"
+                        min="12"
+                        max="24"
+                        value={theme.fontSize}
+                        onChange={(e) => handleThemeChange('fontSize', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="radius">Border Radius (rem)</Label>
+                      <Input
+                        id="radius"
+                        type="number"
+                        min="0"
+                        max="2"
+                        step="0.1"
+                        value={theme.radius}
+                        onChange={(e) => handleThemeChange('radius', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Primary Colors */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Primary Colors</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="primary">Primary</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={hslToHex(theme.primary)}
+                          onChange={(e) => handleThemeChange('primary', hexToHsl(e.target.value))}
+                          className="w-16 h-10 cursor-pointer"
+                        />
+                        <Input
+                          id="primary"
+                          value={theme.primary}
+                          onChange={(e) => handleThemeChange('primary', e.target.value)}
+                          placeholder="217 91% 60%"
+                          className="flex-1"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Main brand color, buttons, links</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="secondary">Secondary</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={hslToHex(theme.secondary)}
+                          onChange={(e) => handleThemeChange('secondary', hexToHsl(e.target.value))}
+                          className="w-16 h-10 cursor-pointer"
+                        />
+                        <Input
+                          id="secondary"
+                          value={theme.secondary}
+                          onChange={(e) => handleThemeChange('secondary', e.target.value)}
+                          placeholder="162 73% 46%"
+                          className="flex-1"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Secondary actions and accents</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Background & Text Colors */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Background & Text</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="background">Background</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={hslToHex(theme.background)}
+                          onChange={(e) => handleThemeChange('background', hexToHsl(e.target.value))}
+                          className="w-16 h-10 cursor-pointer"
+                        />
+                        <Input
+                          id="background"
+                          value={theme.background}
+                          onChange={(e) => handleThemeChange('background', e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="foreground">Text Color</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={hslToHex(theme.foreground)}
+                          onChange={(e) => handleThemeChange('foreground', hexToHsl(e.target.value))}
+                          className="w-16 h-10 cursor-pointer"
+                        />
+                        <Input
+                          id="foreground"
+                          value={theme.foreground}
+                          onChange={(e) => handleThemeChange('foreground', e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="card">Card Background</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={hslToHex(theme.card)}
+                          onChange={(e) => handleThemeChange('card', hexToHsl(e.target.value))}
+                          className="w-16 h-10 cursor-pointer"
+                        />
+                        <Input
+                          id="card"
+                          value={theme.card}
+                          onChange={(e) => handleThemeChange('card', e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="muted">Muted Background</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={hslToHex(theme.muted)}
+                          onChange={(e) => handleThemeChange('muted', hexToHsl(e.target.value))}
+                          className="w-16 h-10 cursor-pointer"
+                        />
+                        <Input
+                          id="muted"
+                          value={theme.muted}
+                          onChange={(e) => handleThemeChange('muted', e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="mutedForeground">Muted Text</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={hslToHex(theme.mutedForeground)}
+                          onChange={(e) => handleThemeChange('mutedForeground', hexToHsl(e.target.value))}
+                          className="w-16 h-10 cursor-pointer"
+                        />
+                        <Input
+                          id="mutedForeground"
+                          value={theme.mutedForeground}
+                          onChange={(e) => handleThemeChange('mutedForeground', e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Accent & Hover Colors */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Accent & Hover</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="accent">Accent/Hover Background</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={hslToHex(theme.accent)}
+                          onChange={(e) => handleThemeChange('accent', hexToHsl(e.target.value))}
+                          className="w-16 h-10 cursor-pointer"
+                        />
+                        <Input
+                          id="accent"
+                          value={theme.accent}
+                          onChange={(e) => handleThemeChange('accent', e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Hover states on buttons and items</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="ring">Focus Ring</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={hslToHex(theme.ring)}
+                          onChange={(e) => handleThemeChange('ring', hexToHsl(e.target.value))}
+                          className="w-16 h-10 cursor-pointer"
+                        />
+                        <Input
+                          id="ring"
+                          value={theme.ring}
+                          onChange={(e) => handleThemeChange('ring', e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Outline color for focused elements</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Borders & Inputs */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Borders & Inputs</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="border">Border Color</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={hslToHex(theme.border)}
+                          onChange={(e) => handleThemeChange('border', hexToHsl(e.target.value))}
+                          className="w-16 h-10 cursor-pointer"
+                        />
+                        <Input
+                          id="border"
+                          value={theme.border}
+                          onChange={(e) => handleThemeChange('border', e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="input">Input Border</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={hslToHex(theme.input)}
+                          onChange={(e) => handleThemeChange('input', hexToHsl(e.target.value))}
+                          className="w-16 h-10 cursor-pointer"
+                        />
+                        <Input
+                          id="input"
+                          value={theme.input}
+                          onChange={(e) => handleThemeChange('input', e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Destructive Colors */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Destructive Actions</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="destructive">Destructive Color</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={hslToHex(theme.destructive)}
+                          onChange={(e) => handleThemeChange('destructive', hexToHsl(e.target.value))}
+                          className="w-16 h-10 cursor-pointer"
+                        />
+                        <Input
+                          id="destructive"
+                          value={theme.destructive}
+                          onChange={(e) => handleThemeChange('destructive', e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Delete buttons, error states</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Live Preview */}
+                <div className="rounded-lg border bg-muted/50 p-6 space-y-4">
+                  <p className="text-sm font-semibold">Live Preview</p>
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Button>Primary Button</Button>
+                      <Button variant="secondary">Secondary</Button>
+                      <Button variant="outline">Outline</Button>
+                      <Button variant="destructive">Delete</Button>
+                    </div>
+                    <Card>
+                      <CardContent className="p-4">
+                        <p className="font-medium text-foreground">Card with text content</p>
+                        <p className="text-sm text-muted-foreground mt-1">This is muted text for descriptions</p>
+                      </CardContent>
+                    </Card>
+                    <Input placeholder="Input field with placeholder" />
+                    <div className="flex items-center gap-2">
+                      <Switch />
+                      <Label>Toggle switch example</Label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-2 pt-4">
+                  <Button onClick={handleSaveTheme} disabled={!isAdmin || saving} size="lg">
+                    {saving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving Theme...
+                      </>
+                    ) : (
+                      'Save Theme'
+                    )}
+                  </Button>
+                  <Button variant="outline" onClick={resetTheme} size="lg">
+                    Reset to Default
+                  </Button>
+                </div>
+
+                <Alert>
+                  <AlertDescription>
+                    💡 <strong>Pro Tip:</strong> All changes apply instantly! Use the color pickers for quick selection or enter HSL values manually (format: "217 91% 60%"). Your entire app will update in real-time including hover effects, focus states, and all UI components.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Notifications Tab */}
+          <TabsContent value="notifications" className="space-y-4 mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Notification Preferences</CardTitle>
+                <CardDescription>
+                  Manage how you receive notifications
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Email Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive email updates about your tickets
+                    </p>
+                  </div>
+                  <Switch />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Push Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive push notifications in your browser
+                    </p>
+                  </div>
+                  <Switch />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Ticket Updates</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Get notified when tickets are updated
+                    </p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>New Comments</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Notifications for new ticket comments
+                    </p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                <Button>Save Preferences</Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Security Tab */}
+          <TabsContent value="security" className="space-y-4 mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Security Settings</CardTitle>
+                <CardDescription>
+                  Manage your account security
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Alert>
+                  <AlertDescription>
+                    Password changes are handled through Supabase authentication. Contact your administrator for password reset.
+                  </AlertDescription>
+                </Alert>
+                <div className="space-y-2">
+                  <Label htmlFor="current-password">Current Password</Label>
+                  <Input id="current-password" type="password" placeholder="Enter current password" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <Input id="new-password" type="password" placeholder="Enter new password" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <Input id="confirm-password" type="password" placeholder="Confirm new password" />
+                </div>
+                <Button>Update Password</Button>
+                
+                <div className="pt-6 space-y-4">
+                  <h3 className="text-sm font-semibold">Two-Factor Authentication</h3>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Enable 2FA</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Add an extra layer of security to your account
+                      </p>
+                    </div>
+                    <Switch />
+                  </div>
+                </div>
+
+                <div className="pt-6 space-y-4">
+                  <h3 className="text-sm font-semibold">Active Sessions</h3>
+                  <div className="rounded-lg border p-4 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-sm">Current Session</p>
+                        <p className="text-xs text-muted-foreground">Accra, Ghana • Chrome on Mac</p>
+                        <p className="text-xs text-muted-foreground">Last active: Now</p>
+                      </div>
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">Active</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  )
+}

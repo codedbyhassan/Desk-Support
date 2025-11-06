@@ -1,0 +1,329 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Brand Colors - Your Custom Palette */
+    --background: 0 0% 100%; /* White */
+    --foreground: 222 47% 11%; /* Dark text */
+    
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 222 47% 11%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    
+    /* Primary - Your Brand Blue (#185ee0) */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%; /* White text on blue */
+    
+    /* Secondary - Light Blue Background (#e6eef9) */
+    --secondary: 217 80% 94%;
+    --secondary-foreground: 217 91% 60%; /* Blue text on light blue */
+    
+    /* Muted - Light Gray for disabled/subtle elements */
+    --muted: 220 14% 96%;
+    --muted-foreground: 215 16% 47%;
+    
+    /* Accent - Orange Accent (#f97316) */
+    --accent: 24 95% 53%;
+    --accent-foreground: 0 0% 100%; /* White text on orange */
+    
+    /* Destructive - Red for errors/delete */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Borders & Inputs */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 217 91% 60%; /* Blue focus ring */
+
+    /* Charts - Brand Color Palette */
+    --chart-1: 217 91% 60%; /* Brand Blue */
+    --chart-2: 24 95% 53%; /* Brand Orange */
+    --chart-3: 142 71% 45%; /* Green */
+    --chart-4: 262 83% 58%; /* Purple */
+    --chart-5: 346 77% 50%; /* Red */
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 217 91% 60%; /* Brand Blue */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 80% 94%; /* Light Blue */
+    --sidebar-accent-foreground: 217 91% 60%; /* Blue text */
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217 91% 60%;
+
+    /* Theme Customizer Variables - For Dynamic Theming */
+    --color-primary: #3b82f6;
+    --color-primary-hover: #2563eb;
+    --color-primary-light: #dbeafe;
+    --color-secondary: #8b5cf6;
+    --color-secondary-hover: #7c3aed;
+    --color-accent: #10b981;
+    --color-accent-hover: #059669;
+    --color-background: #ffffff;
+    --color-foreground: #0f172a;
+    --color-muted: #f1f5f9;
+    --color-border: #e2e8f0;
+    --color-destructive: #ef4444;
+    --color-destructive-hover: #dc2626;
+    --color-warning: #f59e0b;
+    --color-warning-hover: #d97706;
+    
+    /* Typography Variables */
+    --font-size-base: 16px;
+    --font-size-sm: 0.875rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+    
+    /* Component Variables */
+    --border-radius: 8px;
+    --spacing-unit: 0.25rem;
+
+    /* Fonts */
+    --font-sans: Inter, sans-serif;
+    --font-serif: Inter, serif;
+    --font-mono: 'SF Mono', Monaco, monospace;
+
+    /* Shadows */
+    --shadow-2xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 1px 2px -2px hsl(0 0% 0% / 0.10);
+    --shadow: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 1px 2px -2px hsl(0 0% 0% / 0.10);
+    --shadow-md: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 2px 4px -2px hsl(0 0% 0% / 0.10);
+    --shadow-lg: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 4px 6px -2px hsl(0 0% 0% / 0.10);
+    --shadow-xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 8px 10px -2px hsl(0 0% 0% / 0.10);
+    --shadow-2xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.25);
+
+    /* Misc */
+    --tracking-normal: 0em;
+    --spacing: 0.25rem;
+    --radius: 0.75rem; /* Slightly larger for modern look */
+  }
+
+  .dark {
+    --background: 222 47% 11%; /* Dark background */
+    --foreground: 210 40% 98%; /* Light text */
+    
+    --card: 222 47% 13%; /* Slightly lighter than background */
+    --card-foreground: 210 40% 98%;
+    
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    
+    /* Primary - Brand Blue (same in dark mode) */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary - Darker blue in dark mode */
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    
+    /* Muted */
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    
+    /* Accent - Orange (same in dark mode) */
+    --accent: 24 95% 53%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* Destructive */
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+    
+    /* Borders & Inputs */
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 217 91% 60%;
+
+    /* Charts - Same as light mode */
+    --chart-1: 217 91% 60%;
+    --chart-2: 24 95% 53%;
+    --chart-3: 142 71% 45%;
+    --chart-4: 262 83% 58%;
+    --chart-5: 346 77% 50%;
+
+    /* Sidebar */
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 217 91% 60%;
+
+    /* Theme Customizer Variables - Dark Mode Defaults */
+    --color-primary: #60a5fa;
+    --color-primary-hover: #3b82f6;
+    --color-primary-light: #1e3a8a;
+    --color-secondary: #a78bfa;
+    --color-secondary-hover: #8b5cf6;
+    --color-accent: #34d399;
+    --color-accent-hover: #10b981;
+    --color-background: #0f172a;
+    --color-foreground: #f1f5f9;
+    --color-muted: #1e293b;
+    --color-border: #334155;
+    --color-destructive: #f87171;
+    --color-destructive-hover: #ef4444;
+    --color-warning: #fbbf24;
+    --color-warning-hover: #f59e0b;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    letter-spacing: var(--tracking-normal);
+    font-size: var(--font-size-base);
+  }
+}
+
+/* Additional Brand Utilities - Dynamic Theme Colors */
+@layer utilities {
+  /* Primary Colors */
+  .bg-theme-primary {
+    background-color: var(--color-primary);
+  }
+  
+  .text-theme-primary {
+    color: var(--color-primary);
+  }
+  
+  .border-theme-primary {
+    border-color: var(--color-primary);
+  }
+  
+  .hover\:bg-theme-primary-hover:hover {
+    background-color: var(--color-primary-hover);
+  }
+  
+  /* Secondary Colors */
+  .bg-theme-secondary {
+    background-color: var(--color-secondary);
+  }
+  
+  .text-theme-secondary {
+    color: var(--color-secondary);
+  }
+  
+  .hover\:bg-theme-secondary-hover:hover {
+    background-color: var(--color-secondary-hover);
+  }
+  
+  /* Accent Colors */
+  .bg-theme-accent {
+    background-color: var(--color-accent);
+  }
+  
+  .text-theme-accent {
+    color: var(--color-accent);
+  }
+  
+  .hover\:bg-theme-accent-hover:hover {
+    background-color: var(--color-accent-hover);
+  }
+  
+  /* Legacy Brand Blue (for backwards compatibility) */
+  .bg-brand-blue {
+    background-color: var(--color-primary);
+  }
+  
+  .text-brand-blue {
+    color: var(--color-primary);
+  }
+  
+  .border-brand-blue {
+    border-color: var(--color-primary);
+  }
+  
+  .hover\:bg-brand-blue-dark:hover {
+    background-color: var(--color-primary-hover);
+  }
+  
+  /* Brand Blue Light */
+  .bg-brand-blue-light {
+    background-color: var(--color-primary-light);
+  }
+  
+  .text-brand-blue-light {
+    color: var(--color-primary-light);
+  }
+  
+  /* Brand Orange - Now uses accent color */
+  .bg-brand-orange {
+    background-color: var(--color-accent);
+  }
+  
+  .text-brand-orange {
+    color: var(--color-accent);
+  }
+  
+  .border-brand-orange {
+    border-color: var(--color-accent);
+  }
+  
+  .hover\:bg-brand-orange-dark:hover {
+    background-color: var(--color-accent-hover);
+  }
+  
+  /* Status Colors - Now dynamic */
+  .bg-status-success {
+    background-color: var(--color-accent);
+  }
+  
+  .bg-status-warning {
+    background-color: var(--color-warning);
+  }
+  
+  .hover\:bg-status-warning-hover:hover {
+    background-color: var(--color-warning-hover);
+  }
+  
+  .bg-status-error {
+    background-color: var(--color-destructive);
+  }
+  
+  .hover\:bg-status-error-hover:hover {
+    background-color: var(--color-destructive-hover);
+  }
+  
+  .bg-status-info {
+    background-color: var(--color-primary);
+  }
+}
+
+/* Animations */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth transitions for theme switching */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
