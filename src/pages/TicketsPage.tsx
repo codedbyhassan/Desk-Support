@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
   AlertCircle, 
@@ -196,105 +197,147 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
         </div>
       </div>
 
-      {/* Premium Stats Grid with Live Indicators */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        {/* Open Tickets - Critical */}
-        <Card className="border-slate-200 hover:shadow-lg transition-all group cursor-pointer relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="p-3 lg:p-5 relative">
-            <div className="flex items-center justify-between mb-2 lg:mb-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-red-500 rounded-lg lg:rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20">
-                <AlertCircle className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
-              </div>
-              <div className="flex items-center gap-1 lg:gap-1.5">
-                <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-red-500 animate-pulse" />
-                <Badge className="bg-red-50 text-red-700 border-0 text-[10px] lg:text-xs">
-                  Critical
-                </Badge>
-              </div>
-            </div>
-            <p className="text-xs lg:text-sm font-medium text-slate-500 mb-1">Open Tickets</p>
-            <div className="flex items-baseline gap-1 lg:gap-2">
-              <p className="text-xl lg:text-3xl font-bold text-slate-900">{openTickets.length}</p>
-              {highPriorityTickets.length > 0 && (
-                <span className="text-[10px] lg:text-xs text-red-600 font-medium">
-                  {highPriorityTickets.length} high
-                </span>
-              )}
-            </div>
-          </div>
-        </Card>
+      {/* Stats Tabs */}
+      <Tabs defaultValue="open" className="w-full">
+        <TabsList className="grid w-full grid-cols-4 bg-slate-100 p-1 rounded-lg lg:rounded-xl h-auto">
+          <TabsTrigger 
+            value="open" 
+            className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
+          >
+            <AlertCircle className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-red-600" />
+            <span className="text-[10px] lg:text-xs font-medium">Open</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="progress" 
+            className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
+          >
+            <Activity className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-amber-600" />
+            <span className="text-[10px] lg:text-xs font-medium">Progress</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="resolved" 
+            className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
+          >
+            <CheckCircle2 className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-emerald-600" />
+            <span className="text-[10px] lg:text-xs font-medium">Resolved</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="rate" 
+            className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
+          >
+            <Target className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-blue-600" />
+            <span className="text-[10px] lg:text-xs font-medium">Rate</span>
+          </TabsTrigger>
+        </TabsList>
 
-        {/* In Progress - Active */}
-        <Card className="border-slate-200 hover:shadow-lg transition-all group cursor-pointer relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="p-3 lg:p-5 relative">
-            <div className="flex items-center justify-between mb-2 lg:mb-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-amber-500 rounded-lg lg:rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
-                <Activity className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+        {/* Open Tickets Tab */}
+        <TabsContent value="open" className="mt-4">
+          <Card className="border-slate-200">
+            <div className="p-4 lg:p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-red-500 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20 relative">
+                  <AlertCircle className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm lg:text-base font-medium text-slate-500">Open Tickets</p>
+                    <Badge className="bg-red-50 text-red-700 border-0 text-xs">
+                      Critical
+                    </Badge>
+                  </div>
+                  <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{openTickets.length}</h3>
+                  {highPriorityTickets.length > 0 && (
+                    <div className="flex items-center gap-1 text-red-600">
+                      <span className="text-xs lg:text-sm font-medium">
+                        {highPriorityTickets.length} high priority
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <Badge className="bg-amber-50 text-amber-700 border-0 text-[10px] lg:text-xs">
-                Active
-              </Badge>
             </div>
-            <p className="text-xs lg:text-sm font-medium text-slate-500 mb-1">In Progress</p>
-            <div className="flex items-baseline gap-1 lg:gap-2">
-              <p className="text-xl lg:text-3xl font-bold text-slate-900">{inProgressTickets.length}</p>
-              <div className="flex items-center gap-1 text-[10px] lg:text-xs text-amber-600 font-medium">
-                <Clock className="h-3 w-3" />
-                <span className="hidden sm:inline">{avgResponseTime} avg</span>
-                <span className="sm:hidden">{avgResponseTime}</span>
-              </div>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </TabsContent>
 
-        {/* Resolved - Success */}
-        <Card className="border-slate-200 hover:shadow-lg transition-all group cursor-pointer relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="p-3 lg:p-5 relative">
-            <div className="flex items-center justify-between mb-2 lg:mb-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-emerald-500 rounded-lg lg:rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                <CheckCircle2 className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+        {/* In Progress Tab */}
+        <TabsContent value="progress" className="mt-4">
+          <Card className="border-slate-200">
+            <div className="p-4 lg:p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
+                  <Activity className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm lg:text-base font-medium text-slate-500">In Progress</p>
+                    <Badge className="bg-amber-50 text-amber-700 border-0 text-xs">
+                      Active
+                    </Badge>
+                  </div>
+                  <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{inProgressTickets.length}</h3>
+                  <div className="flex items-center gap-1 text-amber-600">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-xs lg:text-sm font-medium">{avgResponseTime} avg response</span>
+                  </div>
+                </div>
               </div>
-              <Badge className="bg-emerald-50 text-emerald-700 border-0 text-[10px] lg:text-xs">
-                Completed
-              </Badge>
             </div>
-            <p className="text-xs lg:text-sm font-medium text-slate-500 mb-1">Resolved</p>
-            <div className="flex items-baseline gap-1 lg:gap-2">
-              <p className="text-xl lg:text-3xl font-bold text-slate-900">{resolvedTickets.length}</p>
-              <div className="flex items-center gap-1 text-[10px] lg:text-xs text-emerald-600 font-medium">
-                <TrendingUp className="h-3 w-3" />
-                <span className="hidden sm:inline">+12%</span>
-              </div>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </TabsContent>
 
-        {/* Resolution Rate - Performance */}
-        <Card className="border-slate-200 hover:shadow-lg transition-all group cursor-pointer relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="p-3 lg:p-5 relative">
-            <div className="flex items-center justify-between mb-2 lg:mb-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-500 rounded-lg lg:rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <Target className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+        {/* Resolved Tab */}
+        <TabsContent value="resolved" className="mt-4">
+          <Card className="border-slate-200">
+            <div className="p-4 lg:p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <CheckCircle2 className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm lg:text-base font-medium text-slate-500">Resolved</p>
+                    <Badge className="bg-emerald-50 text-emerald-700 border-0 text-xs">
+                      Completed
+                    </Badge>
+                  </div>
+                  <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{resolvedTickets.length}</h3>
+                  <div className="flex items-center gap-1 text-emerald-600">
+                    <TrendingUp className="h-4 w-4" />
+                    <span className="text-xs lg:text-sm font-medium">+12% this month</span>
+                  </div>
+                </div>
               </div>
-              <Badge className="bg-blue-50 text-blue-700 border-0 text-[10px] lg:text-xs">
-                Performance
-              </Badge>
             </div>
-            <p className="text-xs lg:text-sm font-medium text-slate-500 mb-1">Resolution Rate</p>
-            <div className="flex items-baseline gap-1 lg:gap-2">
-              <p className="text-xl lg:text-3xl font-bold text-slate-900">{resolutionRate}%</p>
-              <div className="flex items-center gap-1 text-[10px] lg:text-xs text-blue-600 font-medium">
-                <Zap className="h-3 w-3" />
-                <span>Excellent</span>
+          </Card>
+        </TabsContent>
+
+        {/* Resolution Rate Tab */}
+        <TabsContent value="rate" className="mt-4">
+          <Card className="border-slate-200">
+            <div className="p-4 lg:p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                  <Target className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm lg:text-base font-medium text-slate-500">Resolution Rate</p>
+                    <Badge className="bg-blue-50 text-blue-700 border-0 text-xs">
+                      Performance
+                    </Badge>
+                  </div>
+                  <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{resolutionRate}%</h3>
+                  <div className="flex items-center gap-1 text-blue-600">
+                    <Zap className="h-4 w-4" />
+                    <span className="text-xs lg:text-sm font-medium">Excellent performance</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </Card>
-      </div>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Premium Insights Banner */}
       <Card className="border-slate-200 bg-gradient-to-r from-slate-900 to-slate-800 text-white overflow-hidden relative">

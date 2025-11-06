@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Search, Plus, Trash2, Eye, Package, Box, CheckCircle2, Wrench, Filter, Download, MoreVertical, Upload, Image as ImageIcon, X } from 'lucide-react'
 import {
   AlertDialog,
@@ -369,68 +370,131 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <Card className="border-slate-200 hover:shadow-lg transition-shadow">
-          <div className="p-3 lg:p-5">
-            <div className="flex items-center justify-between mb-2 lg:mb-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-emerald-500 rounded-lg lg:rounded-xl flex items-center justify-center">
-                <CheckCircle2 className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
-              </div>
-              <Badge className="bg-emerald-50 text-emerald-700 border-0 text-[10px] lg:text-xs">
-                {availableAssets.length > 0 ? '+' + availableAssets.length : '0'}
-              </Badge>
-            </div>
-            <p className="text-xs lg:text-sm font-medium text-slate-500 mb-1">Available</p>
-            <p className="text-xl lg:text-2xl font-bold text-slate-900">{availableAssets.length}</p>
-          </div>
-        </Card>
+      {/* Stats Tabs */}
+      <Tabs defaultValue="available" className="w-full">
+        <TabsList className="grid w-full grid-cols-4 bg-slate-100 p-1 rounded-lg lg:rounded-xl h-auto">
+          <TabsTrigger 
+            value="available" 
+            className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
+          >
+            <CheckCircle2 className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-emerald-600" />
+            <span className="text-[10px] lg:text-xs font-medium">Available</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="assigned" 
+            className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
+          >
+            <Box className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-blue-600" />
+            <span className="text-[10px] lg:text-xs font-medium">Assigned</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="maintenance" 
+            className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
+          >
+            <Wrench className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-amber-600" />
+            <span className="text-[10px] lg:text-xs font-medium">Service</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="total" 
+            className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
+          >
+            <Package className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-slate-900" />
+            <span className="text-[10px] lg:text-xs font-medium">Total</span>
+          </TabsTrigger>
+        </TabsList>
 
-        <Card className="border-slate-200 hover:shadow-lg transition-shadow">
-          <div className="p-3 lg:p-5">
-            <div className="flex items-center justify-between mb-2 lg:mb-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-500 rounded-lg lg:rounded-xl flex items-center justify-center">
-                <Box className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+        {/* Available Tab */}
+        <TabsContent value="available" className="mt-4">
+          <Card className="border-slate-200">
+            <div className="p-4 lg:p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <CheckCircle2 className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm lg:text-base font-medium text-slate-500">Available Assets</p>
+                    <Badge className="bg-emerald-50 text-emerald-700 border-0 text-xs">
+                      Ready
+                    </Badge>
+                  </div>
+                  <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{availableAssets.length}</h3>
+                  <p className="text-xs lg:text-sm text-slate-600">Ready for assignment</p>
+                </div>
               </div>
-              <Badge className="bg-blue-50 text-blue-700 border-0 text-[10px] lg:text-xs">
-                Active
-              </Badge>
             </div>
-            <p className="text-xs lg:text-sm font-medium text-slate-500 mb-1">Assigned</p>
-            <p className="text-xl lg:text-2xl font-bold text-slate-900">{assignedAssets.length}</p>
-          </div>
-        </Card>
+          </Card>
+        </TabsContent>
 
-        <Card className="border-slate-200 hover:shadow-lg transition-shadow">
-          <div className="p-3 lg:p-5">
-            <div className="flex items-center justify-between mb-2 lg:mb-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-amber-500 rounded-lg lg:rounded-xl flex items-center justify-center">
-                <Wrench className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+        {/* Assigned Tab */}
+        <TabsContent value="assigned" className="mt-4">
+          <Card className="border-slate-200">
+            <div className="p-4 lg:p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                  <Box className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm lg:text-base font-medium text-slate-500">Assigned Assets</p>
+                    <Badge className="bg-blue-50 text-blue-700 border-0 text-xs">
+                      Active
+                    </Badge>
+                  </div>
+                  <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{assignedAssets.length}</h3>
+                  <p className="text-xs lg:text-sm text-slate-600">Currently in use</p>
+                </div>
               </div>
-              <Badge className="bg-amber-50 text-amber-700 border-0 text-[10px] lg:text-xs">
-                Service
-              </Badge>
             </div>
-            <p className="text-xs lg:text-sm font-medium text-slate-500 mb-1">Maintenance</p>
-            <p className="text-xl lg:text-2xl font-bold text-slate-900">{maintenanceAssets.length}</p>
-          </div>
-        </Card>
+          </Card>
+        </TabsContent>
 
-        <Card className="border-slate-200 hover:shadow-lg transition-shadow">
-          <div className="p-3 lg:p-5">
-            <div className="flex items-center justify-between mb-2 lg:mb-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-slate-900 rounded-lg lg:rounded-xl flex items-center justify-center">
-                <Package className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+        {/* Maintenance Tab */}
+        <TabsContent value="maintenance" className="mt-4">
+          <Card className="border-slate-200">
+            <div className="p-4 lg:p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
+                  <Wrench className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm lg:text-base font-medium text-slate-500">Maintenance</p>
+                    <Badge className="bg-amber-50 text-amber-700 border-0 text-xs">
+                      Service
+                    </Badge>
+                  </div>
+                  <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{maintenanceAssets.length}</h3>
+                  <p className="text-xs lg:text-sm text-slate-600">Under maintenance</p>
+                </div>
               </div>
-              <Badge className="bg-slate-100 text-slate-700 border-0 text-[10px] lg:text-xs">
-                Total
-              </Badge>
             </div>
-            <p className="text-xs lg:text-sm font-medium text-slate-500 mb-1">All Assets</p>
-            <p className="text-xl lg:text-2xl font-bold text-slate-900">{activeAssets.length}</p>
-          </div>
-        </Card>
-      </div>
+          </Card>
+        </TabsContent>
+
+        {/* Total Tab */}
+        <TabsContent value="total" className="mt-4">
+          <Card className="border-slate-200">
+            <div className="p-4 lg:p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg shadow-slate-900/20">
+                  <Package className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm lg:text-base font-medium text-slate-500">All Assets</p>
+                    <Badge className="bg-slate-100 text-slate-700 border-0 text-xs">
+                      Total
+                    </Badge>
+                  </div>
+                  <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{activeAssets.length}</h3>
+                  <p className="text-xs lg:text-sm text-slate-600">Total active assets</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Create Asset Form */}
       {createDialogOpen && user?.role === 'admin' && (
@@ -750,30 +814,34 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
               filteredAssets.map((asset) => (
                 <div 
                   key={asset.id}
-                  className="p-4 hover:bg-slate-50 active:bg-slate-100 transition-colors"
+                  className="p-3 hover:bg-slate-50 active:bg-slate-100 transition-colors border-b border-slate-100 last:border-b-0"
                   onClick={() => navigate(`/app/assets/${asset.id}`)}
                 >
-                  <div className="flex gap-3">
+                  <div className="flex items-center gap-3">
+                    {/* Image */}
                     <img
                       src={asset.photo_url}
                       alt={asset.name}
-                      className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                      className="w-14 h-14 rounded-xl object-cover flex-shrink-0 shadow-sm"
                     />
                     
+                    {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-start justify-between gap-2 mb-1.5">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-slate-900 text-sm truncate">
+                          <h3 className="font-semibold text-slate-900 text-sm truncate mb-0.5">
                             {asset.name}
                           </h3>
-                          <p className="text-xs text-slate-500 line-clamp-1 mt-1">
-                            {asset.description}
-                          </p>
+                          {asset.description && (
+                            <p className="text-[10px] text-slate-500 line-clamp-1">
+                              {asset.description}
+                            </p>
+                          )}
                         </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                              <MoreVertical className="h-4 w-4" />
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                              <MoreVertical className="h-3.5 w-3.5" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="text-sm">
@@ -797,29 +865,30 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                         </DropdownMenu>
                       </div>
                       
+                      {/* Metadata - Horizontal compact */}
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Badge className={`text-xs ${getStatusBadgeColor(asset.status)}`}>
+                        <Badge className={`text-[10px] px-1.5 py-0.5 ${getStatusBadgeColor(asset.status)}`}>
                           {asset.status}
                         </Badge>
                         
                         {asset.category && (
-                          <Badge variant="outline" className="text-xs capitalize">
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 capitalize">
                             {asset.category}
                           </Badge>
                         )}
                         
                         {asset.serial_number && (
-                          <span className="text-xs text-slate-500">
+                          <span className="text-[10px] text-slate-500">
                             SN: {asset.serial_number}
                           </span>
                         )}
+                        
+                        {asset.assigned_user?.full_name && (
+                          <span className="text-[10px] text-slate-600">
+                            → {asset.assigned_user.full_name}
+                          </span>
+                        )}
                       </div>
-                      
-                      {asset.assigned_user?.full_name && (
-                        <div className="mt-2 text-xs text-slate-600">
-                          Assigned to: {asset.assigned_user.full_name}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>

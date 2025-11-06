@@ -128,7 +128,7 @@ export function ToastNotification({ toast, onDismiss }: ToastNotificationProps) 
       className={`
         toast-notification
         ${isExiting ? 'toast-exit' : 'toast-enter'}
-        w-[400px] rounded-2xl
+        w-[calc(100vw-2rem)] sm:w-[400px] max-w-[400px] rounded-2xl
         bg-white dark:bg-gray-900 
         shadow-2xl
         overflow-hidden
@@ -143,11 +143,11 @@ export function ToastNotification({ toast, onDismiss }: ToastNotificationProps) 
       {/* Gradient Top Bar */}
       <div className={`h-1 bg-gradient-to-r ${styles.gradient}`} />
 
-      <div className="p-4">
-        <div className="flex items-start gap-3">
+      <div className="p-3 sm:p-4">
+        <div className="flex items-start gap-2 sm:gap-3">
           {/* Icon with Gradient Background */}
           <div className={`
-            flex-shrink-0 h-12 w-12 rounded-2xl 
+            flex-shrink-0 h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl 
             ${styles.iconBg}
             shadow-lg
             flex items-center justify-center
@@ -158,9 +158,9 @@ export function ToastNotification({ toast, onDismiss }: ToastNotificationProps) 
           </div>
 
           {/* Content */}
-          <div className="flex-1 min-w-0 pt-1">
+          <div className="flex-1 min-w-0 pt-0.5 sm:pt-1">
             <div className="flex items-start justify-between gap-2">
-              <h4 className={`font-semibold text-sm ${styles.textColor} mb-1`}>
+              <h4 className={`font-semibold text-xs sm:text-sm ${styles.textColor} mb-0.5 sm:mb-1`}>
                 {toast.title}
               </h4>
               
@@ -172,20 +172,20 @@ export function ToastNotification({ toast, onDismiss }: ToastNotificationProps) 
                   e.stopPropagation()
                   handleDismiss()
                 }}
-                className="h-7 w-7 rounded-full flex-shrink-0 hover:bg-gray-100 dark:hover:bg-gray-800 -mt-1 -mr-1 opacity-60 hover:opacity-100 transition-opacity"
+                className="h-6 w-6 sm:h-7 sm:w-7 rounded-full flex-shrink-0 hover:bg-gray-100 dark:hover:bg-gray-800 -mt-0.5 sm:-mt-1 -mr-0.5 sm:-mr-1 opacity-60 hover:opacity-100 transition-opacity"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
             </div>
             
-            <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
+            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
               {toast.message}
             </p>
 
             {/* Time indicator */}
-            <div className="flex items-center gap-1 mt-2">
-              <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                <CheckCheck className="h-3 w-3" />
+            <div className="flex items-center gap-1 mt-1.5 sm:mt-2">
+              <div className="flex items-center gap-1 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+                <CheckCheck className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                 <span>Just now</span>
               </div>
             </div>
@@ -250,7 +250,7 @@ interface ToastContainerProps {
 
 export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
   return (
-    <div className="fixed top-4 right-4 z-[100] flex flex-col gap-3 pointer-events-none">
+    <div className="fixed top-4 right-2 sm:right-4 left-2 sm:left-auto z-[100] flex flex-col gap-2 sm:gap-3 pointer-events-none max-w-[calc(100vw-1rem)] sm:max-w-none">
       {toasts.slice(0, 5).map((toast) => (
         <div key={toast.id} className="pointer-events-auto">
           <ToastNotification toast={toast} onDismiss={onDismiss} />

@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import { useToast } from '@/hooks/use-toast'
@@ -351,73 +352,113 @@ export default function TeamsPage() {
           </Dialog>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4">
-          <Card className="border-slate-200 hover:shadow-lg transition-shadow">
-            <div className="p-3 lg:p-5">
-              <div className="flex items-center justify-between mb-2 lg:mb-3">
-                <div className="w-8 h-8 lg:w-10 lg:h-10 bg-slate-900 rounded-lg lg:rounded-xl flex items-center justify-center shadow-lg shadow-slate-900/20">
-                  <Users className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
-                </div>
-                <Badge className="bg-slate-100 text-slate-700 border-0 text-[10px] lg:text-xs">
-                  Active
-                </Badge>
-              </div>
-              <p className="text-xs lg:text-sm font-medium text-slate-500 mb-1">Total Teams</p>
-              <div className="flex items-baseline gap-1 lg:gap-2">
-                <p className="text-xl lg:text-3xl font-bold text-slate-900">{teams.length}</p>
-                {teams.length > 0 && (
-                  <div className="flex items-center gap-1 text-[10px] lg:text-xs text-emerald-600 font-medium">
-                    <TrendingUp className="h-3 w-3" />
-                    <span>Growing</span>
+        {/* Stats Tabs */}
+        <Tabs defaultValue="teams" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-slate-100 p-1 rounded-lg lg:rounded-xl h-auto">
+            <TabsTrigger 
+              value="teams" 
+              className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
+            >
+              <Users className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-slate-900" />
+              <span className="text-[10px] lg:text-xs font-medium">Teams</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="messages" 
+              className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
+            >
+              <MessageSquare className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-blue-600" />
+              <span className="text-[10px] lg:text-xs font-medium">Messages</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="active" 
+              className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
+            >
+              <Hash className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-emerald-600" />
+              <span className="text-[10px] lg:text-xs font-medium">Active</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Total Teams Tab */}
+          <TabsContent value="teams" className="mt-4">
+            <Card className="border-slate-200">
+              <div className="p-4 lg:p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg shadow-slate-900/20">
+                    <Users className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
                   </div>
-                )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-sm lg:text-base font-medium text-slate-500">Total Teams</p>
+                      <Badge className="bg-slate-100 text-slate-700 border-0 text-xs">
+                        Active
+                      </Badge>
+                    </div>
+                    <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{teams.length}</h3>
+                    {teams.length > 0 && (
+                      <div className="flex items-center gap-1 text-emerald-600">
+                        <TrendingUp className="h-4 w-4" />
+                        <span className="text-xs lg:text-sm font-medium">Growing</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+          </TabsContent>
 
-          <Card className="border-slate-200 hover:shadow-lg transition-shadow">
-            <div className="p-3 lg:p-5">
-              <div className="flex items-center justify-between mb-2 lg:mb-3">
-                <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-500 rounded-lg lg:rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <MessageSquare className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+          {/* Total Messages Tab */}
+          <TabsContent value="messages" className="mt-4">
+            <Card className="border-slate-200">
+              <div className="p-4 lg:p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <MessageSquare className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-sm lg:text-base font-medium text-slate-500">Total Messages</p>
+                      <Badge className="bg-blue-50 text-blue-700 border-0 text-xs">
+                        Messages
+                      </Badge>
+                    </div>
+                    <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{totalMessages}</h3>
+                    <div className="flex items-center gap-1 text-blue-600">
+                      <Activity className="h-4 w-4" />
+                      <span className="text-xs lg:text-sm font-medium">Active conversations</span>
+                    </div>
+                  </div>
                 </div>
-                <Badge className="bg-blue-50 text-blue-700 border-0 text-[10px] lg:text-xs">
-                  Messages
-                </Badge>
               </div>
-              <p className="text-xs lg:text-sm font-medium text-slate-500 mb-1">Total Messages</p>
-              <div className="flex items-baseline gap-1 lg:gap-2">
-                <p className="text-xl lg:text-3xl font-bold text-slate-900">{totalMessages}</p>
-                <div className="flex items-center gap-1 text-[10px] lg:text-xs text-blue-600 font-medium">
-                  <Activity className="h-3 w-3" />
-                  <span>Active</span>
-                </div>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </TabsContent>
 
-          <Card className="border-slate-200 hover:shadow-lg transition-shadow">
-            <div className="p-3 lg:p-5">
-              <div className="flex items-center justify-between mb-2 lg:mb-3">
-                <div className="w-8 h-8 lg:w-10 lg:h-10 bg-emerald-500 rounded-lg lg:rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                  <Hash className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+          {/* Active Chats Tab */}
+          <TabsContent value="active" className="mt-4">
+            <Card className="border-slate-200">
+              <div className="p-4 lg:p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 relative">
+                    <Hash className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
+                    <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-sm lg:text-base font-medium text-slate-500">Active Chats</p>
+                      <Badge className="bg-emerald-50 text-emerald-700 border-0 text-xs">
+                        Live
+                      </Badge>
+                    </div>
+                    <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{activeChats}</h3>
+                    <div className="flex items-center gap-1 text-emerald-600">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-xs lg:text-sm font-medium">Online now</span>
+                    </div>
+                  </div>
                 </div>
-                <Badge className="bg-emerald-50 text-emerald-700 border-0 text-[10px] lg:text-xs">
-                  Live
-                </Badge>
               </div>
-              <p className="text-xs lg:text-sm font-medium text-slate-500 mb-1">Active Chats</p>
-              <div className="flex items-baseline gap-1 lg:gap-2">
-                <p className="text-xl lg:text-3xl font-bold text-slate-900">{activeChats}</p>
-                <div className="flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] lg:text-xs text-emerald-600 font-medium">Online</span>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
         {/* Search */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -462,7 +503,7 @@ export default function TeamsPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-4">
           {filteredTeams.map((team) => {
             const avatarColor = getAvatarColor(team.id)
             
@@ -473,79 +514,85 @@ export default function TeamsPage() {
                 onClick={() => handleTeamClick(team.id)}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="p-4 lg:p-5 relative">
-                  {/* Header */}
-                  <div className="flex items-start gap-3 mb-3 lg:mb-4">
+                <div className="p-3 lg:p-5 relative">
+                  {/* Mobile: Horizontal Layout */}
+                  <div className="flex items-start gap-3 lg:block">
                     {/* Avatar */}
-                    <div className={`h-12 w-12 lg:h-14 lg:w-14 rounded-xl lg:rounded-2xl bg-gradient-to-br ${avatarColor} flex items-center justify-center shadow-lg flex-shrink-0`}>
+                    <div className={`h-12 w-12 lg:h-14 lg:w-14 rounded-xl bg-gradient-to-br ${avatarColor} flex items-center justify-center shadow-lg flex-shrink-0`}>
                       <span className="text-white font-bold text-sm lg:text-lg">
                         {getInitials(team.name)}
                       </span>
                     </div>
                     
-                    {/* Team Info */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm lg:text-base text-slate-900 truncate mb-1 group-hover:text-slate-700 transition-colors">
-                        {team.name}
-                      </h3>
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <Users className="h-3 w-3" />
-                        <span>{team.member_count || 0} members</span>
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 lg:mt-4">
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-2 mb-1.5 lg:mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-sm lg:text-base text-slate-900 truncate mb-0.5 lg:mb-1 group-hover:text-slate-700 transition-colors">
+                            {team.name}
+                          </h3>
+                          <div className="flex items-center gap-2 text-[10px] lg:text-xs text-slate-500">
+                            <Users className="h-3 w-3" />
+                            <span>{team.member_count || 0} members</span>
+                            <span className="hidden sm:inline">•</span>
+                            <span className="hidden sm:inline">{team.message_count || 0} msgs</span>
+                          </div>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          className="h-7 w-7 lg:h-8 lg:w-auto bg-slate-900 hover:bg-slate-800 rounded-lg text-xs shadow-sm lg:shadow-lg shadow-slate-900/20 flex-shrink-0 lg:px-3"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleTeamClick(team.id)
+                          }}
+                        >
+                          <ArrowRight className="h-3.5 w-3.5 lg:mr-1.5 group-hover:translate-x-0.5 transition-transform" />
+                          <span className="hidden lg:inline">Open</span>
+                        </Button>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Description */}
-                  <p className="text-xs lg:text-sm text-slate-600 line-clamp-2 mb-3 lg:mb-4 leading-relaxed">
-                    {team.description}
-                  </p>
-
-                  {/* Last Message */}
-                  {team.last_message ? (
-                    <div className="mb-3 lg:mb-4 p-2 lg:p-3 bg-slate-50 rounded-lg lg:rounded-xl border border-slate-100">
-                      <p className="text-xs text-slate-600 line-clamp-2 mb-1 lg:mb-2">
-                        <span className="font-medium text-slate-900">{team.last_message.sender_name}:</span>{' '}
-                        {team.last_message.content}
+                      {/* Description */}
+                      <p className="text-[10px] lg:text-sm text-slate-600 line-clamp-2 mb-2 lg:mb-3 leading-relaxed">
+                        {team.description}
                       </p>
-                      <div className="flex items-center gap-1 text-[10px] lg:text-xs text-slate-400">
-                        <Clock className="h-3 w-3" />
-                        {getTimeAgo(team.last_message.created_at)}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mb-3 lg:mb-4 p-2 lg:p-3 bg-slate-50 rounded-lg lg:rounded-xl border border-slate-100">
-                      <p className="text-[10px] lg:text-xs text-slate-400 flex items-center gap-1.5">
-                        <Sparkles className="h-3 w-3" />
-                        No messages yet - start the conversation
-                      </p>
-                    </div>
-                  )}
 
-                  {/* Footer */}
-                  <div className="flex items-center justify-between pt-3 lg:pt-4 border-t border-slate-100">
-                    <div className="flex items-center gap-3 text-[10px] lg:text-xs text-slate-500">
-                      <div className="flex items-center gap-1.5">
-                        <MessageSquare className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
-                        <span>{team.message_count || 0}</span>
+                      {/* Last Message - Compact on Mobile */}
+                      {team.last_message ? (
+                        <div className="mb-2 lg:mb-3 p-2 bg-slate-50 rounded-lg border border-slate-100">
+                          <p className="text-[10px] lg:text-xs text-slate-600 line-clamp-1 mb-0.5 lg:mb-1">
+                            <span className="font-medium text-slate-900">{team.last_message.sender_name}:</span>{' '}
+                            {team.last_message.content}
+                          </p>
+                          <div className="flex items-center gap-1 text-[9px] lg:text-[10px] text-slate-400">
+                            <Clock className="h-2.5 w-2.5 lg:h-3 lg:w-3" />
+                            {getTimeAgo(team.last_message.created_at)}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mb-2 lg:mb-3 p-2 bg-slate-50 rounded-lg border border-slate-100">
+                          <p className="text-[9px] lg:text-[10px] text-slate-400 flex items-center gap-1">
+                            <Sparkles className="h-2.5 w-2.5 lg:h-3 lg:w-3" />
+                            No messages yet
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Footer - Desktop only */}
+                      <div className="hidden lg:flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div className="flex items-center gap-3 text-[10px] text-slate-500">
+                          <div className="flex items-center gap-1.5">
+                            <MessageSquare className="h-3.5 w-3.5" />
+                            <span>{team.message_count || 0}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <Button 
-                      size="sm" 
-                      className="h-8 bg-slate-900 hover:bg-slate-800 rounded-lg text-xs shadow-lg shadow-slate-900/20 group-hover:shadow-slate-900/30 transition-all"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleTeamClick(team.id)
-                      }}
-                    >
-                      <span className="hidden sm:inline">Open Chat</span>
-                      <span className="sm:hidden">Open</span>
-                      <ArrowRight className="h-3 w-3 ml-1 lg:ml-1.5 group-hover:translate-x-0.5 transition-transform" />
-                    </Button>
                   </div>
                 </div>
 
-                {/* Hover border effect */}
-                <div className="absolute inset-0 border-2 border-slate-900 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                {/* Hover border effect - Desktop only */}
+                <div className="hidden lg:block absolute inset-0 border-2 border-slate-900 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
               </Card>
             )
           })}

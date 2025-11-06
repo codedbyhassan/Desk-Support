@@ -31,7 +31,7 @@ export default function LandingPage() {
 
   const handleNavigate = (path: string) => {
     try {
-      navigate(path)
+    navigate(path)
     } catch (error) {
       console.error('Navigation error:', error)
       // Fallback to window location if navigate fails

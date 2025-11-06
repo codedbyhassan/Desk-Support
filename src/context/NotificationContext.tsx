@@ -224,11 +224,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const shouldShowNotificationRef = useRef(shouldShowNotification)
   const showToastRef = useRef(showToast)
   
-  // Keep refs updated with latest function versions
+  // Keep refs updated with latest function versions - must run before subscriptions
+  // Use a separate useEffect with higher priority to ensure refs are updated first
   useEffect(() => {
     shouldShowNotificationRef.current = shouldShowNotification
     showToastRef.current = showToast
+    console.log('✅ Updated notification refs')
   }, [shouldShowNotification, showToast])
+  
+  // Also update refs synchronously on each render to ensure they're always current
+  // This is safe because refs don't cause re-renders
+  shouldShowNotificationRef.current = shouldShowNotification
+  showToastRef.current = showToast
 
   const fetchNotifications = async (): Promise<void> => {
     try {
@@ -347,7 +354,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           setProcessedNotificationIds(prev => new Set([...prev, newNotification.id]))
           
           // Only add notification if user is not currently viewing that entity
-          if (shouldShowNotificationRef.current(newNotification)) {
+          console.log('🔍 Checking if should show notification, ref exists:', !!shouldShowNotificationRef.current)
+          const shouldShow = shouldShowNotificationRef.current ? shouldShowNotificationRef.current(newNotification) : true
+          console.log('🔍 Should show result:', shouldShow)
+          
+          if (shouldShow) {
             setNotifications(prev => {
               // Double check in state as well
               if (prev.some(n => n.id === newNotification.id)) {
@@ -358,7 +369,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             
             // Show toast only for real-time notifications (not initial load)
             if (initialLoadCompleteRef.current) {
-              showToastRef.current(newNotification)
+              console.log('🔔 Showing toast, ref exists:', !!showToastRef.current)
+              if (showToastRef.current) {
+                showToastRef.current(newNotification)
+              } else {
+                console.error('❌ showToastRef.current is null!')
+              }
+            } else {
+              console.log('⏸️ Initial load not complete, skipping toast')
             }
           } else {
             console.log('⏸️ Skipping notification - user is viewing that entity')
@@ -488,7 +506,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             console.log('🔔 Creating notification:', notification.title)
 
             // Only add notification if user is not currently viewing that entity
-            const shouldShow = shouldShowNotificationRef.current(notification)
+            console.log('🔍 Checking if should show notification (team), ref exists:', !!shouldShowNotificationRef.current)
+            const shouldShow = shouldShowNotificationRef.current ? shouldShowNotificationRef.current(notification) : true
             console.log('🔍 shouldShowNotification result:', shouldShow)
             
             if (shouldShow) {
@@ -512,15 +531,23 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
               // Show toast immediately
               console.log('📬 Initial load complete?', initialLoadCompleteRef.current)
               if (initialLoadCompleteRef.current) {
-                console.log('🔔 Showing toast notification')
-                showToastRef.current(notification)
+                console.log('🔔 Showing toast notification, ref exists:', !!showToastRef.current)
+                if (showToastRef.current) {
+                  showToastRef.current(notification)
+                } else {
+                  console.error('❌ showToastRef.current is null!')
+                }
               } else {
                 console.log('⏸️ Skipping toast - initial load not complete, will show after load')
                 // Queue the toast to show after initial load
                 setTimeout(() => {
-                  if (initialLoadCompleteRef.current && shouldShowNotificationRef.current(notification)) {
+                  if (initialLoadCompleteRef.current && shouldShowNotificationRef.current && shouldShowNotificationRef.current(notification)) {
                     console.log('🔔 Showing queued toast notification')
-                    showToastRef.current(notification)
+                    if (showToastRef.current) {
+                      showToastRef.current(notification)
+                    } else {
+                      console.error('❌ showToastRef.current is null in timeout!')
+                    }
                   }
                 }, 1000)
               }

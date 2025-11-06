@@ -103,6 +103,8 @@ export default function TeamChatView() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [userScrolled, setUserScrolled] = useState(false)
   const previousMessageCountRef = useRef(0)
+  const [visibleDate, setVisibleDate] = useState<string | null>(null)
+  const dateObserverRef = useRef<IntersectionObserver | null>(null)
   
   // Add member state
   const [showAddMember, setShowAddMember] = useState(false)
@@ -178,11 +180,30 @@ export default function TeamChatView() {
       const { scrollTop, scrollHeight, clientHeight } = container
       const isAtBottom = scrollHeight - scrollTop - clientHeight < 50
       setUserScrolled(!isAtBottom)
+
+      // Update visible date based on scroll position
+      const dateElements = container.querySelectorAll('[data-date-key]')
+      let currentVisibleDate: string | null = null
+
+      dateElements.forEach((el) => {
+        const rect = el.getBoundingClientRect()
+        const containerRect = container.getBoundingClientRect()
+        
+        // Check if date separator is visible in the top portion of the container
+        if (rect.top >= containerRect.top && rect.top <= containerRect.top + 100) {
+          currentVisibleDate = el.getAttribute('data-date-key')
+        }
+      })
+
+      if (currentVisibleDate) {
+        setVisibleDate(currentVisibleDate)
+      }
     }
 
     container.addEventListener('scroll', handleScroll)
+    handleScroll() // Initial check
     return () => container.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [messages])
 
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -326,6 +347,11 @@ export default function TeamChatView() {
 
       if (error) throw error
       setMessages((data as any) || [])
+      
+      // Scroll to bottom after messages load
+      setTimeout(() => {
+        scrollToBottom(false)
+      }, 100)
     } catch (error) {
       console.error('Error fetching messages:', error)
     }
@@ -361,6 +387,11 @@ export default function TeamChatView() {
       
       setMessages(messagesWithAnimation)
       
+      // Scroll to bottom for new message
+      setTimeout(() => {
+        scrollToBottom(true)
+      }, 100)
+      
       setTimeout(() => {
         setMessages(prev => prev.map(msg => ({ ...msg, isNew: false })))
       }, 600)
@@ -387,7 +418,11 @@ export default function TeamChatView() {
         team_id: teamId,
         sender_id: user.id,
         company_id: user.company_id,
-        type: selectedFile ? (selectedFile.type.startsWith('image/') ? 'image' : 'file') : 'text'
+        type: selectedFile ? (
+          selectedFile.type.startsWith('image/') ? 'image' : 
+          selectedFile.type.startsWith('video/') ? 'file' :
+          selectedFile.type.startsWith('audio/') ? 'audio' : 'file'
+        ) : 'text'
       }
 
       if (newMessage.trim()) {
@@ -499,6 +534,47 @@ export default function TeamChatView() {
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
   }
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    
+    const dateStr = date.toDateString()
+    const todayStr = today.toDateString()
+    const yesterdayStr = yesterday.toDateString()
+    
+    if (dateStr === todayStr) {
+      return 'Today'
+    } else if (dateStr === yesterdayStr) {
+      return 'Yesterday'
+    } else {
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      })
+    }
+  }
+
+  const getDateKey = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toDateString()
+  }
+
+  const groupMessagesByDate = (messages: Message[]) => {
+    const grouped: { [key: string]: Message[] } = {}
+    messages.forEach(msg => {
+      const dateKey = getDateKey(msg.created_at)
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = []
+      }
+      grouped[dateKey].push(msg)
+    })
+    return grouped
+  }
+
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return '0 B'
     if (bytes < 1024) return bytes + ' B'
@@ -563,7 +639,7 @@ export default function TeamChatView() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-7xl mx-auto">
+    <div className="flex flex-col h-[calc(100vh-4rem)] sm:h-[calc(100vh-8rem)] max-w-7xl mx-auto px-0 sm:px-4">
       <style>{`
         @keyframes slideInUp {
           from {
@@ -604,75 +680,79 @@ export default function TeamChatView() {
         />
       )}
 
-      {/* Header */}
-      <Card className="border-slate-200 shadow-sm mb-4">
-        <div className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+      {/* Header - Improved Spacing */}
+      <Card className="border-slate-200 shadow-sm mb-2 sm:mb-4 bg-white">
+        <div className="p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/app/teams')}
-                className="rounded-xl"
+                className="rounded-xl flex-shrink-0 h-9 w-9 sm:h-10 sm:w-10"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div className="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center shadow-lg shadow-slate-900/20">
-                <span className="text-white font-bold text-lg">
+              <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-slate-900 flex items-center justify-center shadow-lg shadow-slate-900/20 flex-shrink-0">
+                <span className="text-white font-bold text-base sm:text-lg">
                   {getInitials(team.name)}
                 </span>
               </div>
-              <div>
-                <h2 className="font-semibold text-lg text-slate-900">{team.name}</h2>
-                <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <h2 className="font-semibold text-lg sm:text-xl text-slate-900 truncate mb-1">{team.name}</h2>
+                <div className="flex items-center gap-2 sm:gap-3">
                   <div className="flex -space-x-2">
                     {members.slice(0, 3).map((member) => (
-                      <Avatar key={member.id} className="h-5 w-5 border-2 border-white">
-                        <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(member.user.id)} text-white text-[10px]`}>
+                      <Avatar key={member.id} className="h-6 w-6 sm:h-7 sm:w-7 border-2 border-white shadow-sm">
+                        <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(member.user.id)} text-white text-[10px] sm:text-xs font-semibold`}>
                           {getInitials(member.user.full_name)}
                         </AvatarFallback>
                       </Avatar>
                     ))}
                   </div>
-                  <span className="text-sm text-slate-500">{members.length} members</span>
+                  <span className="text-xs sm:text-sm text-slate-600 font-medium">{members.length} members</span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               {isCallActive ? (
                 isInCall ? (
                   <Button
                     onClick={handleMaximize}
-                    className="bg-green-600 hover:bg-green-700 rounded-xl shadow-lg shadow-green-600/30"
+                    className="bg-emerald-500 hover:bg-emerald-600 rounded-xl shadow-lg shadow-emerald-500/30 h-9 sm:h-10 px-3 sm:px-4"
                   >
-                    <Video className="h-4 w-4 mr-2" />
-                    Return to Call
+                    <Video className="h-4 w-4 mr-1.5 sm:mr-2" />
+                    <span className="hidden sm:inline">Return to Call</span>
+                    <span className="sm:hidden">Call</span>
                   </Button>
                 ) : (
                   <Button
                     onClick={handleJoinCall}
                     disabled={isCreating}
-                    className="bg-green-600 hover:bg-green-700 rounded-xl shadow-lg shadow-green-600/30"
+                    className="bg-emerald-500 hover:bg-emerald-600 rounded-xl shadow-lg shadow-emerald-500/30 h-9 sm:h-10 px-3 sm:px-4"
                   >
-                    <Phone className="h-4 w-4 mr-2" />
-                    Join Call
+                    <Phone className="h-4 w-4 mr-1.5 sm:mr-2" />
+                    <span className="hidden sm:inline">Join Call</span>
+                    <span className="sm:hidden">Join</span>
                   </Button>
                 )
               ) : (
                 <Button
                   onClick={handleStartCall}
                   disabled={isCreating}
-                  className="bg-slate-900 hover:bg-slate-800 rounded-xl shadow-lg shadow-slate-900/20"
+                  className="bg-slate-900 hover:bg-slate-800 rounded-xl shadow-lg shadow-slate-900/20 h-9 sm:h-10 px-3 sm:px-4"
                 >
                   {isCreating ? (
                     <>
-                      <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                      Starting...
+                      <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5 sm:mr-2" />
+                      <span className="hidden sm:inline">Starting...</span>
+                      <span className="sm:hidden">...</span>
                     </>
                   ) : (
                     <>
-                      <Video className="h-4 w-4 mr-2" />
-                      Start Call
+                      <Video className="h-4 w-4 mr-1.5 sm:mr-2" />
+                      <span className="hidden sm:inline">Start Call</span>
+                      <span className="sm:hidden">Call</span>
                     </>
                   )}
                 </Button>
@@ -682,15 +762,23 @@ export default function TeamChatView() {
                 variant="outline" 
                 size="sm" 
                 onClick={() => setShowMembers(true)}
-                className="rounded-xl border-slate-200"
+                className="rounded-xl border-slate-200 h-9 sm:h-10 px-3 sm:px-4 hidden sm:flex"
               >
-                <Users className="h-4 w-4 mr-2" />
+                <Users className="h-4 w-4 mr-1.5 sm:mr-2" />
                 Members
               </Button>
-              <Button variant="ghost" size="sm" className="rounded-xl">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowMembers(true)}
+                className="rounded-xl h-9 w-9 sm:hidden"
+              >
+                <Users className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="sm" className="rounded-xl h-9 w-9 hidden sm:flex">
                 <Search className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="sm" className="rounded-xl">
+              <Button variant="ghost" size="sm" className="rounded-xl h-9 w-9 hidden sm:flex">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </div>
@@ -698,205 +786,390 @@ export default function TeamChatView() {
         </div>
       </Card>
 
-      {/* Messages Area */}
-      <Card className="flex-1 overflow-hidden flex flex-col border-slate-200 shadow-sm">
+      {/* Messages Area - Instagram/WhatsApp Style */}
+      <Card className="flex-1 overflow-hidden flex flex-col border-slate-200 shadow-sm bg-white">
         <div 
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50"
+          className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-50 to-white"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch'
+          }}
         >
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full">
-              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm">
-                <MessageSquare className="h-8 w-8 text-slate-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">No messages yet</h3>
-              <p className="text-slate-500 text-center max-w-sm">
-                Start the conversation by sending the first message to your team
-              </p>
-            </div>
-          ) : (
-            messages.map((message) => {
-              const isOwn = message.sender_id === user?.id
-              const avatarColor = getAvatarColor(message.sender_id)
-
-              if (message.type === 'call') {
-                return (
-                  <div key={message.id} className="flex justify-center">
-                    <div className="bg-slate-100 rounded-xl px-4 py-2 flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-slate-600" />
-                      <span className="text-sm text-slate-700">
-                        <span className="font-semibold">{message.sender?.full_name}</span> {message.content}
-                      </span>
-                      <span className="text-xs text-slate-400">{formatTime(message.created_at)}</span>
-                    </div>
-                  </div>
-                )
-              }
-
-              return (
-                <div
-                  key={message.id}
-                  className={`flex ${isOwn ? 'justify-end' : 'justify-start'} ${
-                    message.isNew ? 'message-enter' : ''
-                  }`}
-                >
-                  <div className={`flex gap-3 max-w-[70%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
-                    {!isOwn && (
-                      <Avatar className="h-10 w-10 flex-shrink-0 shadow-sm">
-                        <AvatarFallback className={`bg-gradient-to-br ${avatarColor} text-white text-sm font-semibold`}>
-                          {getInitials(message.sender?.full_name || 'U')}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-
-                    <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
-                      {!isOwn && (
-                        <span className="text-xs font-medium text-slate-600 mb-1 px-1">
-                          {message.sender?.full_name || 'Unknown'}
-                        </span>
-                      )}
-                      
-                      {message.type === 'text' && (
-                        <div
-                          className={`rounded-2xl px-4 py-3 ${
-                            isOwn
-                              ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20'
-                              : 'bg-white text-slate-900 border border-slate-200 shadow-sm'
-                          } ${message.isNew && !isOwn ? 'new-message-glow' : ''}`}
-                        >
-                          <p className="text-sm leading-relaxed">{message.content}</p>
-                        </div>
-                      )}
-
-                      {message.type === 'image' && (
-                        <div className={`rounded-2xl overflow-hidden shadow-lg ${
-                          message.isNew && !isOwn ? 'new-message-glow' : ''
-                        }`}>
-                          <img
-                            src={message.file_url}
-                            alt="Shared image"
-                            className="max-w-full h-auto max-h-64 object-cover"
-                          />
-                          {message.content && (
-                            <div className={`px-4 py-3 ${
-                              isOwn
-                                ? 'bg-slate-900 text-white'
-                                : 'bg-white text-slate-900'
-                            }`}>
-                              <p className="text-sm">{message.content}</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {message.type === 'file' && (
-                        <div
-                          className={`rounded-2xl px-4 py-3 flex items-center gap-3 min-w-64 ${
-                            isOwn
-                              ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20'
-                              : 'bg-white text-slate-900 border border-slate-200 shadow-sm'
-                          } ${message.isNew && !isOwn ? 'new-message-glow' : ''}`}
-                        >
-                          <div className={`h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                            isOwn ? 'bg-white/10' : 'bg-slate-100'
-                          }`}>
-                            <FileText className={`h-5 w-5 ${isOwn ? 'text-white' : 'text-slate-600'}`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{message.file_name}</p>
-                            <p className={`text-xs ${isOwn ? 'text-white/70' : 'text-slate-500'}`}>
-                              {formatFileSize(message.file_size)}
-                            </p>
-                          </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className={`h-8 w-8 p-0 rounded-lg ${
-                              isOwn ? 'hover:bg-white/10' : 'hover:bg-slate-100'
-                            }`}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-
-                      {message.type === 'audio' && (
-                        <div
-                          className={`rounded-2xl px-4 py-3 flex items-center gap-3 min-w-64 ${
-                            isOwn
-                              ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20'
-                              : 'bg-white text-slate-900 border border-slate-200 shadow-sm'
-                          } ${message.isNew && !isOwn ? 'new-message-glow' : ''}`}
-                        >
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className={`h-8 w-8 p-0 rounded-full ${
-                              isOwn ? 'hover:bg-white/10' : 'hover:bg-slate-100'
-                            }`}
-                          >
-                            <Play className="h-4 w-4" />
-                          </Button>
-                          <div className="flex-1">
-                            <div className={`h-1 rounded-full ${isOwn ? 'bg-white/20' : 'bg-slate-200'}`}>
-                              <div className={`h-full w-0 rounded-full ${isOwn ? 'bg-white' : 'bg-slate-900'}`} />
-                            </div>
-                          </div>
-                          <span className="text-xs">0:00</span>
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2 mt-1 px-1">
-                        <span className="text-xs text-slate-400">
-                          {formatTime(message.created_at)}
-                        </span>
-                        {isOwn && (
-                          <CheckCheck className="h-3 w-3 text-slate-400" />
-                        )}
-                      </div>
-                    </div>
-                  </div>
+          <style>{`
+            .messages-container::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
+          <div className="messages-container min-h-full flex flex-col justify-end px-3 sm:px-4 md:px-6 py-4 sm:py-6 space-y-2">
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full min-h-[60vh]">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm">
+                  <MessageSquare className="h-8 w-8 text-slate-400" />
                 </div>
-              )
-            })
-          )}
-          <div ref={messagesEndRef} />
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">No messages yet</h3>
+                <p className="text-slate-500 text-center max-w-sm px-4">
+                  Start the conversation by sending the first message to your team
+                </p>
+              </div>
+            ) : (
+              (() => {
+                const groupedMessages = groupMessagesByDate(messages)
+                const dateKeys = Object.keys(groupedMessages).sort((a, b) => 
+                  new Date(a).getTime() - new Date(b).getTime()
+                )
+
+                return dateKeys.map((dateKey, dateIndex) => {
+                  const dateMessages = groupedMessages[dateKey]
+                  const firstMessageDate = dateMessages[0]?.created_at
+
+                  return (
+                    <div key={dateKey}>
+                      {/* Date Separator */}
+                      <div 
+                        className="flex justify-center my-4 sm:my-6 sticky top-2 z-10"
+                        data-date-key={dateKey}
+                      >
+                        <div className="bg-white/95 backdrop-blur-sm rounded-full px-4 sm:px-5 py-2 shadow-sm border border-slate-200">
+                          <span className="text-xs sm:text-sm font-medium text-slate-600">
+                            {formatDate(firstMessageDate)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Messages for this date */}
+                      {dateMessages.map((message, msgIndex) => {
+                        const isOwn = message.sender_id === user?.id
+                        const avatarColor = getAvatarColor(message.sender_id)
+                        const prevMessage = msgIndex > 0 ? dateMessages[msgIndex - 1] : null
+                        const nextMessage = msgIndex < dateMessages.length - 1 ? dateMessages[msgIndex + 1] : null
+                        const showAvatar = !isOwn && (
+                          !nextMessage || 
+                          nextMessage.sender_id !== message.sender_id ||
+                          new Date(nextMessage.created_at).getTime() - new Date(message.created_at).getTime() > 300000 // 5 minutes
+                        )
+                        const showName = !isOwn && (
+                          !prevMessage || 
+                          prevMessage.sender_id !== message.sender_id ||
+                          new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() > 300000
+                        )
+
+                        if (message.type === 'call') {
+                          return (
+                            <div key={message.id} className="flex justify-center my-3 sm:my-4">
+                              <div className="bg-slate-100/90 backdrop-blur-sm rounded-full px-4 sm:px-5 py-2 sm:py-2.5 flex items-center gap-2 sm:gap-2.5 shadow-sm border border-slate-200">
+                                <Phone className="h-4 w-4 text-slate-600" />
+                                <span className="text-xs sm:text-sm text-slate-700">
+                                  <span className="font-semibold">{message.sender?.full_name}</span> {message.content}
+                                </span>
+                                <span className="text-[10px] sm:text-xs text-slate-500">{formatTime(message.created_at)}</span>
+                              </div>
+                            </div>
+                          )
+                        }
+
+                        return (
+                          <div
+                            key={message.id}
+                            className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-1 ${
+                              message.isNew ? 'message-enter' : ''
+                            }`}
+                          >
+                            <div className={`flex gap-2 max-w-[85%] sm:max-w-[75%] md:max-w-[70%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                              {/* Avatar - only show for others and when needed */}
+                              {showAvatar && !isOwn && (
+                                <Avatar className="h-8 w-8 flex-shrink-0 mt-auto">
+                                  <AvatarFallback className={`bg-gradient-to-br ${avatarColor} text-white text-xs font-semibold`}>
+                                    {getInitials(message.sender?.full_name || 'U')}
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                              {!showAvatar && !isOwn && (
+                                <div className="w-8 flex-shrink-0" />
+                              )}
+
+                              <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} flex-1`}>
+                                {/* Sender name - only show for others and when needed */}
+                                {showName && !isOwn && (
+                                  <span className="text-[11px] font-medium text-slate-500 mb-0.5 px-2">
+                                    {message.sender?.full_name || 'Unknown'}
+                                  </span>
+                                )}
+                                
+                                {/* Message bubble */}
+                                {message.type === 'text' && (
+                                  <div
+                                    className={`rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 max-w-full ${
+                                      isOwn
+                                        ? 'bg-slate-900 text-white rounded-br-sm shadow-lg shadow-slate-900/20'
+                                        : 'bg-white text-slate-900 rounded-bl-sm shadow-sm border border-slate-100'
+                                    } ${message.isNew && !isOwn ? 'new-message-glow' : ''}`}
+                                  >
+                                    <p className="text-sm sm:text-base leading-relaxed break-words whitespace-pre-wrap">
+                                      {message.content}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {message.type === 'image' && (
+                                  <div className={`rounded-2xl overflow-hidden shadow-lg max-w-[280px] sm:max-w-sm ${
+                                    message.isNew && !isOwn ? 'new-message-glow' : ''
+                                  }`}>
+                                    <img
+                                      src={message.file_url}
+                                      alt="Shared image"
+                                      className="max-w-full h-auto max-h-[300px] sm:max-h-[400px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                      onClick={() => {
+                                        // Open image in full screen preview
+                                        const newWindow = window.open('', '_blank')
+                                        if (newWindow) {
+                                          newWindow.document.write(`
+                                            <html>
+                                              <head><title>${message.file_name || 'Image'}</title></head>
+                                              <body style="margin:0;display:flex;justify-content:center;align-items:center;height:100vh;background:#000;">
+                                                <img src="${message.file_url}" style="max-width:100%;max-height:100%;object-fit:contain;" />
+                                              </body>
+                                            </html>
+                                          `)
+                                        }
+                                      }}
+                                    />
+                                    {message.content && (
+                                      <div className={`px-3 sm:px-4 py-2 ${
+                                        isOwn
+                                          ? 'bg-slate-900 text-white'
+                                          : 'bg-white text-slate-900'
+                                      }`}>
+                                        <p className="text-sm break-words">{message.content}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {message.type === 'file' && (
+                                  <div
+                                    className={`rounded-2xl overflow-hidden ${
+                                      isOwn
+                                        ? 'bg-slate-900 text-white rounded-br-sm'
+                                        : 'bg-white text-slate-900 rounded-bl-sm shadow-sm'
+                                    } ${message.isNew && !isOwn ? 'new-message-glow' : ''}`}
+                                  >
+                                    {/* File Preview */}
+                                    {message.file_url && (() => {
+                                      const fileExt = message.file_name?.split('.').pop()?.toLowerCase() || ''
+                                      const isPdf = fileExt === 'pdf'
+                                      const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)
+                                      const isVideo = ['mp4', 'webm', 'mov'].includes(fileExt)
+                                      
+                                      if (isImage) {
+                                        return (
+                                          <div className="max-w-[280px] sm:max-w-sm">
+                                            <img
+                                              src={message.file_url}
+                                              alt={message.file_name}
+                                              className="max-w-full h-auto max-h-[300px] sm:max-h-[400px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                              onClick={() => window.open(message.file_url, '_blank')}
+                                            />
+                                          </div>
+                                        )
+                                      }
+                                      
+                                      if (isPdf) {
+                                        return (
+                                          <div className="p-3 sm:p-4">
+                                            <div className="flex items-start gap-3 mb-3">
+                                              <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                                isOwn ? 'bg-white/10' : 'bg-red-50'
+                                              }`}>
+                                                <FileText className={`h-6 w-6 ${isOwn ? 'text-white' : 'text-red-600'}`} />
+                                              </div>
+                                              <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium truncate mb-1">{message.file_name}</p>
+                                                <p className={`text-xs ${isOwn ? 'text-white/70' : 'text-slate-500'}`}>
+                                                  {formatFileSize(message.file_size)}
+                                                </p>
+                                              </div>
+                                            </div>
+                                            <iframe
+                                              src={message.file_url}
+                                              className="w-full h-[300px] sm:h-[400px] rounded-lg border border-slate-200"
+                                              title={message.file_name}
+                                            />
+                                            <Button 
+                                              variant="ghost" 
+                                              size="sm" 
+                                              onClick={() => window.open(message.file_url, '_blank')}
+                                              className={`w-full mt-2 rounded-lg ${
+                                                isOwn ? 'hover:bg-white/10' : 'hover:bg-slate-50'
+                                              }`}
+                                            >
+                                              <Download className="h-4 w-4 mr-2" />
+                                              Open in new tab
+                                            </Button>
+                                          </div>
+                                        )
+                                      }
+                                      
+                                      if (isVideo) {
+                                        return (
+                                          <div className="p-2">
+                                            <video
+                                              src={message.file_url}
+                                              controls
+                                              className="max-w-full h-auto max-h-[400px] rounded-lg"
+                                            >
+                                              Your browser does not support the video tag.
+                                            </video>
+                                            {message.file_name && (
+                                              <div className="px-2 py-1.5">
+                                                <p className="text-xs font-medium truncate">{message.file_name}</p>
+                                                <p className={`text-[10px] ${isOwn ? 'text-white/70' : 'text-slate-500'}`}>
+                                                  {formatFileSize(message.file_size)}
+                                                </p>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )
+                                      }
+                                      
+                                      // Default file view
+                                      return (
+                                        <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center gap-3 min-w-[200px]">
+                                          <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                            isOwn ? 'bg-white/10' : 'bg-slate-100'
+                                          }`}>
+                                            <FileText className={`h-6 w-6 ${isOwn ? 'text-white' : 'text-slate-600'}`} />
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium truncate mb-1">{message.file_name}</p>
+                                            <p className={`text-xs ${isOwn ? 'text-white/70' : 'text-slate-500'}`}>
+                                              {formatFileSize(message.file_size)}
+                                            </p>
+                                          </div>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            onClick={() => window.open(message.file_url, '_blank')}
+                                            className={`h-9 w-9 p-0 rounded-lg ${
+                                              isOwn ? 'hover:bg-white/10' : 'hover:bg-slate-100'
+                                            }`}
+                                          >
+                                            <Download className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      )
+                                    })()}
+                                    
+                                    {/* Caption if exists */}
+                                    {message.content && message.content !== message.file_name && (
+                                      <div className={`px-3 sm:px-4 py-2 border-t ${
+                                        isOwn
+                                          ? 'bg-slate-900 text-white border-white/10'
+                                          : 'bg-white text-slate-900 border-slate-200'
+                                      }`}>
+                                        <p className="text-sm break-words">{message.content}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {message.type === 'audio' && (
+                                  <div
+                                    className={`rounded-2xl px-3 py-2.5 flex items-center gap-2.5 min-w-[200px] ${
+                                      isOwn
+                                        ? 'bg-slate-900 text-white rounded-br-sm'
+                                        : 'bg-white text-slate-900 rounded-bl-sm shadow-sm'
+                                    } ${message.isNew && !isOwn ? 'new-message-glow' : ''}`}
+                                  >
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className={`h-8 w-8 p-0 rounded-full ${
+                                        isOwn ? 'hover:bg-white/10' : 'hover:bg-slate-100'
+                                      }`}
+                                    >
+                                      <Play className="h-4 w-4" />
+                                    </Button>
+                                    <div className="flex-1">
+                                      <div className={`h-1 rounded-full ${isOwn ? 'bg-white/20' : 'bg-slate-200'}`}>
+                                        <div className={`h-full w-0 rounded-full ${isOwn ? 'bg-white' : 'bg-slate-900'}`} />
+                                      </div>
+                                    </div>
+                                    <span className="text-xs">0:00</span>
+                                  </div>
+                                )}
+
+                                {/* Time and read receipt */}
+                                <div className={`flex items-center gap-1.5 mt-0.5 px-1 ${isOwn ? 'flex-row-reverse' : ''}`}>
+                                  <span className="text-[10px] text-slate-400">
+                                    {formatTime(message.created_at)}
+                                  </span>
+                                  {isOwn && (
+                                    <CheckCheck className="h-3 w-3 text-slate-400" />
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })
+              })()
+            )}
+            <div ref={messagesEndRef} />
+          </div>
         </div>
 
         {userScrolled && (
-          <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="absolute bottom-20 sm:bottom-24 left-1/2 transform -translate-x-1/2 z-10">
             <Button
               onClick={() => {
                 scrollToBottom(true)
                 setUserScrolled(false)
               }}
-              className="bg-slate-900 hover:bg-slate-800 rounded-full shadow-lg shadow-slate-900/30 px-4 py-2 text-sm"
+              className="bg-slate-900 hover:bg-slate-800 rounded-full shadow-lg shadow-slate-900/30 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm"
             >
-              <ArrowLeft className="h-4 w-4 mr-2 rotate-[-90deg]" />
-              New messages
+              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 rotate-[-90deg]" />
+              <span className="hidden sm:inline">New messages</span>
+              <span className="sm:hidden">New</span>
             </Button>
           </div>
         )}
 
         {selectedFile && (
-          <div className="px-6 py-3 border-t border-slate-200 bg-slate-50">
-            <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-200">
-              <div className="h-12 w-12 rounded-xl bg-slate-900 flex items-center justify-center shadow-lg shadow-slate-900/20">
-                {selectedFile.type.startsWith('image/') ? (
-                  <ImageIcon className="h-6 w-6 text-white" />
-                ) : (
-                  <File className="h-6 w-6 text-white" />
-                )}
-              </div>
+          <div className="px-4 sm:px-6 py-3 border-t border-slate-200 bg-slate-50">
+            <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+              {selectedFile.type.startsWith('image/') ? (
+                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-xl overflow-hidden flex-shrink-0">
+                  <img
+                    src={URL.createObjectURL(selectedFile)}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-slate-900 flex items-center justify-center shadow-lg shadow-slate-900/20 flex-shrink-0">
+                  {selectedFile.type.startsWith('video/') ? (
+                    <Play className="h-6 w-6 text-white" />
+                  ) : selectedFile.type.startsWith('audio/') ? (
+                    <Mic className="h-6 w-6 text-white" />
+                  ) : (
+                    <File className="h-6 w-6 text-white" />
+                  )}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 truncate">{selectedFile.name}</p>
+                <p className="text-sm font-medium text-slate-900 truncate mb-0.5">{selectedFile.name}</p>
                 <p className="text-xs text-slate-500">{formatFileSize(selectedFile.size)}</p>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelectedFile(null)}
-                className="rounded-lg"
+                className="rounded-lg h-9 w-9"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -915,21 +1188,22 @@ export default function TeamChatView() {
           </div>
         )}
 
-        <div className="p-4 border-t border-slate-200 bg-white">
+        {/* Input Area - Mobile Optimized */}
+        <div className="p-3 sm:p-4 border-t border-slate-200 bg-white">
           <div className="flex items-end gap-2">
             <input
               ref={fileInputRef}
               type="file"
               className="hidden"
               onChange={handleFileSelect}
-              accept="image/*,.pdf,.doc,.docx,.txt"
+              accept="image/*,.pdf,.doc,.docx,.txt,.mp4,.webm,.mov,.mp3,.wav"
             />
             <Button
               variant="ghost"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
               disabled={isRecording}
-              className="rounded-xl"
+              className="rounded-xl flex-shrink-0 h-10 w-10 hover:bg-slate-50"
             >
               <Paperclip className="h-5 w-5 text-slate-600" />
             </Button>
@@ -943,7 +1217,7 @@ export default function TeamChatView() {
                   handleSendMessage()
                 }
               }}
-              className="flex-1 min-h-[44px] max-h-32 resize-none rounded-xl border-slate-200"
+              className="flex-1 min-h-[44px] sm:min-h-[48px] max-h-32 resize-none rounded-2xl sm:rounded-xl border-slate-200 focus:border-slate-300 focus:ring-2 focus:ring-slate-900/10 text-sm sm:text-base bg-white"
               rows={1}
               disabled={isRecording || sending}
             />
@@ -951,7 +1225,7 @@ export default function TeamChatView() {
               <Button
                 onClick={handleSendMessage}
                 disabled={sending}
-                className="bg-slate-900 hover:bg-slate-800 rounded-xl shadow-lg shadow-slate-900/20"
+                className="bg-slate-900 hover:bg-slate-800 rounded-full sm:rounded-xl shadow-lg shadow-slate-900/20 hover:shadow-slate-900/30 transition-all flex-shrink-0 h-10 w-10 sm:h-auto sm:w-auto sm:px-4"
               >
                 {sending ? (
                   <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -962,7 +1236,7 @@ export default function TeamChatView() {
             ) : (
               <Button
                 onClick={handleRecordToggle}
-                className={`rounded-xl shadow-lg ${
+                className={`rounded-full sm:rounded-xl shadow-lg flex-shrink-0 h-10 w-10 sm:h-auto sm:w-auto sm:px-4 ${
                   isRecording 
                     ? 'bg-red-500 hover:bg-red-600 shadow-red-500/20' 
                     : 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20'

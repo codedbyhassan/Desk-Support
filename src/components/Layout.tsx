@@ -539,52 +539,6 @@ export default function Layout({ children }: LayoutProps) {
       {/* ✅ Toast Container for Push-style Notifications */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-3 left-3 right-3 z-50">
-        <div 
-          className="relative flex shadow-2xl p-1.5 rounded-2xl"
-          style={{
-            background: `linear-gradient(to right, ${primaryColor}, ${lightenColor(primaryColor, -10)})`,
-            boxShadow: `0 0 1px 0 ${primaryColor}26, 0 6px 20px 0 ${primaryColor}33`
-          }}
-        >
-          {navItems.slice(0, 4).map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNavChange(item.href)}
-                className={`relative flex-1 flex flex-col items-center justify-center h-14 rounded-xl transition-all duration-300 ${
-                  isActive ? 'bg-white shadow-lg' : 'bg-white/10 hover:bg-white/20'
-                }`}
-              >
-                <div className="relative">
-                  <Icon 
-                    size={20} 
-                    className={`transition-colors ${isActive ? 'text-slate-800' : 'text-white'}`}
-                    style={{ color: isActive ? primaryColor : undefined }}
-                  />
-                  {item.badge && (
-                    <span 
-                      className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[16px] h-4 px-1 text-[9px] font-bold rounded-full text-white"
-                      style={{ backgroundColor: isActive ? primaryColor : '#ef4444' }}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </div>
-                <span 
-                  className={`text-[10px] font-medium mt-0.5 ${isActive ? 'text-slate-800' : 'text-white'}`}
-                  style={{ color: isActive ? primaryColor : undefined }}
-                >
-                  {item.name}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </nav>
     </div>
   )
 }
