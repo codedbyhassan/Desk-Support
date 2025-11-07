@@ -5,13 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import { useToast } from '@/hooks/use-toast'
-import { useTeamCall } from '@/hooks/useTeamCall'
-import { CallModal } from '@/components/calls/CallModal'
-import { FloatingCallWindow } from '@/components/calls/FloatingCallWindow'
-import { CallBanner } from '@/components/calls/CallBanner'
 import {
   Dialog,
   DialogContent,
@@ -19,27 +16,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
-  Users,
-  Send,
-  Paperclip,
-  Image as ImageIcon,
-  Mic,
-  MoreVertical,
-  ArrowLeft,
-  UserPlus,
-  Search,
-  X,
-  Download,
-  Play,
-  FileText,
-  File,
-  MessageSquare,
-  CheckCheck,
-  Phone,
-  Video,
-  Loader2,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Users, Send, Paperclip, Image as ImageIcon, Mic, MoreVertical,
+  ArrowLeft, Search, X, Download, Play, Pause, FileText, File,
+  MessageSquare, CheckCheck, Phone, Video, Loader2, Settings,
+  UserPlus, Smile, Plus, Edit, Trash2, Pin, ChevronDown, ChevronRight,
+  ThumbsUp, Heart, Laugh, Clock
 } from 'lucide-react'
 
 interface Message {
@@ -50,13 +38,22 @@ interface Message {
     id: string
     full_name: string
     email: string
+    avatar_url?: string
   } | null
   created_at: string
   type: 'text' | 'image' | 'file' | 'audio' | 'call'
   file_url?: string
   file_name?: string
   file_size?: number
+  reactions?: Reaction[]
   isNew?: boolean
+}
+
+interface Reaction {
+  id: string
+  emoji: string
+  user_id: string
+  user_name: string
 }
 
 interface TeamMember {
@@ -65,8 +62,10 @@ interface TeamMember {
     id: string
     full_name: string
     email: string
+    avatar_url?: string
   }
   role: string
+  is_online?: boolean
 }
 
 interface Team {
@@ -80,7 +79,16 @@ interface CompanyUser {
   id: string
   full_name: string
   email: string
+  avatar_url?: string
 }
+
+interface TypingUser {
+  user_id: string
+  user_name: string
+  timestamp: number
+}
+
+const REACTIONS = ['👍', '❤️', '😂', '🎉', '😮', '😢']
 
 export default function TeamChatView() {
   const { teamId } = useParams()
@@ -90,6 +98,7 @@ export default function TeamChatView() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   
   const [team, setTeam] = useState<Team | null>(null)
   const [members, setMembers] = useState<TeamMember[]>([])
@@ -97,47 +106,35 @@ export default function TeamChatView() {
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
-  const [isRecording, setIsRecording] = useState(false)
-  const [recordingTime, setRecordingTime] = useState(0)
-  const [showMembers, setShowMembers] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [userScrolled, setUserScrolled] = useState(false)
   const previousMessageCountRef = useRef(0)
-  const [visibleDate, setVisibleDate] = useState<string | null>(null)
-  const dateObserverRef = useRef<IntersectionObserver | null>(null)
-  
-  // Add member state
+  const [showGroupInfo, setShowGroupInfo] = useState(true)
+  const [hoveredMessage, setHoveredMessage] = useState<string | null>(null)
+  const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const [showAddMember, setShowAddMember] = useState(false)
   const [companyUsers, setCompanyUsers] = useState<CompanyUser[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
   const [addingMember, setAddingMember] = useState(false)
   const [loadingUsers, setLoadingUsers] = useState(false)
-  
-  // Call state
-  const [showCallModal, setShowCallModal] = useState(false)
-  const [showFloatingCall, setShowFloatingCall] = useState(false)
-  const [dismissedBanner, setDismissedBanner] = useState(false)
-
-  const {
-    activeCall,
-    participants,
-    isCreating,
-    isEnding,
-    isInCall,
-    startCall,
-    joinCall,
-    leaveCall,
-    endCall,
-    participantCount,
-    isCallActive,
-  } = useTeamCall(teamId || '', team?.name || '')
+  const [typingUsers, setTypingUsers] = useState<TypingUser[]>([])
+  const [isTyping, setIsTyping] = useState(false)
+  const typingTimeoutRef = useRef<NodeJS.Timeout>()
+  const [expandedSections, setExpandedSections] = useState({
+    files: true,
+    videos: true,
+    audio: true,
+    members: true
+  })
+  const [teamFiles, setTeamFiles] = useState<any[]>([])
 
   useEffect(() => {
     if (user?.company_id && teamId) {
       fetchTeamData()
       fetchMessages()
+      fetchTeamFiles()
       
-      const channel = supabase
+      const messagesChannel = supabase
         .channel(`team-chat-${teamId}`)
         .on(
           'postgres_changes',
@@ -157,8 +154,21 @@ export default function TeamChatView() {
         )
         .subscribe()
 
+      // Typing indicators subscription
+      const typingChannel = supabase
+        .channel(`typing-${teamId}`)
+        .on('presence', { event: 'sync' }, () => {
+          const state = typingChannel.presenceState()
+          const typing = Object.values(state).flat().filter(
+            (u: any) => u.user_id !== user?.id && Date.now() - u.timestamp < 3000
+          ) as TypingUser[]
+          setTypingUsers(typing)
+        })
+        .subscribe()
+
       return () => {
-        supabase.removeChannel(channel)
+        supabase.removeChannel(messagesChannel)
+        supabase.removeChannel(typingChannel)
       }
     }
   }, [teamId, user?.company_id])
@@ -180,42 +190,12 @@ export default function TeamChatView() {
       const { scrollTop, scrollHeight, clientHeight } = container
       const isAtBottom = scrollHeight - scrollTop - clientHeight < 50
       setUserScrolled(!isAtBottom)
-
-      // Update visible date based on scroll position
-      const dateElements = container.querySelectorAll('[data-date-key]')
-      let currentVisibleDate: string | null = null
-
-      dateElements.forEach((el) => {
-        const rect = el.getBoundingClientRect()
-        const containerRect = container.getBoundingClientRect()
-        
-        // Check if date separator is visible in the top portion of the container
-        if (rect.top >= containerRect.top && rect.top <= containerRect.top + 100) {
-          currentVisibleDate = el.getAttribute('data-date-key')
-        }
-      })
-
-      if (currentVisibleDate) {
-        setVisibleDate(currentVisibleDate)
-      }
     }
 
     container.addEventListener('scroll', handleScroll)
-    handleScroll() // Initial check
+    handleScroll()
     return () => container.removeEventListener('scroll', handleScroll)
   }, [messages])
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout
-    if (isRecording) {
-      interval = setInterval(() => {
-        setRecordingTime(prev => prev + 1)
-      }, 1000)
-    } else {
-      setRecordingTime(0)
-    }
-    return () => clearInterval(interval)
-  }, [isRecording])
 
   const fetchTeamData = async () => {
     if (!user?.company_id || !teamId) return
@@ -236,7 +216,7 @@ export default function TeamChatView() {
         .select(`
           id,
           role,
-          user:users(id, full_name, email)
+          user:users(id, full_name, email, avatar_url)
         `)
         .eq('team_id', teamId)
 
@@ -255,18 +235,138 @@ export default function TeamChatView() {
     }
   }
 
+  const fetchMessages = async () => {
+    if (!user?.company_id || !teamId) return
+
+    try {
+      const { data, error } = await supabase
+        .from('team_messages')
+        .select(`
+          id,
+          content,
+          sender_id,
+          sender:users(id, full_name, email, avatar_url),
+          created_at,
+          type,
+          file_url,
+          file_name,
+          file_size
+        `)
+        .eq('team_id', teamId)
+        .eq('company_id', user.company_id)
+        .order('created_at', { ascending: true })
+
+      if (error) throw error
+      
+      // Fetch reactions for each message
+      const messagesWithReactions = await Promise.all(
+        (data || []).map(async (msg: any) => {
+          const { data: reactions } = await supabase
+            .from('message_reactions')
+            .select(`
+              id,
+              emoji,
+              user_id,
+              user:users(full_name)
+            `)
+            .eq('message_id', msg.id)
+          
+          return {
+            ...msg,
+            reactions: reactions?.map(r => ({
+              id: r.id,
+              emoji: r.emoji,
+              user_id: r.user_id,
+              user_name: (r.user as any)?.full_name || 'Unknown'
+            })) || []
+          }
+        })
+      )
+      
+      setMessages(messagesWithReactions)
+      
+      setTimeout(() => {
+        scrollToBottom(false)
+      }, 100)
+    } catch (error) {
+      console.error('Error fetching messages:', error)
+    }
+  }
+
+  const fetchMessagesWithNewIndicator = async (newMessageId: string) => {
+    if (!user?.company_id || !teamId) return
+
+    try {
+      const { data, error } = await supabase
+        .from('team_messages')
+        .select(`
+          id,
+          content,
+          sender_id,
+          sender:users(id, full_name, email, avatar_url),
+          created_at,
+          type,
+          file_url,
+          file_name,
+          file_size
+        `)
+        .eq('team_id', teamId)
+        .eq('company_id', user.company_id)
+        .order('created_at', { ascending: true })
+
+      if (error) throw error
+      
+      const messagesWithAnimation = (data as any[] || []).map((msg: any) => ({
+        ...msg,
+        isNew: msg.id === newMessageId,
+        reactions: []
+      }))
+      
+      setMessages(messagesWithAnimation)
+      
+      setTimeout(() => {
+        scrollToBottom(true)
+      }, 100)
+      
+      setTimeout(() => {
+        setMessages(prev => prev.map(msg => ({ ...msg, isNew: false })))
+      }, 600)
+      
+    } catch (error) {
+      console.error('Error fetching messages:', error)
+    }
+  }
+
+  const fetchTeamFiles = async () => {
+    if (!user?.company_id || !teamId) return
+
+    try {
+      const { data, error } = await supabase
+        .from('team_messages')
+        .select('id, file_url, file_name, type, created_at')
+        .eq('team_id', teamId)
+        .eq('company_id', user.company_id)
+        .in('type', ['image', 'file', 'audio'])
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      if (error) throw error
+      setTeamFiles(data || [])
+    } catch (error) {
+      console.error('Error fetching team files:', error)
+    }
+  }
+
   const fetchCompanyUsers = async () => {
     if (!user?.company_id || !teamId) return
 
     setLoadingUsers(true)
     try {
-      // Get current member IDs
       const memberIds = members.map(m => m.user.id)
 
-      // Fetch all company users excluding current members
       const { data, error } = await supabase
         .from('users')
-        .select('id, full_name, email')
+        .select('id, full_name, email, avatar_url')
         .eq('company_id', user.company_id)
         .not('id', 'in', `(${memberIds.join(',')})`)
         .order('full_name')
@@ -306,10 +406,7 @@ export default function TeamChatView() {
         description: 'Member added successfully',
       })
 
-      // Refresh team data
       await fetchTeamData()
-      
-      // Remove user from available users list
       setCompanyUsers(prev => prev.filter(u => u.id !== userId))
       
     } catch (error: any) {
@@ -324,88 +421,32 @@ export default function TeamChatView() {
     }
   }
 
-  const fetchMessages = async () => {
-    if (!user?.company_id || !teamId) return
-
-    try {
-      const { data, error } = await supabase
-        .from('team_messages')
-        .select(`
-          id,
-          content,
-          sender_id,
-          sender:users(id, full_name, email),
-          created_at,
-          type,
-          file_url,
-          file_name,
-          file_size
-        `)
-        .eq('team_id', teamId)
-        .eq('company_id', user.company_id)
-        .order('created_at', { ascending: true })
-
-      if (error) throw error
-      setMessages((data as any) || [])
-      
-      // Scroll to bottom after messages load
-      setTimeout(() => {
-        scrollToBottom(false)
-      }, 100)
-    } catch (error) {
-      console.error('Error fetching messages:', error)
-    }
-  }
-
-  const fetchMessagesWithNewIndicator = async (newMessageId: string) => {
-    if (!user?.company_id || !teamId) return
-
-    try {
-      const { data, error } = await supabase
-        .from('team_messages')
-        .select(`
-          id,
-          content,
-          sender_id,
-          sender:users(id, full_name, email),
-          created_at,
-          type,
-          file_url,
-          file_name,
-          file_size
-        `)
-        .eq('team_id', teamId)
-        .eq('company_id', user.company_id)
-        .order('created_at', { ascending: true })
-
-      if (error) throw error
-      
-      const messagesWithAnimation = (data as any[] || []).map((msg: any) => ({
-        ...msg,
-        isNew: msg.id === newMessageId
-      }))
-      
-      setMessages(messagesWithAnimation)
-      
-      // Scroll to bottom for new message
-      setTimeout(() => {
-        scrollToBottom(true)
-      }, 100)
-      
-      setTimeout(() => {
-        setMessages(prev => prev.map(msg => ({ ...msg, isNew: false })))
-      }, 600)
-      
-    } catch (error) {
-      console.error('Error fetching messages:', error)
-    }
-  }
-
   const scrollToBottom = (smooth = true) => {
     messagesEndRef.current?.scrollIntoView({ 
       behavior: smooth ? 'smooth' : 'auto',
       block: 'end'
     })
+  }
+
+  const handleTyping = () => {
+    if (!isTyping) {
+      setIsTyping(true)
+      // Broadcast typing status
+      const channel = supabase.channel(`typing-${teamId}`)
+      channel.track({
+        user_id: user?.id,
+        user_name: user?.full_name,
+        timestamp: Date.now()
+      })
+    }
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false)
+    }, 2000)
   }
 
   const handleSendMessage = async () => {
@@ -433,10 +474,24 @@ export default function TeamChatView() {
         messageData.content = selectedFile.name
       }
 
+      // Upload file if present
       if (selectedFile) {
+        const fileExt = selectedFile.name.split('.').pop()
+        const fileName = `${teamId}/${Date.now()}.${fileExt}`
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('team-files')
+          .upload(fileName, selectedFile)
+
+        if (uploadError) throw uploadError
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('team-files')
+          .getPublicUrl(fileName)
+
+        messageData.file_url = publicUrl
         messageData.file_name = selectedFile.name
         messageData.file_size = selectedFile.size
-        messageData.file_url = 'placeholder-url'
       }
 
       const { error } = await supabase
@@ -449,6 +504,7 @@ export default function TeamChatView() {
       setNewMessage('')
       setSelectedFile(null)
       setUserScrolled(false)
+      setIsTyping(false)
       
     } catch (error: any) {
       toast({
@@ -461,67 +517,55 @@ export default function TeamChatView() {
     }
   }
 
-  const handleStartCall = async () => {
+  const handleReaction = async (messageId: string, emoji: string) => {
+    if (!user?.id) return
+
     try {
-      await startCall()
-      setShowCallModal(true)
-      setDismissedBanner(false)
+      // Check if user already reacted with this emoji
+      const message = messages.find(m => m.id === messageId)
+      const existingReaction = message?.reactions?.find(
+        r => r.user_id === user.id && r.emoji === emoji
+      )
+
+      if (existingReaction) {
+        // Remove reaction
+        await supabase
+          .from('message_reactions')
+          .delete()
+          .eq('id', existingReaction.id)
+      } else {
+        // Add reaction
+        await supabase
+          .from('message_reactions')
+          .insert({
+            message_id: messageId,
+            user_id: user.id,
+            emoji: emoji
+          })
+      }
+
+      // Refresh messages
+      await fetchMessages()
     } catch (error) {
-      console.error('Failed to start call')
+      console.error('Error handling reaction:', error)
     }
-  }
-
-  const handleJoinCall = async () => {
-    await joinCall()
-    setShowCallModal(true)
-    setDismissedBanner(false)
-  }
-
-  const handleLeaveCall = async () => {
-    await leaveCall()
-    setShowCallModal(false)
-    setShowFloatingCall(false)
-  }
-
-  const handleMinimize = () => {
-    setShowCallModal(false)
-    setShowFloatingCall(true)
-  }
-
-  const handleMaximize = () => {
-    setShowFloatingCall(false)
-    setShowCallModal(true)
+    
+    setShowReactionPicker(null)
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setSelectedFile(file)
-    }
-  }
-
-  const handleRecordToggle = async () => {
-    if (isRecording) {
-      setIsRecording(false)
-      
-      if (!user?.id || !user?.company_id || !teamId) return
-
-      try {
-        await supabase
-          .from('team_messages')
-          .insert({
-            team_id: teamId,
-            sender_id: user.id,
-            company_id: user.company_id,
-            content: 'Voice message',
-            type: 'audio',
-            file_name: `voice-${Date.now()}.mp3`
-          })
-      } catch (error) {
-        console.error('Error sending voice message:', error)
+      const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+      if (file.size > MAX_FILE_SIZE) {
+        toast({
+          title: 'File too large',
+          description: 'Maximum file size is 10MB',
+          variant: 'destructive'
+        })
+        return
       }
-    } else {
-      setIsRecording(true)
+      setSelectedFile(file)
     }
   }
 
@@ -531,7 +575,7 @@ export default function TeamChatView() {
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
   }
 
   const formatDate = (dateString: string) => {
@@ -582,12 +626,6 @@ export default function TeamChatView() {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
 
-  const formatRecordingTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
-
   const getAvatarColor = (userId: string) => {
     const colors = [
       'from-blue-500 to-cyan-500',
@@ -601,16 +639,30 @@ export default function TeamChatView() {
     return colors[index]
   }
 
-  const filteredUsers = companyUsers.filter(user =>
-    user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const groupReactions = (reactions?: Reaction[]) => {
+    if (!reactions || reactions.length === 0) return []
+    
+    const grouped = reactions.reduce((acc, reaction) => {
+      if (!acc[reaction.emoji]) {
+        acc[reaction.emoji] = []
+      }
+      acc[reaction.emoji].push(reaction)
+      return acc
+    }, {} as Record<string, Reaction[]>)
+
+    return Object.entries(grouped).map(([emoji, reactions]) => ({
+      emoji,
+      count: reactions.length,
+      users: reactions.map(r => r.user_name),
+      hasUserReacted: reactions.some(r => r.user_id === user?.id)
+    }))
+  }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen bg-slate-50">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-12 w-12 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin" />
+          <Loader2 className="h-10 w-10 text-slate-400 animate-spin" />
           <p className="text-sm text-slate-600">Loading chat...</p>
         </div>
       </div>
@@ -619,9 +671,9 @@ export default function TeamChatView() {
 
   if (!team) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen bg-slate-50">
         <div className="text-center">
-          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4">
             <MessageSquare className="h-8 w-8 text-slate-400" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Team not found</h2>
@@ -639,200 +691,127 @@ export default function TeamChatView() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] sm:h-[calc(100vh-8rem)] max-w-7xl mx-auto px-0 sm:px-4">
+    <div className="flex h-[calc(100vh-4rem)] bg-slate-50">
       <style>{`
         @keyframes slideInUp {
           from {
             opacity: 0;
-            transform: translateY(20px) scale(0.95);
+            transform: translateY(10px);
           }
           to {
             opacity: 1;
-            transform: translateY(0) scale(1);
+            transform: translateY(0);
           }
         }
         
         .message-enter {
-          animation: slideInUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+          animation: slideInUp 0.3s ease-out;
         }
-        
-        @keyframes pulse-glow {
-          0%, 100% {
-            box-shadow: 0 0 0 0 rgba(15, 23, 42, 0.3);
-          }
-          50% {
-            box-shadow: 0 0 0 8px rgba(15, 23, 42, 0);
-          }
-        }
-        
-        .new-message-glow {
-          animation: pulse-glow 1s ease-out;
+
+        .chat-pattern {
+          background-image: 
+            radial-gradient(circle at 20% 50%, rgba(226, 232, 240, 0.3) 1px, transparent 1px),
+            radial-gradient(circle at 80% 80%, rgba(226, 232, 240, 0.3) 1px, transparent 1px);
+          background-size: 50px 50px;
         }
       `}</style>
 
-      {isCallActive && !isInCall && !dismissedBanner && (
-        <CallBanner
-          call={activeCall!}
-          participants={participants}
-          isInCall={isInCall}
-          onJoin={handleJoinCall}
-          onDismiss={() => setDismissedBanner(true)}
-        />
-      )}
+      {/* Left Sidebar - Teams List (Would come from TeamsPage) */}
+      <div className="w-80 bg-white border-r border-slate-200 flex flex-col">
+        <div className="p-4 border-b border-slate-200">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/app/teams')}
+            className="w-full justify-start mb-2"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Teams
+          </Button>
+        </div>
+        <div className="flex-1 p-4">
+          <p className="text-sm text-slate-500 text-center">Teams list would appear here</p>
+        </div>
+      </div>
 
-      {/* Header - Improved Spacing */}
-      <Card className="border-slate-200 shadow-sm mb-2 sm:mb-4 bg-white">
-        <div className="p-4 sm:p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/app/teams')}
-                className="rounded-xl flex-shrink-0 h-9 w-9 sm:h-10 sm:w-10"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-slate-900 flex items-center justify-center shadow-lg shadow-slate-900/20 flex-shrink-0">
-                <span className="text-white font-bold text-base sm:text-lg">
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-white to-slate-50 chat-pattern">
+        {/* Chat Header */}
+        <div className="bg-white border-b border-slate-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-11 w-11">
+                <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(team.id)} text-white font-semibold`}>
                   {getInitials(team.name)}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h2 className="font-semibold text-lg sm:text-xl text-slate-900 truncate mb-1">{team.name}</h2>
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="flex -space-x-2">
-                    {members.slice(0, 3).map((member) => (
-                      <Avatar key={member.id} className="h-6 w-6 sm:h-7 sm:w-7 border-2 border-white shadow-sm">
-                        <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(member.user.id)} text-white text-[10px] sm:text-xs font-semibold`}>
-                          {getInitials(member.user.full_name)}
-                        </AvatarFallback>
-                      </Avatar>
-                    ))}
-                  </div>
-                  <span className="text-xs sm:text-sm text-slate-600 font-medium">{members.length} members</span>
-                </div>
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h2 className="font-semibold text-lg text-slate-900">{team.name}</h2>
+                <p className="text-sm text-slate-500">{members.length} members, {members.filter(m => m.is_online).length} online</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-              {isCallActive ? (
-                isInCall ? (
-                  <Button
-                    onClick={handleMaximize}
-                    className="bg-emerald-500 hover:bg-emerald-600 rounded-xl shadow-lg shadow-emerald-500/30 h-9 sm:h-10 px-3 sm:px-4"
-                  >
-                    <Video className="h-4 w-4 mr-1.5 sm:mr-2" />
-                    <span className="hidden sm:inline">Return to Call</span>
-                    <span className="sm:hidden">Call</span>
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleJoinCall}
-                    disabled={isCreating}
-                    className="bg-emerald-500 hover:bg-emerald-600 rounded-xl shadow-lg shadow-emerald-500/30 h-9 sm:h-10 px-3 sm:px-4"
-                  >
-                    <Phone className="h-4 w-4 mr-1.5 sm:mr-2" />
-                    <span className="hidden sm:inline">Join Call</span>
-                    <span className="sm:hidden">Join</span>
-                  </Button>
-                )
-              ) : (
-                <Button
-                  onClick={handleStartCall}
-                  disabled={isCreating}
-                  className="bg-slate-900 hover:bg-slate-800 rounded-xl shadow-lg shadow-slate-900/20 h-9 sm:h-10 px-3 sm:px-4"
-                >
-                  {isCreating ? (
-                    <>
-                      <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5 sm:mr-2" />
-                      <span className="hidden sm:inline">Starting...</span>
-                      <span className="sm:hidden">...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Video className="h-4 w-4 mr-1.5 sm:mr-2" />
-                      <span className="hidden sm:inline">Start Call</span>
-                      <span className="sm:hidden">Call</span>
-                    </>
-                  )}
-                </Button>
-              )}
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowMembers(true)}
-                className="rounded-xl border-slate-200 h-9 sm:h-10 px-3 sm:px-4 hidden sm:flex"
-              >
-                <Users className="h-4 w-4 mr-1.5 sm:mr-2" />
-                Members
+
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 w-64 h-9 rounded-lg border-slate-200"
+                />
+              </div>
+              <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-lg">
+                <Phone className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-lg">
+                <Video className="h-4 w-4" />
               </Button>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => setShowMembers(true)}
-                className="rounded-xl h-9 w-9 sm:hidden"
+                className="h-9 w-9 p-0 rounded-lg"
+                onClick={() => setShowGroupInfo(!showGroupInfo)}
               >
-                <Users className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="sm" className="rounded-xl h-9 w-9 hidden sm:flex">
-                <Search className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" className="rounded-xl h-9 w-9 hidden sm:flex">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </div>
-      </Card>
 
-      {/* Messages Area - Instagram/WhatsApp Style */}
-      <Card className="flex-1 overflow-hidden flex flex-col border-slate-200 shadow-sm bg-white">
+        {/* Messages Area */}
         <div 
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-50 to-white"
-          style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            WebkitOverflowScrolling: 'touch'
-          }}
+          className="flex-1 overflow-y-auto px-6 py-4"
         >
-          <style>{`
-            .messages-container::-webkit-scrollbar {
-              display: none;
-            }
-          `}</style>
-          <div className="messages-container min-h-full flex flex-col justify-end px-3 sm:px-4 md:px-6 py-4 sm:py-6 space-y-2">
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full min-h-[60vh]">
-                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm">
-                  <MessageSquare className="h-8 w-8 text-slate-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">No messages yet</h3>
-                <p className="text-slate-500 text-center max-w-sm px-4">
-                  Start the conversation by sending the first message to your team
-                </p>
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm">
+                <MessageSquare className="h-8 w-8 text-slate-400" />
               </div>
-            ) : (
-              (() => {
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">No messages yet</h3>
+              <p className="text-slate-500 text-center max-w-sm">
+                Start the conversation by sending the first message
+              </p>
+            </div>
+          ) : (
+            <>
+              {(() => {
                 const groupedMessages = groupMessagesByDate(messages)
                 const dateKeys = Object.keys(groupedMessages).sort((a, b) => 
                   new Date(a).getTime() - new Date(b).getTime()
                 )
 
-                return dateKeys.map((dateKey, dateIndex) => {
+                return dateKeys.map((dateKey) => {
                   const dateMessages = groupedMessages[dateKey]
                   const firstMessageDate = dateMessages[0]?.created_at
 
                   return (
                     <div key={dateKey}>
                       {/* Date Separator */}
-                      <div 
-                        className="flex justify-center my-4 sm:my-6 sticky top-2 z-10"
-                        data-date-key={dateKey}
-                      >
-                        <div className="bg-white/95 backdrop-blur-sm rounded-full px-4 sm:px-5 py-2 shadow-sm border border-slate-200">
-                          <span className="text-xs sm:text-sm font-medium text-slate-600">
+                      <div className="flex justify-center my-6">
+                        <div className="bg-slate-200/80 backdrop-blur-sm rounded-full px-4 py-1.5 shadow-sm">
+                          <span className="text-xs font-medium text-slate-700">
                             {formatDate(firstMessageDate)}
                           </span>
                         </div>
@@ -841,46 +820,36 @@ export default function TeamChatView() {
                       {/* Messages for this date */}
                       {dateMessages.map((message, msgIndex) => {
                         const isOwn = message.sender_id === user?.id
-                        const avatarColor = getAvatarColor(message.sender_id)
                         const prevMessage = msgIndex > 0 ? dateMessages[msgIndex - 1] : null
                         const nextMessage = msgIndex < dateMessages.length - 1 ? dateMessages[msgIndex + 1] : null
                         const showAvatar = !isOwn && (
                           !nextMessage || 
                           nextMessage.sender_id !== message.sender_id ||
-                          new Date(nextMessage.created_at).getTime() - new Date(message.created_at).getTime() > 300000 // 5 minutes
+                          new Date(nextMessage.created_at).getTime() - new Date(message.created_at).getTime() > 300000
                         )
                         const showName = !isOwn && (
                           !prevMessage || 
                           prevMessage.sender_id !== message.sender_id ||
                           new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() > 300000
                         )
-
-                        if (message.type === 'call') {
-                          return (
-                            <div key={message.id} className="flex justify-center my-3 sm:my-4">
-                              <div className="bg-slate-100/90 backdrop-blur-sm rounded-full px-4 sm:px-5 py-2 sm:py-2.5 flex items-center gap-2 sm:gap-2.5 shadow-sm border border-slate-200">
-                                <Phone className="h-4 w-4 text-slate-600" />
-                                <span className="text-xs sm:text-sm text-slate-700">
-                                  <span className="font-semibold">{message.sender?.full_name}</span> {message.content}
-                                </span>
-                                <span className="text-[10px] sm:text-xs text-slate-500">{formatTime(message.created_at)}</span>
-                              </div>
-                            </div>
-                          )
-                        }
+                        const isGroupStart = !prevMessage || prevMessage.sender_id !== message.sender_id
+                        const groupedReactions = groupReactions(message.reactions)
 
                         return (
                           <div
                             key={message.id}
-                            className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-1 ${
-                              message.isNew ? 'message-enter' : ''
-                            }`}
+                            className={`flex ${isOwn ? 'justify-end' : 'justify-start'} ${
+                              isGroupStart ? 'mt-4' : 'mt-1'
+                            } ${message.isNew ? 'message-enter' : ''}`}
+                            onMouseEnter={() => setHoveredMessage(message.id)}
+                            onMouseLeave={() => setHoveredMessage(null)}
                           >
-                            <div className={`flex gap-2 max-w-[85%] sm:max-w-[75%] md:max-w-[70%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
-                              {/* Avatar - only show for others and when needed */}
+                            <div className={`flex gap-2 max-w-[70%] ${isOwn ? 'flex-row-reverse' : 'flex-row'} relative group`}>
+                              {/* Avatar */}
                               {showAvatar && !isOwn && (
-                                <Avatar className="h-8 w-8 flex-shrink-0 mt-auto">
-                                  <AvatarFallback className={`bg-gradient-to-br ${avatarColor} text-white text-xs font-semibold`}>
+                                <Avatar className="h-8 w-8 flex-shrink-0">
+                                  <AvatarImage src={message.sender?.avatar_url} />
+                                  <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(message.sender_id)} text-white text-xs font-semibold`}>
                                     {getInitials(message.sender?.full_name || 'U')}
                                   </AvatarFallback>
                                 </Avatar>
@@ -890,9 +859,9 @@ export default function TeamChatView() {
                               )}
 
                               <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} flex-1`}>
-                                {/* Sender name - only show for others and when needed */}
+                                {/* Sender name */}
                                 {showName && !isOwn && (
-                                  <span className="text-[11px] font-medium text-slate-500 mb-0.5 px-2">
+                                  <span className="text-xs font-medium text-slate-600 mb-1 px-1">
                                     {message.sender?.full_name || 'Unknown'}
                                   </span>
                                 )}
@@ -900,50 +869,28 @@ export default function TeamChatView() {
                                 {/* Message bubble */}
                                 {message.type === 'text' && (
                                   <div
-                                    className={`rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 max-w-full ${
+                                    className={`rounded-2xl px-4 py-2.5 ${
                                       isOwn
-                                        ? 'bg-slate-900 text-white rounded-br-sm shadow-lg shadow-slate-900/20'
-                                        : 'bg-white text-slate-900 rounded-bl-sm shadow-sm border border-slate-100'
-                                    } ${message.isNew && !isOwn ? 'new-message-glow' : ''}`}
+                                        ? 'bg-slate-900 text-white rounded-br-lg'
+                                        : 'bg-white text-slate-900 rounded-bl-lg shadow-sm border border-slate-100'
+                                    }`}
                                   >
-                                    <p className="text-sm sm:text-base leading-relaxed break-words whitespace-pre-wrap">
+                                    <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">
                                       {message.content}
                                     </p>
                                   </div>
                                 )}
 
                                 {message.type === 'image' && (
-                                  <div className={`rounded-2xl overflow-hidden shadow-lg max-w-[280px] sm:max-w-sm ${
-                                    message.isNew && !isOwn ? 'new-message-glow' : ''
+                                  <div className={`rounded-2xl overflow-hidden shadow-lg max-w-sm ${
+                                    isOwn ? 'rounded-br-lg' : 'rounded-bl-lg'
                                   }`}>
                                     <img
                                       src={message.file_url}
                                       alt="Shared image"
-                                      className="max-w-full h-auto max-h-[300px] sm:max-h-[400px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                      onClick={() => {
-                                        // Open image in full screen preview
-                                        const newWindow = window.open('', '_blank')
-                                        if (newWindow) {
-                                          newWindow.document.write(`
-                                            <html>
-                                              <head><title>${message.file_name || 'Image'}</title></head>
-                                              <body style="margin:0;display:flex;justify-content:center;align-items:center;height:100vh;background:#000;">
-                                                <img src="${message.file_url}" style="max-width:100%;max-height:100%;object-fit:contain;" />
-                                              </body>
-                                            </html>
-                                          `)
-                                        }
-                                      }}
+                                      className="max-w-full h-auto max-h-[400px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                      onClick={() => window.open(message.file_url, '_blank')}
                                     />
-                                    {message.content && (
-                                      <div className={`px-3 sm:px-4 py-2 ${
-                                        isOwn
-                                          ? 'bg-slate-900 text-white'
-                                          : 'bg-white text-slate-900'
-                                      }`}>
-                                        <p className="text-sm break-words">{message.content}</p>
-                                      </div>
-                                    )}
                                   </div>
                                 )}
 
@@ -951,157 +898,96 @@ export default function TeamChatView() {
                                   <div
                                     className={`rounded-2xl overflow-hidden ${
                                       isOwn
-                                        ? 'bg-slate-900 text-white rounded-br-sm'
-                                        : 'bg-white text-slate-900 rounded-bl-sm shadow-sm'
-                                    } ${message.isNew && !isOwn ? 'new-message-glow' : ''}`}
+                                        ? 'bg-slate-900 text-white rounded-br-lg'
+                                        : 'bg-white text-slate-900 rounded-bl-lg shadow-sm border border-slate-100'
+                                    }`}
                                   >
-                                    {/* File Preview */}
-                                    {message.file_url && (() => {
-                                      const fileExt = message.file_name?.split('.').pop()?.toLowerCase() || ''
-                                      const isPdf = fileExt === 'pdf'
-                                      const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)
-                                      const isVideo = ['mp4', 'webm', 'mov'].includes(fileExt)
-                                      
-                                      if (isImage) {
-                                        return (
-                                          <div className="max-w-[280px] sm:max-w-sm">
-                                            <img
-                                              src={message.file_url}
-                                              alt={message.file_name}
-                                              className="max-w-full h-auto max-h-[300px] sm:max-h-[400px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                              onClick={() => window.open(message.file_url, '_blank')}
-                                            />
-                                          </div>
-                                        )
-                                      }
-                                      
-                                      if (isPdf) {
-                                        return (
-                                          <div className="p-3 sm:p-4">
-                                            <div className="flex items-start gap-3 mb-3">
-                                              <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                                                isOwn ? 'bg-white/10' : 'bg-red-50'
-                                              }`}>
-                                                <FileText className={`h-6 w-6 ${isOwn ? 'text-white' : 'text-red-600'}`} />
-                                              </div>
-                                              <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium truncate mb-1">{message.file_name}</p>
-                                                <p className={`text-xs ${isOwn ? 'text-white/70' : 'text-slate-500'}`}>
-                                                  {formatFileSize(message.file_size)}
-                                                </p>
-                                              </div>
-                                            </div>
-                                            <iframe
-                                              src={message.file_url}
-                                              className="w-full h-[300px] sm:h-[400px] rounded-lg border border-slate-200"
-                                              title={message.file_name}
-                                            />
-                                            <Button 
-                                              variant="ghost" 
-                                              size="sm" 
-                                              onClick={() => window.open(message.file_url, '_blank')}
-                                              className={`w-full mt-2 rounded-lg ${
-                                                isOwn ? 'hover:bg-white/10' : 'hover:bg-slate-50'
-                                              }`}
-                                            >
-                                              <Download className="h-4 w-4 mr-2" />
-                                              Open in new tab
-                                            </Button>
-                                          </div>
-                                        )
-                                      }
-                                      
-                                      if (isVideo) {
-                                        return (
-                                          <div className="p-2">
-                                            <video
-                                              src={message.file_url}
-                                              controls
-                                              className="max-w-full h-auto max-h-[400px] rounded-lg"
-                                            >
-                                              Your browser does not support the video tag.
-                                            </video>
-                                            {message.file_name && (
-                                              <div className="px-2 py-1.5">
-                                                <p className="text-xs font-medium truncate">{message.file_name}</p>
-                                                <p className={`text-[10px] ${isOwn ? 'text-white/70' : 'text-slate-500'}`}>
-                                                  {formatFileSize(message.file_size)}
-                                                </p>
-                                              </div>
-                                            )}
-                                          </div>
-                                        )
-                                      }
-                                      
-                                      // Default file view
-                                      return (
-                                        <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center gap-3 min-w-[200px]">
-                                          <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                                            isOwn ? 'bg-white/10' : 'bg-slate-100'
-                                          }`}>
-                                            <FileText className={`h-6 w-6 ${isOwn ? 'text-white' : 'text-slate-600'}`} />
-                                          </div>
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium truncate mb-1">{message.file_name}</p>
-                                            <p className={`text-xs ${isOwn ? 'text-white/70' : 'text-slate-500'}`}>
-                                              {formatFileSize(message.file_size)}
-                                            </p>
-                                          </div>
-                                          <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            onClick={() => window.open(message.file_url, '_blank')}
-                                            className={`h-9 w-9 p-0 rounded-lg ${
-                                              isOwn ? 'hover:bg-white/10' : 'hover:bg-slate-100'
-                                            }`}
-                                          >
-                                            <Download className="h-4 w-4" />
-                                          </Button>
-                                        </div>
-                                      )
-                                    })()}
-                                    
-                                    {/* Caption if exists */}
-                                    {message.content && message.content !== message.file_name && (
-                                      <div className={`px-3 sm:px-4 py-2 border-t ${
-                                        isOwn
-                                          ? 'bg-slate-900 text-white border-white/10'
-                                          : 'bg-white text-slate-900 border-slate-200'
+                                    <div className="px-4 py-3 flex items-center gap-3 min-w-[240px]">
+                                      <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                        isOwn ? 'bg-white/10' : 'bg-slate-100'
                                       }`}>
-                                        <p className="text-sm break-words">{message.content}</p>
+                                        <FileText className={`h-6 w-6 ${isOwn ? 'text-white' : 'text-slate-600'}`} />
                                       </div>
-                                    )}
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate mb-1">{message.file_name}</p>
+                                        <p className={`text-xs ${isOwn ? 'text-white/70' : 'text-slate-500'}`}>
+                                          {formatFileSize(message.file_size)}
+                                        </p>
+                                      </div>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={() => window.open(message.file_url, '_blank')}
+                                        className={`h-9 w-9 p-0 rounded-lg ${
+                                          isOwn ? 'hover:bg-white/10' : 'hover:bg-slate-100'
+                                        }`}
+                                      >
+                                        <Download className="h-4 w-4" />
+                                      </Button>
+                                    </div>
                                   </div>
                                 )}
 
                                 {message.type === 'audio' && (
                                   <div
-                                    className={`rounded-2xl px-3 py-2.5 flex items-center gap-2.5 min-w-[200px] ${
+                                    className={`rounded-2xl px-4 py-3 flex items-center gap-3 min-w-[240px] ${
                                       isOwn
-                                        ? 'bg-slate-900 text-white rounded-br-sm'
-                                        : 'bg-white text-slate-900 rounded-bl-sm shadow-sm'
-                                    } ${message.isNew && !isOwn ? 'new-message-glow' : ''}`}
+                                        ? 'bg-slate-900 text-white rounded-br-lg'
+                                        : 'bg-white text-slate-900 rounded-bl-lg shadow-sm border border-slate-100'
+                                    }`}
                                   >
                                     <Button 
                                       variant="ghost" 
                                       size="sm" 
-                                      className={`h-8 w-8 p-0 rounded-full ${
+                                      className={`h-9 w-9 p-0 rounded-full ${
                                         isOwn ? 'hover:bg-white/10' : 'hover:bg-slate-100'
                                       }`}
                                     >
                                       <Play className="h-4 w-4" />
                                     </Button>
                                     <div className="flex-1">
-                                      <div className={`h-1 rounded-full ${isOwn ? 'bg-white/20' : 'bg-slate-200'}`}>
-                                        <div className={`h-full w-0 rounded-full ${isOwn ? 'bg-white' : 'bg-slate-900'}`} />
+                                      <div className={`h-8 flex items-center gap-0.5`}>
+                                        {Array.from({ length: 30 }).map((_, i) => (
+                                          <div
+                                            key={i}
+                                            className={`w-1 rounded-full ${
+                                              isOwn ? 'bg-white/30' : 'bg-slate-900/30'
+                                            }`}
+                                            style={{ 
+                                              height: `${Math.random() * 100}%`,
+                                              minHeight: '20%'
+                                            }}
+                                          />
+                                        ))}
                                       </div>
                                     </div>
                                     <span className="text-xs">0:00</span>
                                   </div>
                                 )}
 
+                                {/* Reactions */}
+                                {groupedReactions.length > 0 && (
+                                  <div className="flex gap-1 mt-1">
+                                    {groupedReactions.map((reaction) => (
+                                      <button
+                                        key={reaction.emoji}
+                                        onClick={() => handleReaction(message.id, reaction.emoji)}
+                                        className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
+                                          reaction.hasUserReacted
+                                            ? 'bg-slate-900 text-white'
+                                            : 'bg-slate-100 hover:bg-slate-200'
+                                        }`}
+                                        title={reaction.users.join(', ')}
+                                      >
+                                        <span>{reaction.emoji}</span>
+                                        <span className="font-medium">{reaction.count}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+
                                 {/* Time and read receipt */}
-                                <div className={`flex items-center gap-1.5 mt-0.5 px-1 ${isOwn ? 'flex-row-reverse' : ''}`}>
+                                <div className={`flex items-center gap-1.5 mt-1 px-1 ${isOwn ? 'flex-row-reverse' : ''}`}>
                                   <span className="text-[10px] text-slate-400">
                                     {formatTime(message.created_at)}
                                   </span>
@@ -1110,6 +996,54 @@ export default function TeamChatView() {
                                   )}
                                 </div>
                               </div>
+
+                              {/* Hover actions */}
+                              {hoveredMessage === message.id && (
+                                <div className={`absolute -top-2 ${isOwn ? 'left-0' : 'right-0'} bg-white shadow-lg rounded-lg border border-slate-200 flex items-center gap-1 p-1`}>
+                                  <button
+                                    onClick={() => setShowReactionPicker(message.id)}
+                                    className="hover:bg-slate-100 rounded p-1"
+                                  >
+                                    <Smile className="h-4 w-4 text-slate-600" />
+                                  </button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <button className="hover:bg-slate-100 rounded p-1">
+                                        <MoreVertical className="h-4 w-4 text-slate-600" />
+                                      </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                      <DropdownMenuItem>
+                                        <Edit className="h-4 w-4 mr-2" />
+                                        Edit
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem>
+                                        <Pin className="h-4 w-4 mr-2" />
+                                        Pin
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem className="text-red-600">
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              )}
+
+                              {/* Reaction picker */}
+                              {showReactionPicker === message.id && (
+                                <div className={`absolute -top-12 ${isOwn ? 'left-0' : 'right-0'} bg-white shadow-lg rounded-lg border border-slate-200 flex items-center gap-1 p-2`}>
+                                  {REACTIONS.map((emoji) => (
+                                    <button
+                                      key={emoji}
+                                      onClick={() => handleReaction(message.id, emoji)}
+                                      className="hover:bg-slate-100 rounded p-2 text-lg transition-transform hover:scale-125"
+                                    >
+                                      {emoji}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                         )
@@ -1117,33 +1051,33 @@ export default function TeamChatView() {
                     </div>
                   )
                 })
-              })()
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+              })()}
+              
+              {/* Typing indicator */}
+              {typingUsers.length > 0 && (
+                <div className="flex items-center gap-2 mt-4 mb-2">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                  <span className="text-xs text-slate-500">
+                    {typingUsers.map(u => u.user_name).join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+                  </span>
+                </div>
+              )}
+              
+              <div ref={messagesEndRef} />
+            </>
+          )}
         </div>
 
-        {userScrolled && (
-          <div className="absolute bottom-20 sm:bottom-24 left-1/2 transform -translate-x-1/2 z-10">
-            <Button
-              onClick={() => {
-                scrollToBottom(true)
-                setUserScrolled(false)
-              }}
-              className="bg-slate-900 hover:bg-slate-800 rounded-full shadow-lg shadow-slate-900/30 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm"
-            >
-              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 rotate-[-90deg]" />
-              <span className="hidden sm:inline">New messages</span>
-              <span className="sm:hidden">New</span>
-            </Button>
-          </div>
-        )}
-
+        {/* Selected file preview */}
         {selectedFile && (
-          <div className="px-4 sm:px-6 py-3 border-t border-slate-200 bg-slate-50">
-            <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="px-6 py-3 bg-white border-t border-slate-200">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
               {selectedFile.type.startsWith('image/') ? (
-                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-xl overflow-hidden flex-shrink-0">
+                <div className="h-16 w-16 rounded-lg overflow-hidden flex-shrink-0">
                   <img
                     src={URL.createObjectURL(selectedFile)}
                     alt="Preview"
@@ -1151,25 +1085,19 @@ export default function TeamChatView() {
                   />
                 </div>
               ) : (
-                <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-slate-900 flex items-center justify-center shadow-lg shadow-slate-900/20 flex-shrink-0">
-                  {selectedFile.type.startsWith('video/') ? (
-                    <Play className="h-6 w-6 text-white" />
-                  ) : selectedFile.type.startsWith('audio/') ? (
-                    <Mic className="h-6 w-6 text-white" />
-                  ) : (
-                    <File className="h-6 w-6 text-white" />
-                  )}
+                <div className="h-12 w-12 rounded-lg bg-slate-900 flex items-center justify-center shadow-sm flex-shrink-0">
+                  <File className="h-6 w-6 text-white" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 truncate mb-0.5">{selectedFile.name}</p>
+                <p className="text-sm font-medium text-slate-900 truncate">{selectedFile.name}</p>
                 <p className="text-xs text-slate-500">{formatFileSize(selectedFile.size)}</p>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelectedFile(null)}
-                className="rounded-lg h-9 w-9"
+                className="rounded-lg h-8 w-8 p-0"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -1177,20 +1105,9 @@ export default function TeamChatView() {
           </div>
         )}
 
-        {isRecording && (
-          <div className="px-6 py-3 border-t border-slate-200 bg-red-50">
-            <div className="flex items-center gap-3">
-              <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-sm font-medium text-red-600">
-                Recording... {formatRecordingTime(recordingTime)}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Input Area - Mobile Optimized */}
-        <div className="p-3 sm:p-4 border-t border-slate-200 bg-white">
-          <div className="flex items-end gap-2">
+        {/* Message Input */}
+        <div className="p-4 bg-white border-t border-slate-200">
+          <div className="flex items-end gap-3">
             <input
               ref={fileInputRef}
               type="file"
@@ -1202,127 +1119,229 @@ export default function TeamChatView() {
               variant="ghost"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
-              disabled={isRecording}
-              className="rounded-xl flex-shrink-0 h-10 w-10 hover:bg-slate-50"
+              className="rounded-xl flex-shrink-0 h-10 w-10 hover:bg-slate-100"
             >
               <Paperclip className="h-5 w-5 text-slate-600" />
             </Button>
-            <Textarea
-              placeholder="Type a message..."
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSendMessage()
-                }
-              }}
-              className="flex-1 min-h-[44px] sm:min-h-[48px] max-h-32 resize-none rounded-2xl sm:rounded-xl border-slate-200 focus:border-slate-300 focus:ring-2 focus:ring-slate-900/10 text-sm sm:text-base bg-white"
-              rows={1}
-              disabled={isRecording || sending}
-            />
+            
+            <div className="flex-1 relative">
+              <Textarea
+                ref={textareaRef}
+                placeholder="Your message"
+                value={newMessage}
+                onChange={(e) => {
+                  setNewMessage(e.target.value)
+                  handleTyping()
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSendMessage()
+                  }
+                }}
+                className="min-h-[44px] max-h-32 resize-none rounded-xl border-slate-200 pr-10 bg-slate-50 placeholder:text-slate-400 text-sm focus:bg-white"
+                rows={1}
+                disabled={sending}
+              />
+              <button
+                onClick={() => setShowReactionPicker('input')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 hover:bg-slate-200 rounded p-1"
+              >
+                <Smile className="h-4 w-4 text-slate-500" />
+              </button>
+            </div>
+
             {newMessage.trim() || selectedFile ? (
               <Button
                 onClick={handleSendMessage}
                 disabled={sending}
-                className="bg-slate-900 hover:bg-slate-800 rounded-full sm:rounded-xl shadow-lg shadow-slate-900/20 hover:shadow-slate-900/30 transition-all flex-shrink-0 h-10 w-10 sm:h-auto sm:w-auto sm:px-4"
+                className="bg-slate-900 hover:bg-slate-800 rounded-xl shadow-lg shadow-slate-900/20 h-10 px-4"
               >
                 {sending ? (
-                  <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
                   <Send className="h-5 w-5" />
                 )}
               </Button>
             ) : (
               <Button
-                onClick={handleRecordToggle}
-                className={`rounded-full sm:rounded-xl shadow-lg flex-shrink-0 h-10 w-10 sm:h-auto sm:w-auto sm:px-4 ${
-                  isRecording 
-                    ? 'bg-red-500 hover:bg-red-600 shadow-red-500/20' 
-                    : 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20'
-                }`}
+                className="bg-slate-900 hover:bg-slate-800 rounded-xl shadow-lg h-10 w-10 p-0"
               >
                 <Mic className="h-5 w-5" />
               </Button>
             )}
           </div>
         </div>
-      </Card>
+      </div>
 
-      {/* Call Modal */}
-      {activeCall && (
-        <CallModal
-          call={activeCall}
-          isOpen={showCallModal}
-          onClose={() => setShowCallModal(false)}
-          onMinimize={handleMinimize}
-          onLeave={handleLeaveCall}
-        />
-      )}
-
-      {/* Floating Call Window */}
-      {activeCall && isInCall && showFloatingCall && (
-        <FloatingCallWindow
-          call={activeCall}
-          participantCount={participantCount}
-          onMaximize={handleMaximize}
-          onLeave={handleLeaveCall}
-        />
-      )}
-
-      {/* Members Dialog */}
-      <Dialog open={showMembers} onOpenChange={setShowMembers}>
-        <DialogContent className="max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl">Team Members</DialogTitle>
-            <DialogDescription>
-              {members.length} {members.length === 1 ? 'member' : 'members'} in this team
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Button 
-              className="w-full bg-slate-900 hover:bg-slate-800 rounded-xl"
-              onClick={() => {
-                setShowAddMember(true)
-                fetchCompanyUsers()
-              }}
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Member
-            </Button>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {members.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors"
-                >
-                  <Avatar className="h-10 w-10 shadow-sm">
-                    <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(member.user.id)} text-white font-semibold`}>
-                      {getInitials(member.user.full_name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-slate-900 truncate">{member.user.full_name}</p>
-                    <p className="text-xs text-slate-500 truncate">{member.user.email}</p>
-                  </div>
-                  <Badge 
-                    variant={member.role === 'admin' ? 'default' : 'secondary'}
-                    className="rounded-full"
-                  >
-                    {member.role}
-                  </Badge>
-                </div>
-              ))}
+      {/* Right Sidebar - Group Info */}
+      {showGroupInfo && (
+        <div className="w-80 bg-white border-l border-slate-200 flex flex-col overflow-y-auto">
+          <div className="p-4 border-b border-slate-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-lg">Group Info</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowGroupInfo(false)}
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="flex flex-col items-center text-center mb-4">
+              <Avatar className="h-20 w-20 mb-3">
+                <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(team.id)} text-white font-bold text-2xl`}>
+                  {getInitials(team.name)}
+                </AvatarFallback>
+              </Avatar>
+              <h4 className="font-semibold text-lg text-slate-900 mb-1">{team.name}</h4>
+              <p className="text-sm text-slate-500">{team.description}</p>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+
+          {/* Files Section */}
+          <div className="border-b border-slate-200">
+            <button
+              onClick={() => setExpandedSections({ ...expandedSections, files: !expandedSections.files })}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50"
+            >
+              <div className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4 text-slate-600" />
+                <span className="text-sm font-medium">Files</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">
+                  {teamFiles.filter(f => f.type === 'image').length}
+                </Badge>
+                {expandedSections.files ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </div>
+            </button>
+            {expandedSections.files && (
+              <div className="px-4 pb-4">
+                <div className="grid grid-cols-3 gap-2">
+                  {teamFiles.filter(f => f.type === 'image').slice(0, 6).map((file) => (
+                    <img
+                      key={file.id}
+                      src={file.file_url}
+                      alt={file.file_name}
+                      className="aspect-square rounded-lg object-cover cursor-pointer hover:opacity-80"
+                      onClick={() => window.open(file.file_url, '_blank')}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Videos Section */}
+          <div className="border-b border-slate-200">
+            <button
+              onClick={() => setExpandedSections({ ...expandedSections, videos: !expandedSections.videos })}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50"
+            >
+              <div className="flex items-center gap-2">
+                <Video className="h-4 w-4 text-slate-600" />
+                <span className="text-sm font-medium">Videos</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">0</Badge>
+                {expandedSections.videos ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </div>
+            </button>
+          </div>
+
+          {/* Audio Section */}
+          <div className="border-b border-slate-200">
+            <button
+              onClick={() => setExpandedSections({ ...expandedSections, audio: !expandedSections.audio })}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50"
+            >
+              <div className="flex items-center gap-2">
+                <Mic className="h-4 w-4 text-slate-600" />
+                <span className="text-sm font-medium">Audio files</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">
+                  {teamFiles.filter(f => f.type === 'audio').length}
+                </Badge>
+                {expandedSections.audio ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </div>
+            </button>
+          </div>
+
+          {/* Voice Messages Section */}
+          <div className="border-b border-slate-200">
+            <div className="px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-slate-600" />
+                <span className="text-sm font-medium">Voice messages</span>
+              </div>
+              <Badge variant="secondary" className="text-xs">
+                {messages.filter(m => m.type === 'audio').length}
+              </Badge>
+            </div>
+          </div>
+
+          {/* Members Section */}
+          <div className="flex-1">
+            <button
+              onClick={() => setExpandedSections({ ...expandedSections, members: !expandedSections.members })}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 border-b border-slate-200"
+            >
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-slate-600" />
+                <span className="text-sm font-medium">{members.length} members</span>
+              </div>
+              {expandedSections.members ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
+            {expandedSections.members && (
+              <div className="p-4 space-y-2">
+                <Button 
+                  className="w-full bg-slate-900 hover:bg-slate-800 rounded-lg justify-start"
+                  onClick={() => {
+                    setShowAddMember(true)
+                    fetchCompanyUsers()
+                  }}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add Member
+                </Button>
+                
+                {members.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50"
+                  >
+                    <div className="relative">
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage src={member.user.avatar_url} />
+                        <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(member.user.id)} text-white text-xs font-semibold`}>
+                          {getInitials(member.user.full_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {member.is_online && (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">{member.user.full_name}</p>
+                      <p className="text-xs text-slate-500 truncate">{member.role}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Add Member Dialog */}
       <Dialog open={showAddMember} onOpenChange={setShowAddMember}>
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl">Add Team Member</DialogTitle>
+            <DialogTitle>Add Team Member</DialogTitle>
             <DialogDescription>
               Select a user from your company to add to this team
             </DialogDescription>
@@ -1335,7 +1354,7 @@ export default function TeamChatView() {
                 placeholder="Search users..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 rounded-xl"
+                className="pl-9 rounded-lg"
               />
             </div>
 
@@ -1344,49 +1363,56 @@ export default function TeamChatView() {
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
                 </div>
-              ) : filteredUsers.length === 0 ? (
+              ) : companyUsers.filter(u =>
+                  u.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  u.email.toLowerCase().includes(searchQuery.toLowerCase())
+                ).length === 0 ? (
                 <div className="text-center py-8">
                   <Users className="h-8 w-8 text-slate-300 mx-auto mb-2" />
-                  <p className="text-sm text-slate-500">
-                    {searchQuery ? 'No users found' : 'No available users to add'}
-                  </p>
+                  <p className="text-sm text-slate-500">No users found</p>
                 </div>
               ) : (
-                filteredUsers.map((companyUser) => (
-                  <div
-                    key={companyUser.id}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors"
-                  >
-                    <Avatar className="h-10 w-10 shadow-sm">
-                      <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(companyUser.id)} text-white font-semibold`}>
-                        {getInitials(companyUser.full_name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-slate-900 truncate">
-                        {companyUser.full_name}
-                      </p>
-                      <p className="text-xs text-slate-500 truncate">
-                        {companyUser.email}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => handleAddMember(companyUser.id)}
-                      disabled={addingMember}
-                      className="bg-slate-900 hover:bg-slate-800 rounded-xl"
+                companyUsers
+                  .filter(u =>
+                    u.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    u.email.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  .map((companyUser) => (
+                    <div
+                      key={companyUser.id}
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50"
                     >
-                      {addingMember ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <UserPlus className="h-4 w-4 mr-1" />
-                          Add
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                ))
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={companyUser.avatar_url} />
+                        <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(companyUser.id)} text-white font-semibold`}>
+                          {getInitials(companyUser.full_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">
+                          {companyUser.full_name}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate">
+                          {companyUser.email}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleAddMember(companyUser.id)}
+                        disabled={addingMember}
+                        className="bg-slate-900 hover:bg-slate-800 rounded-lg"
+                      >
+                        {addingMember ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <UserPlus className="h-4 w-4 mr-1" />
+                            Add
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  ))
               )}
             </div>
           </div>
