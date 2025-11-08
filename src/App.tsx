@@ -24,8 +24,10 @@ import AnalyticsDashboard from '@/pages/dashboard/AnalyticsDashboard'
 import DepartmentsPage from './pages/DepartmentsPage'
 import DepartmentDetailPage from './pages/departments/[id]'
 import TeamsPage from './pages/TeamsPage'
-import TeamChatView from '@/pages/teams/TeamChatView'
 import SettingsPage from './pages/SettingsPage'
+
+// ❌ REMOVED: TeamChatView is now a component, not a page
+// import TeamChatView from '@/pages/teams/TeamChatView'
 
 import Layout from './components/Layout'
 
@@ -188,7 +190,7 @@ function AppRoutes() {
         }
       />
 
-      {/* 👥 Teams */}
+      {/* 👥 Teams - Now includes chat as a component */}
       <Route
         path="/app/teams"
         element={
@@ -197,14 +199,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/app/teams/:teamId"
-        element={
-          <ProtectedRoute>
-            <TeamChatView />
-          </ProtectedRoute>
-        }
-      />
+      {/* ❌ REMOVED: /app/teams/:teamId route - chat is now embedded in TeamsPage */}
 
       {/* ⚙️ Settings */}
       <Route

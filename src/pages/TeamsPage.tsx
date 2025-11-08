@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -24,13 +23,8 @@ import {
   Search,
   MessageSquare,
   Loader2,
-  Clock,
-  Hash,
-  Circle,
-  TrendingUp,
-  ArrowRight,
-  MoreVertical,
 } from 'lucide-react'
+import TeamChatView from '@/components/teams/TeamChatView'
 
 interface Team {
   id: string
@@ -66,7 +60,6 @@ const AVATAR_COLORS = [
 ]
 
 export default function TeamsPage() {
-  const navigate = useNavigate()
   const { user } = useAuth()
   const { toast } = useToast()
   const [teams, setTeams] = useState<Team[]>([])
@@ -74,6 +67,7 @@ export default function TeamsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -223,7 +217,8 @@ export default function TeamsPage() {
         description: 'Team created successfully'
       })
 
-      navigate(`/app/teams/${newTeam.id}`)
+      // Auto-select the newly created team
+      setSelectedTeamId(newTeam.id)
     } catch (error) {
       console.error('Error creating team:', error)
       toast({
@@ -237,7 +232,7 @@ export default function TeamsPage() {
   }
 
   const handleTeamClick = (teamId: string) => {
-    navigate(`/app/teams/${teamId}`)
+    setSelectedTeamId(teamId)
   }
 
   const filteredTeams = teams.filter(team =>
@@ -408,12 +403,17 @@ export default function TeamsPage() {
             <div className="space-y-1 p-2">
               {filteredTeams.map((team) => {
                 const unreadCount = Math.floor(Math.random() * 5) // Placeholder
+                const isSelected = selectedTeamId === team.id
                 
                 return (
                   <button
                     key={team.id}
                     onClick={() => handleTeamClick(team.id)}
-                    className="w-full p-3 rounded-lg hover:bg-slate-50 transition-colors text-left group"
+                    className={`w-full p-3 rounded-lg transition-colors text-left group ${
+                      isSelected 
+                        ? 'bg-slate-900 text-white' 
+                        : 'hover:bg-slate-50'
+                    }`}
                   >
                     <div className="flex items-start gap-3">
                       <div className="relative flex-shrink-0">
@@ -429,19 +429,25 @@ export default function TeamsPage() {
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-semibold text-sm text-slate-900 truncate">
+                          <h3 className={`font-semibold text-sm truncate ${
+                            isSelected ? 'text-white' : 'text-slate-900'
+                          }`}>
                             {team.name}
                           </h3>
-                          <span className="text-[11px] text-slate-400 flex-shrink-0">
+                          <span className={`text-[11px] flex-shrink-0 ${
+                            isSelected ? 'text-slate-300' : 'text-slate-400'
+                          }`}>
                             {team.last_message && getTimeAgo(team.last_message.created_at)}
                           </span>
                         </div>
                         
                         <div className="flex items-center justify-between">
-                          <p className="text-xs text-slate-600 truncate">
+                          <p className={`text-xs truncate ${
+                            isSelected ? 'text-slate-300' : 'text-slate-600'
+                          }`}>
                             {formatLastMessage(team)}
                           </p>
-                          {unreadCount > 0 && (
+                          {unreadCount > 0 && !isSelected && (
                             <Badge className="bg-slate-900 hover:bg-slate-900 text-white rounded-full h-5 min-w-5 flex items-center justify-center text-[10px] ml-2">
                               {unreadCount}
                             </Badge>
@@ -457,18 +463,25 @@ export default function TeamsPage() {
         </div>
       </div>
 
-      {/* Main Content - Empty State */}
-      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-        <div className="text-center">
-          <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-            <MessageSquare className="h-10 w-10 text-slate-400" />
+      {/* Main Content - Team Chat or Empty State */}
+      {selectedTeamId ? (
+        <TeamChatView 
+          teamId={selectedTeamId} 
+          onClose={() => setSelectedTeamId(null)}
+        />
+      ) : (
+        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+              <MessageSquare className="h-10 w-10 text-slate-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-slate-900 mb-2">Select a team to start chatting</h3>
+            <p className="text-slate-500 max-w-sm">
+              Choose a team from the list to view messages and collaborate with your team members
+            </p>
           </div>
-          <h3 className="text-xl font-semibold text-slate-900 mb-2">Select a team to start chatting</h3>
-          <p className="text-slate-500 max-w-sm">
-            Choose a team from the list to view messages and collaborate with your team members
-          </p>
         </div>
-      </div>
+      )}
     </div>
   )
 }
