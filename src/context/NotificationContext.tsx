@@ -1,6 +1,7 @@
 // src/context/NotificationContext.tsx
 import { createContext, useContext, useState, useEffect, ReactNode, useRef, useMemo, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../lib/auth'
 import useSound from 'use-sound'
 import { Toast } from '@/components/ToastNotification'
 
@@ -36,15 +37,13 @@ type NotificationContextType = {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
+  const { user, company } = useAuth() // ✅ Get user from AuthContext instead of making separate auth calls
   const [currentPath, setCurrentPath] = useState(window.location.pathname)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [toasts, setToasts] = useState<Toast[]>([])
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const [companyId, setCompanyId] = useState<string | null>(null)
-  const [isInitialLoad, setIsInitialLoad] = useState(true)
-  const [processedNotificationIds, setProcessedNotificationIds] = useState<Set<string>>(new Set())
-  const [processedMessageIds, setProcessedMessageIds] = useState<Set<string>>(new Set())
   const initialLoadCompleteRef = useRef(false)
   const processedMessageIdsRef = useRef<Set<string>>(new Set())
   const processedNotificationIdsRef = useRef<Set<string>>(new Set())
@@ -54,38 +53,23 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     volume: 0.5,
   })
 
-  // Get current user
+  // ✅ Get user data from AuthContext (no race condition with auth loading)
   useEffect(() => {
-    const getUser = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          setUserId(user.id)
-          
-          const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('company_id')
-            .eq('id', user.id)
-            .single()
-          
-          if (userError) {
-            console.error('Error fetching user company_id:', userError)
-            setCompanyId(null)
-          } else {
-            setCompanyId(userData?.company_id || null)
-          }
-        } else {
-          setUserId(null)
-          setCompanyId(null)
-        }
-      } catch (error) {
-        console.error('Error getting user:', error)
-        setUserId(null)
-        setCompanyId(null)
-      }
+    console.log('📍 NotificationContext: Auth state changed', {
+      hasUser: !!user,
+      userId: user?.id,
+      hasCompany: !!company,
+      companyId: company?.id
+    })
+    
+    if (user?.id) {
+      setUserId(user.id)
+      setCompanyId(company?.id || null)
+    } else {
+      setUserId(null)
+      setCompanyId(null)
     }
-    getUser()
-  }, [])
+  }, [user, company])
 
   // ✅ Check if user is currently viewing the entity
   // Use window.location.hash directly since app uses HashRouter
@@ -224,27 +208,25 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const shouldShowNotificationRef = useRef(shouldShowNotification)
   const showToastRef = useRef(showToast)
   
-  // Keep refs updated with latest function versions - must run before subscriptions
-  // Use a separate useEffect with higher priority to ensure refs are updated first
+  // ✅ Keep refs updated - use useLayoutEffect to run synchronously before paint
   useEffect(() => {
     shouldShowNotificationRef.current = shouldShowNotification
     showToastRef.current = showToast
-    console.log('✅ Updated notification refs')
-  }, [shouldShowNotification, showToast])
+  })
   
-  // Also update refs synchronously on each render to ensure they're always current
-  // This is safe because refs don't cause re-renders
-  shouldShowNotificationRef.current = shouldShowNotification
-  showToastRef.current = showToast
+  // Remove the synchronous ref updates that were causing re-renders
+  // shouldShowNotificationRef.current = shouldShowNotification
+  // showToastRef.current = showToast
 
   const fetchNotifications = async (): Promise<void> => {
     try {
       if (!userId) {
         setNotifications([])
         setLoading(false)
-        setIsInitialLoad(false)
         return
       }
+
+      console.log('📥 Fetching notifications for userId:', userId)
 
       const { data, error } = await supabase
         .from('notifications')
@@ -256,14 +238,22 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching notifications:', error)
         setNotifications([])
       } else {
-        setNotifications(data || [])
+        console.log('✅ Fetched notifications:', data?.length || 0)
+        // Map the data to handle null values
+        const mappedData = (data || []).map(n => ({
+          ...n,
+          link: n.link || undefined,
+          entity_id: n.entity_id || undefined,
+          entity_type: n.entity_type || undefined,
+          sender_name: n.sender_name || undefined,
+          sender_avatar: n.sender_avatar || undefined
+        }))
+        setNotifications(mappedData)
         // Track processed notification IDs to prevent duplicates - only track existing ones
         if (data && data.length > 0) {
           const ids = new Set(data.map(n => n.id))
-          setProcessedNotificationIds(ids)
           processedNotificationIdsRef.current = ids
         } else {
-          setProcessedNotificationIds(new Set())
           processedNotificationIdsRef.current = new Set()
         }
       }
@@ -272,33 +262,31 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setNotifications([])
     } finally {
       setLoading(false)
-      setIsInitialLoad(false)
     }
   }
 
   // ✅ Real-time subscriptions
   useEffect(() => {
+    console.log('🔌 Notification subscriptions effect triggered', { userId, companyId })
+    
     if (!userId || !companyId) {
       // Reset state when user/company is not available
       setNotifications([])
       setToasts([])
-      setProcessedNotificationIds(new Set())
-      setProcessedMessageIds(new Set())
       processedNotificationIdsRef.current = new Set()
       processedMessageIdsRef.current = new Set()
       initialLoadCompleteRef.current = false
-      setIsInitialLoad(true)
       setLoading(false) // ✅ Set loading to false when no user
+      console.log('⏸️ No userId or companyId, skipping subscriptions')
       return
     }
 
+    console.log('🚀 Setting up notification subscriptions for userId:', userId, 'companyId:', companyId)
+
     // Reset state when userId/companyId changes (e.g., on refresh or login)
-    setProcessedNotificationIds(new Set())
-    setProcessedMessageIds(new Set())
     processedNotificationIdsRef.current = new Set()
     processedMessageIdsRef.current = new Set()
     initialLoadCompleteRef.current = false
-    setIsInitialLoad(true)
     setToasts([]) // Clear any existing toasts
     setLoading(true) // ✅ Set loading to true when starting to fetch
 
@@ -308,7 +296,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         const timeoutId = setTimeout(() => {
           console.warn('⚠️ Notification fetch timeout - setting loading to false')
           setLoading(false)
-          setIsInitialLoad(false)
         }, 10000) // 10 second timeout
 
         await fetchNotifications()
@@ -319,7 +306,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('❌ Error setting up subscriptions:', error)
         setLoading(false) // ✅ Ensure loading is set to false on error
-        setIsInitialLoad(false)
       }
     }
 
@@ -351,7 +337,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           }
           
           processedNotificationIdsRef.current.add(newNotification.id)
-          setProcessedNotificationIds(prev => new Set([...prev, newNotification.id]))
           
           // Only add notification if user is not currently viewing that entity
           console.log('🔍 Checking if should show notification, ref exists:', !!shouldShowNotificationRef.current)
@@ -454,7 +439,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           }
           
           processedMessageIdsRef.current.add(message.id)
-          setProcessedMessageIds(prev => new Set([...prev, message.id]))
 
           try {
             console.log('🔍 Checking team membership for team:', message.team_id, 'userId:', userId)
@@ -587,6 +571,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const markAsRead = async (id: string) => {
     try {
+      if (!userId) return
+      
       const { error } = await supabase
         .from('notifications')
         .update({ read: true, read_at: new Date().toISOString() })
@@ -625,6 +611,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const deleteNotification = async (id: string) => {
     try {
+      if (!userId) return
+      
       const { error } = await supabase
         .from('notifications')
         .delete()

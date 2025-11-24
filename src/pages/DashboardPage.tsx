@@ -1,11 +1,22 @@
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import AdminDashboard from './dashboard/AdminDashboard'
 import EmployeeDashboard from './dashboard/EmployeeDashboard'
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth()
+  const { pathname } = useLocation()
   const [pageLoading, setPageLoading] = useState(true)
+  
+  // Determine active tab from route - must match exactly
+  const getActiveTab = () => {
+    if (pathname === '/app/dashboard/users') return 'users'
+    if (pathname === '/app/dashboard/assets') return 'assets'
+    return 'overview'
+  }
+  
+  const activeTab = getActiveTab()
 
   useEffect(() => {
     if (!authLoading) {
@@ -16,6 +27,11 @@ export default function DashboardPage() {
       return () => clearTimeout(timer)
     }
   }, [authLoading])
+  
+  // Reset loading when route changes
+  useEffect(() => {
+    setPageLoading(false)
+  }, [pathname])
 
   if (pageLoading || !user) {
     return (
@@ -30,7 +46,7 @@ export default function DashboardPage() {
 
   // Route based on user role
   if (user.role === 'admin') {
-    return <AdminDashboard />
+    return <AdminDashboard activeTab={activeTab} />
   }
 
   return <EmployeeDashboard />

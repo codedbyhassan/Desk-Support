@@ -5,7 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Download, FileText, Users, Package, Ticket, FileSpreadsheet } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
-export default function ReportsPanel() {
+interface ReportsPanelProps {
+  noCard?: boolean
+}
+
+export default function ReportsPanel({ noCard = false }: ReportsPanelProps) {
   const [loading, setLoading] = useState<string | null>(null)
 
   const downloadCSV = (data: any[], filename: string) => {
@@ -249,12 +253,14 @@ export default function ReportsPanel() {
     }
   ]
 
-  return (
-    <Card className="backdrop-blur-sm bg-white/50 dark:bg-gray-800/50 border-white/20 dark:border-gray-700/20">
-      <CardHeader className="p-4 lg:p-6">
-        <CardTitle className="text-xl lg:text-2xl">Reports & Export</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4 lg:p-6 space-y-4 lg:space-y-6">
+  const content = (
+    <>
+      {!noCard && (
+        <CardHeader className="p-4 lg:p-6">
+          <CardTitle className="text-xl lg:text-2xl">Reports & Export</CardTitle>
+        </CardHeader>
+      )}
+      <CardContent className={`${noCard ? 'p-0' : 'p-4 lg:p-6'} space-y-4 lg:space-y-6`}>
         {/* Reports Grid - 1 column on mobile, 2 on desktop */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
           {reports.map((report) => (
@@ -329,6 +335,16 @@ export default function ReportsPanel() {
           </p>
         </div>
       </CardContent>
+    </>
+  )
+
+  if (noCard) {
+    return content
+  }
+
+  return (
+    <Card className="backdrop-blur-sm bg-white/50 dark:bg-gray-800/50 border-white/20 dark:border-gray-700/20">
+      {content}
     </Card>
   )
 }

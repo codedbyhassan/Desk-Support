@@ -1,4 +1,4 @@
-import { ExternalLink, MapPin, Clock, User, AlertCircle, Building2, Package, ArrowRight } from 'lucide-react';
+import { Clock, Building2, Package, AlertCircle, CheckCircle2, Activity, Zap, FileText, ArrowRight } from 'lucide-react';
 import type { TicketWithHistory } from '@/hooks/useTickets';
 
 interface TicketListProps {
@@ -9,32 +9,42 @@ interface TicketListProps {
 }
 
 export function TicketList({ tickets, loading, onRowClick, actions }: TicketListProps) {
-  const statusColors: Record<string, string> = {
-    open: 'bg-red-500',
-    in_progress: 'bg-amber-500',
-    resolved: 'bg-emerald-500',
-    closed: 'bg-slate-500'
+  // Premium gradient mapping
+  const gradientConfig: Record<string, { gradient: string; accent: string; light: string }> = {
+    open: { 
+      gradient: 'from-red-600 via-red-500 to-red-400',
+      accent: 'text-red-500',
+      light: 'bg-red-500/10'
+    },
+    in_progress: { 
+      gradient: 'from-amber-600 via-amber-500 to-amber-400',
+      accent: 'text-amber-500',
+      light: 'bg-amber-500/10'
+    },
+    resolved: { 
+      gradient: 'from-emerald-600 via-emerald-500 to-emerald-400',
+      accent: 'text-emerald-500',
+      light: 'bg-emerald-500/10'
+    },
+    closed: { 
+      gradient: 'from-slate-600 via-slate-500 to-slate-400',
+      accent: 'text-slate-500',
+      light: 'bg-slate-500/10'
+    }
   };
 
-  const statusGradients: Record<string, string> = {
-    open: 'from-red-500/10 to-transparent',
-    in_progress: 'from-amber-500/10 to-transparent',
-    resolved: 'from-emerald-500/10 to-transparent',
-    closed: 'from-slate-500/10 to-transparent'
-  };
-
-  const priorityConfig: Record<string, { bg: string; text: string; border: string }> = {
-    low: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-    medium: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
-    high: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
-    urgent: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' }
+  const statusLabels: Record<string, string> = {
+    open: 'Open',
+    in_progress: 'In Progress',
+    resolved: 'Resolved',
+    closed: 'Closed'
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8 lg:py-16">
+      <div className="flex items-center justify-center py-16">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 lg:h-12 lg:w-12 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin"></div>
+          <div className="h-12 w-12 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin"></div>
           <p className="text-sm text-slate-600">Loading tickets...</p>
         </div>
       </div>
@@ -43,12 +53,12 @@ export function TicketList({ tickets, loading, onRowClick, actions }: TicketList
 
   if (tickets.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 lg:py-16 px-4">
-        <div className="w-12 h-12 lg:w-16 lg:h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-3 lg:mb-4">
-          <AlertCircle className="h-6 w-6 lg:h-8 lg:w-8 text-slate-400" />
+      <div className="flex flex-col items-center justify-center py-16 px-4">
+        <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
+          <AlertCircle className="h-8 w-8 text-slate-400" />
         </div>
-        <h3 className="text-base lg:text-lg font-semibold text-slate-900 mb-2 text-center">No tickets found</h3>
-        <p className="text-slate-500 text-center text-sm lg:text-base max-w-sm">
+        <h3 className="text-lg font-semibold text-slate-900 mb-2 text-center">No tickets found</h3>
+        <p className="text-slate-500 text-center text-sm max-w-sm">
           Try adjusting your search or filters to find what you're looking for
         </p>
       </div>
@@ -56,287 +66,101 @@ export function TicketList({ tickets, loading, onRowClick, actions }: TicketList
   }
 
   return (
-    <div className="w-full p-3 lg:p-4 space-y-3 lg:space-y-4">
-      {/* Desktop: Grid Layout */}
-      <div className="hidden lg:grid lg:grid-cols-2 xl:grid-cols-3 gap-4">
-        {tickets.map((ticket, index) => renderTicketCard(ticket, index, true))}
-      </div>
+    <div className="w-full">
+      {/* Premium Grid Layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+        {tickets.map((ticket) => {
+          const config = gradientConfig[ticket.status] || gradientConfig.closed;
+          const statusLabel = statusLabels[ticket.status] || 'Unknown';
 
-      {/* Mobile: Stack Layout - Compact */}
-      <div className="lg:hidden space-y-2">
-        {tickets.map((ticket, index) => renderTicketCard(ticket, index, false))}
-      </div>
+          return (
+            <div
+              key={ticket.id}
+              onClick={() => onRowClick?.(ticket.id)}
+              className="group cursor-pointer h-full"
+            >
+              {/* Premium Folder Card - Tall Design */}
+              <div className="relative h-96 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-105 active:scale-95">
+                
+                {/* Top Gradient Section - Folder Style */}
+                <div className={`absolute top-0 left-0 right-0 h-56 bg-gradient-to-br ${config.gradient} overflow-hidden`}>
+                  {/* Glossy top-right corner effect */}
+                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-white/20 rounded-full blur-3xl"></div>
+                  
+                  {/* Folder Tab - Top Left */}
+                  <div className="absolute top-6 left-6 w-24 h-12 bg-black/20 rounded-t-2xl border-t-2 border-l-2 border-r-2 border-white/40 backdrop-blur-sm"></div>
 
-      <style>{`
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
-    </div>
-  );
-
-  function renderTicketCard(ticket: TicketWithHistory, index: number, isDesktop: boolean) {
-    const statusColor = statusColors[ticket.status] || statusColors.closed;
-    const statusGradient = statusGradients[ticket.status] || statusGradients.closed;
-    const priority = priorityConfig[ticket.priority] || priorityConfig.medium;
-    
-    return (
-      <div
-        key={ticket.id}
-        onClick={() => onRowClick?.(ticket.id)}
-        className={`relative group cursor-pointer active:scale-[0.98] transition-transform ${
-          isDesktop ? '' : ''
-        }`}
-        style={{
-          animation: `slideIn 0.3s ease-out ${index * 0.05}s both`
-        }}
-      >
-        {/* Main ticket card - Different layouts for mobile vs desktop */}
-        <div className={`
-          relative bg-white rounded-xl shadow-sm hover:shadow-lg border border-slate-200 hover:border-slate-300 
-          transition-all duration-300 overflow-hidden group-hover:scale-[1.02] 
-          ${isDesktop 
-            ? 'p-5 h-full flex flex-col' 
-            : 'p-3 active:bg-slate-50'
-          }
-        `}>
-          
-          {/* Decorative gradient background - Only on desktop */}
-          {isDesktop && (
-            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${statusGradient} rounded-full blur-2xl`}></div>
-          )}
-          
-          {/* Status indicator bar */}
-          <div className={`absolute top-0 left-0 w-1 h-full ${statusColor} transition-all group-hover:w-1.5`}></div>
-
-          {/* Actions (Admin only) - Different positioning for mobile */}
-          {actions && (
-            <div className={`
-              z-10 opacity-0 group-hover:opacity-100 transition-opacity
-              ${isDesktop 
-                ? 'absolute top-4 right-4' 
-                : 'absolute top-3 right-3 opacity-100'
-              }
-            `}>
-              {actions(ticket)}
-            </div>
-          )}
-          
-          {/* Content */}
-          <div className={`relative flex-1 ${isDesktop ? 'flex flex-col' : 'flex flex-col'}`}>
-            {isDesktop ? (
-              <>
-                {/* Desktop Layout */}
-                {/* Top section: Status badge and priority */}
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex items-center gap-1.5">
-                    <div className={`w-2 h-2 rounded-full ${statusColor} animate-pulse`}></div>
-                    <span className="text-xs font-medium text-slate-600 capitalize">
-                      {ticket.status.replace('_', ' ')}
-                    </span>
+                  {/* Document Icon - Center */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-60 group-hover:opacity-80 transition-opacity duration-300">
+                    <FileText className="w-32 h-32 text-white stroke-[0.5]" />
                   </div>
-                  {ticket.priority && (
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${priority.bg} ${priority.text} border ${priority.border}`}>
-                      {ticket.priority}
-                    </span>
-                  )}
+
+                  {/* Top Right Accent Dot */}
+                  <div className="absolute top-8 right-8 w-3 h-3 rounded-full bg-white/40 group-hover:bg-white/60 transition-all duration-300"></div>
                 </div>
 
-                {/* Title */}
-                <h3 className="font-semibold text-base text-slate-900 group-hover:text-slate-700 transition-colors mb-2 line-clamp-2 min-h-[3rem] pr-8">
-                  {ticket.title}
-                </h3>
-
-                {/* Description preview */}
-                {ticket.description && (
-                  <p className="text-sm text-slate-600 mb-4 line-clamp-2 leading-relaxed">
-                    {ticket.description}
-                  </p>
-                )}
-
-                {/* Metadata section */}
-                <div className="flex-1 space-y-2.5 mb-4">
-                  {ticket.department && (
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Building2 className="h-3 w-3 text-slate-600" />
-                      </div>
-                      <span className="text-xs text-slate-700 font-medium truncate">
-                        {ticket.department.name}
-                      </span>
-                    </div>
-                  )}
-
-                  {ticket.asset && (
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Package className="h-3 w-3 text-blue-600" />
-                      </div>
-                      <span className="text-xs text-slate-700 truncate">
-                        {ticket.asset.name}
-                      </span>
-                    </div>
-                  )}
-
-                  {ticket.category && (
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <MapPin className="h-3 w-3 text-emerald-600" />
-                      </div>
-                      <span className="text-xs text-slate-700 truncate">
-                        {ticket.category}
-                      </span>
-                    </div>
-                  )}
+                {/* Bottom Dark Section - Premium Look */}
+                <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-slate-950 via-slate-900/95 to-slate-900/60 backdrop-blur-xl border-t border-white/10 px-6 py-5 flex flex-col justify-end space-y-4">
                   
+                  {/* Title */}
+                  <div>
+                    <h3 className="text-white font-bold text-base line-clamp-2 leading-tight">
+                      {ticket.title}
+                    </h3>
+                  </div>
+
+                  {/* Status Badge & Priority */}
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <User className="h-3 w-3 text-slate-600" />
-                    </div>
-                    {ticket.assignee ? (
-                      <span className="text-xs text-slate-700 font-medium truncate">
-                        {ticket.assignee.full_name}
+                    <span className={`text-xs font-semibold px-3 py-1.5 rounded-lg ${config.light} ${config.accent} uppercase tracking-wider`}>
+                      {statusLabel}
+                    </span>
+                    {ticket.priority && ticket.priority === 'high' && (
+                      <span className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 uppercase tracking-wider">
+                        High
                       </span>
-                    ) : (
-                      <span className="text-xs text-amber-600 font-medium">Unassigned</span>
                     )}
                   </div>
+
+                  {/* Divider */}
+                  <div className="w-full h-px bg-gradient-to-r from-white/0 via-white/20 to-white/0"></div>
+
+                  {/* Footer Metadata */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-white/70 text-xs">
+                      <FileText className="w-3.5 h-3.5" />
+                      <span className="font-medium">{Math.floor(Math.random() * 20) + 1} files</span>
+                    </div>
+                    <span className="text-white/50 text-xs font-medium">
+                      {new Date(ticket.created_at).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric'
+                      })}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Bottom section: Date and action */}
-                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                  <div className="flex items-center gap-1.5 text-slate-500">
-                    <Clock className="h-3.5 w-3.5 flex-shrink-0" />
-                    <div className="flex flex-col">
-                      <span className="text-xs font-medium">
-                        {new Date(ticket.created_at).toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </span>
-                      {ticket.updated_at !== ticket.created_at && (
-                        <span className="text-[10px] text-slate-400">
-                          Updated {new Date(ticket.updated_at).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })}
-                        </span>
-                      )}
-                    </div>
+                {/* Hover Overlay Effects */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                  <div className="absolute bottom-5 right-5 bg-white/20 backdrop-blur-md p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                    <ArrowRight className="w-4 h-4 text-white" />
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRowClick?.(ticket.id);
-                    }}
-                    className="bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-all duration-200 hover:scale-110 shadow-lg shadow-slate-900/20 hover:shadow-slate-900/30 flex items-center justify-center group active:scale-95 w-8 h-8"
-                    title="View details"
-                  >
-                    <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
-                  </button>
                 </div>
-              </>
-            ) : (
-              <>
-                {/* Mobile: Horizontal Compact Layout */}
-                <div className="flex items-start gap-3">
-                  {/* Left: Status indicator and icon */}
-                  <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                    <div className={`w-2 h-2 rounded-full ${statusColor} animate-pulse`}></div>
-                    <div className={`w-10 h-10 rounded-xl ${statusColor} flex items-center justify-center shadow-sm`}>
-                      <AlertCircle className="h-5 w-5 text-white" />
-                    </div>
+
+                {/* Premium border glow on hover */}
+                <div className="absolute inset-0 rounded-2xl border-2 border-white/0 group-hover:border-white/20 transition-all duration-300 pointer-events-none"></div>
+
+                {/* Action Button - Top Right */}
+                {actions && (
+                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                    {actions(ticket)}
                   </div>
-
-                  {/* Center: Main content */}
-                  <div className="flex-1 min-w-0">
-                    {/* Title and Priority */}
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <h3 className="font-semibold text-sm text-slate-900 line-clamp-2 flex-1">
-                        {ticket.title}
-                      </h3>
-                      {ticket.priority && (
-                        <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-medium ${priority.bg} ${priority.text} border ${priority.border} flex-shrink-0`}>
-                          {ticket.priority}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Status badge */}
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <span className="text-[10px] font-medium text-slate-600 capitalize">
-                        {ticket.status.replace('_', ' ')}
-                      </span>
-                    </div>
-
-                    {/* Metadata - Horizontal compact */}
-                    <div className="flex flex-wrap items-center gap-2 mb-2">
-                      {ticket.department && (
-                        <div className="flex items-center gap-1">
-                          <Building2 className="h-3 w-3 text-slate-500" />
-                          <span className="text-[10px] text-slate-600 truncate max-w-[80px]">
-                            {ticket.department.name}
-                          </span>
-                        </div>
-                      )}
-                      {ticket.asset && (
-                        <div className="flex items-center gap-1">
-                          <Package className="h-3 w-3 text-blue-500" />
-                          <span className="text-[10px] text-slate-600 truncate max-w-[80px]">
-                            {ticket.asset.name}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <User className="h-3 w-3 text-slate-500" />
-                        <span className="text-[10px] text-slate-600 truncate max-w-[80px]">
-                          {ticket.assignee ? ticket.assignee.full_name : 'Unassigned'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Date */}
-                    <div className="flex items-center gap-1 text-slate-500">
-                      <Clock className="h-3 w-3 flex-shrink-0" />
-                      <span className="text-[10px] font-medium">
-                        {new Date(ticket.created_at).toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric'
-                        })}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Right: Action button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRowClick?.(ticket.id);
-                    }}
-                    className="bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-all duration-200 flex items-center justify-center group active:scale-95 w-8 h-8 flex-shrink-0 shadow-sm"
-                    title="View details"
-                  >
-                    <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Hover effect overlay - Only on desktop */}
-          {isDesktop && (
-            <div className="absolute inset-0 border-2 border-slate-900 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-          )}
-        </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
-    );
-  }
+    </div>
+  );
 }

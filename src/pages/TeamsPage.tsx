@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react'
-import { Card } from '@/components/ui/card'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import { useToast } from '@/hooks/use-toast'
@@ -23,6 +22,10 @@ import {
   Search,
   MessageSquare,
   Loader2,
+  AlertCircle,
+  Trash2,
+  ArrowLeft,
+  Menu,
 } from 'lucide-react'
 import TeamChatView from '@/components/teams/TeamChatView'
 
@@ -40,7 +43,6 @@ interface Team {
   }
   member_count?: number
   message_count?: number
-  online_count?: number
   last_message?: {
     content: string
     created_at: string
@@ -48,6 +50,8 @@ interface Team {
     sender_id: string
     type: string
   }
+  is_member?: boolean
+  user_role?: string
 }
 
 const AVATAR_COLORS = [
@@ -68,6 +72,10 @@ export default function TeamsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
+  const [selectedTeamRole, setSelectedTeamRole] = useState<string | undefined>(undefined)
+  const [deletingTeamId, setDeletingTeamId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [showSidebar, setShowSidebar] = useState(true)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -99,10 +107,13 @@ export default function TeamsPage() {
     }
   }, [user?.company_id])
 
-  const fetchTeams = async () => {
-    if (!user?.company_id) return
+  const fetchTeams = useCallback(async () => {
+    if (!user?.company_id || !user?.id) return
 
     try {
+      setLoading(true)
+      setError(null)
+
       const { data: teamsData, error: teamsError } = await supabase
         .from('teams')
         .select(`
@@ -113,61 +124,75 @@ export default function TeamsPage() {
           company_id,
           created_at,
           updated_at,
-          creator:users!teams_created_by_fkey(full_name, email)
+          creator:users!teams_created_by_fkey(full_name, email),
+          team_members(count),
+          team_messages(count)
         `)
         .eq('company_id', user.company_id)
         .order('updated_at', { ascending: false })
 
       if (teamsError) throw teamsError
 
-      const teamsWithCounts = await Promise.all(
-        (teamsData || []).map(async (team) => {
-          const { count: memberCount } = await supabase
+      const teamsWithMembership = await Promise.all(
+        (teamsData || []).map(async (team: any) => {
+          const { data: memberData, error: memberError } = await supabase
             .from('team_members')
-            .select('*', { count: 'exact', head: true })
+            .select('role')
             .eq('team_id', team.id)
-
-          const { count: messageCount } = await supabase
-            .from('team_messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('team_id', team.id)
-
-          const { data: lastMessage } = await supabase
-            .from('team_messages')
-            .select(`
-              content,
-              created_at,
-              type,
-              sender_id,
-              sender:users(full_name)
-            `)
-            .eq('team_id', team.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
+            .eq('user_id', user.id)
             .single()
 
-          // Count online members (placeholder - would need online status tracking)
-          const onlineCount = Math.floor(Math.random() * (memberCount || 1))
+          if (memberError && memberError.code !== 'PGRST116') {
+            console.error('Error checking membership:', memberError)
+          }
 
           return {
             ...team,
-            member_count: memberCount || 0,
-            message_count: messageCount || 0,
-            online_count: onlineCount,
-            last_message: lastMessage ? {
-              content: lastMessage.content,
-              created_at: lastMessage.created_at,
-              sender_name: (lastMessage.sender as any)?.full_name || 'Unknown',
-              sender_id: lastMessage.sender_id,
-              type: lastMessage.type
-            } : undefined
+            is_member: !!memberData,
+            user_role: memberData?.role || null,
+            member_count: team.team_members?.[0]?.count || 0,
+            message_count: team.team_messages?.[0]?.count || 0
           }
         })
       )
 
-      setTeams(teamsWithCounts)
+      const { data: lastMessages, error: messagesError } = await supabase
+        .from('team_messages')
+        .select(`
+          team_id,
+          content,
+          created_at,
+          type,
+          sender_id,
+          sender:users(full_name)
+        `)
+        .in('team_id', teamsWithMembership.map(t => t.id))
+        .order('created_at', { ascending: false })
+
+      if (messagesError) console.error('Error fetching messages:', messagesError)
+
+      const lastMessagesByTeam: Record<string, any> = {}
+      lastMessages?.forEach(msg => {
+        if (!lastMessagesByTeam[msg.team_id]) {
+          lastMessagesByTeam[msg.team_id] = msg
+        }
+      })
+
+      const finalTeams = teamsWithMembership.map(team => ({
+        ...team,
+        last_message: lastMessagesByTeam[team.id] ? {
+          content: lastMessagesByTeam[team.id].content,
+          created_at: lastMessagesByTeam[team.id].created_at,
+          sender_name: lastMessagesByTeam[team.id].sender?.full_name || 'Unknown',
+          sender_id: lastMessagesByTeam[team.id].sender_id,
+          type: lastMessagesByTeam[team.id].type
+        } : undefined
+      }))
+
+      setTeams(finalTeams)
     } catch (error) {
       console.error('Error fetching teams:', error)
+      setError('Failed to load teams')
       toast({
         title: 'Error',
         description: 'Failed to load teams',
@@ -176,19 +201,64 @@ export default function TeamsPage() {
     } finally {
       setLoading(false)
     }
+  }, [user?.company_id, user?.id, toast])
+
+  const handleTeamClick = async (teamId: string) => {
+    const team = teams.find(t => t.id === teamId)
+    
+    if (!team?.is_member) {
+      toast({
+        title: 'Access Denied',
+        description: 'You are not a member of this team',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    if (!team?.user_role) {
+      toast({
+        title: 'Error',
+        description: 'Unable to determine your role',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    setSelectedTeamId(teamId)
+    setSelectedTeamRole(team.user_role)
+    setShowSidebar(false) // Hide sidebar on mobile
   }
 
   const handleCreateTeam = async () => {
-    if (!user?.id || !user?.company_id) return
-    if (!formData.name.trim() || !formData.description.trim()) return
+    if (!user?.id || !user?.company_id) {
+      setError('Authentication required')
+      return
+    }
+
+    if (!formData.name.trim() || !formData.description.trim()) {
+      setError('Team name and description are required')
+      return
+    }
+
+    if (formData.name.length > 100) {
+      setError('Team name must be less than 100 characters')
+      return
+    }
+
+    if (formData.description.length > 500) {
+      setError('Description must be less than 500 characters')
+      return
+    }
 
     setSubmitting(true)
+    setError(null)
+
     try {
       const { data: newTeam, error: teamError } = await supabase
         .from('teams')
         .insert({
-          name: formData.name,
-          description: formData.description,
+          name: formData.name.trim(),
+          description: formData.description.trim(),
           created_by: user.id,
           company_id: user.company_id
         })
@@ -217,10 +287,12 @@ export default function TeamsPage() {
         description: 'Team created successfully'
       })
 
-      // Auto-select the newly created team
       setSelectedTeamId(newTeam.id)
+      setSelectedTeamRole('admin')
+      setShowSidebar(false)
     } catch (error) {
       console.error('Error creating team:', error)
+      setError('Failed to create team')
       toast({
         title: 'Error',
         description: 'Failed to create team',
@@ -231,13 +303,76 @@ export default function TeamsPage() {
     }
   }
 
-  const handleTeamClick = (teamId: string) => {
-    setSelectedTeamId(teamId)
+  const handleDeleteTeam = async (teamId: string) => {
+    const team = teams.find(t => t.id === teamId)
+    
+    if (team?.user_role !== 'admin') {
+      toast({
+        title: 'Permission Denied',
+        description: 'Only admins can delete teams',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    if (!confirm('Are you sure you want to delete this team? This action cannot be undone.')) {
+      return
+    }
+
+    setDeletingTeamId(teamId)
+
+    try {
+      const { error: messagesError } = await supabase
+        .from('team_messages')
+        .delete()
+        .eq('team_id', teamId)
+        .eq('company_id', user?.company_id)
+
+      if (messagesError) throw messagesError
+
+      const { error: membersError } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('team_id', teamId)
+
+      if (membersError) throw membersError
+
+      const { error: teamError } = await supabase
+        .from('teams')
+        .delete()
+        .eq('id', teamId)
+        .eq('company_id', user?.company_id)
+
+      if (teamError) throw teamError
+
+      if (selectedTeamId === teamId) {
+        setSelectedTeamId(null)
+        setSelectedTeamRole(undefined)
+        setShowSidebar(true)
+      }
+
+      await fetchTeams()
+
+      toast({
+        title: 'Success',
+        description: 'Team deleted successfully'
+      })
+    } catch (error) {
+      console.error('Error deleting team:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to delete team',
+        variant: 'destructive'
+      })
+    } finally {
+      setDeletingTeamId(null)
+    }
   }
 
   const filteredTeams = teams.filter(team =>
-    team.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    team.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    (team.is_member || selectedTeamId === team.id) &&
+    (team.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     team.description?.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
   const getInitials = (name: string) => {
@@ -286,58 +421,101 @@ export default function TeamsPage() {
     return `${prefix}${content.length > 30 ? content.substring(0, 30) + '...' : content}`
   }
 
-  const totalMessages = teams.reduce((acc, team) => acc + (team.message_count || 0), 0)
-  const activeTeams = teams.filter(t => t.last_message && 
+  const memberTeams = teams.filter(t => t.is_member)
+  const totalMessages = memberTeams.reduce((acc, team) => acc + (team.message_count || 0), 0)
+  const activeTeams = memberTeams.filter(t => t.last_message && 
     new Date(t.last_message.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)
   ).length
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-slate-50">
+    <div className="fixed inset-0 top-20 lg:top-16 left-0 lg:left-16 right-0 bottom-0 flex bg-background z-10">
+      {/* Mobile Menu Button */}
+      {selectedTeamId && !showSidebar && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowSidebar(true)}
+          className="fixed top-20 left-4 z-50 md:hidden bg-card shadow-lg rounded-full h-10 w-10 p-0 border border-border"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+      )}
+
       {/* Left Sidebar - Teams List */}
-      <div className="w-80 bg-white border-r border-slate-200 flex flex-col">
+      <div className={`${
+        showSidebar ? 'translate-x-0' : '-translate-x-full'
+      } md:translate-x-0 transition-transform duration-300 ease-in-out fixed md:static inset-y-0 left-0 z-40 w-full md:w-80 bg-card border-r border-border flex flex-col`}>
         {/* Header */}
-        <div className="p-4 border-b border-slate-200">
+        <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-slate-900">Teams</h2>
+            <div className="flex items-center gap-2">
+              {selectedTeamId && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowSidebar(false)}
+                  className="md:hidden h-8 w-8 p-0"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              )}
+              <h2 className="text-xl font-bold text-foreground">Teams</h2>
+            </div>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="bg-slate-900 hover:bg-slate-800 h-8 w-8 p-0 rounded-lg">
+                <Button size="sm" className="bg-primary hover:bg-primary/90 h-8 w-8 p-0 rounded-lg">
                   <Plus className="h-4 w-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg rounded-2xl">
+              <DialogContent className="max-w-lg rounded-2xl mx-4">
                 <DialogHeader>
                   <DialogTitle>Create New Team</DialogTitle>
                   <DialogDescription>
                     Create a team chat group for collaboration
                   </DialogDescription>
                 </DialogHeader>
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex gap-2">
+                    <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
+                )}
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Team Name *</Label>
                     <Input
                       id="name"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, name: e.target.value.slice(0, 100) })
+                        setError(null)
+                      }}
                       placeholder="e.g., Engineering Team"
                       className="rounded-lg"
+                      maxLength={100}
                     />
+                    <p className="text-xs text-muted-foreground">{formData.name.length}/100</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="description">Description *</Label>
                     <Textarea
                       id="description"
                       value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, description: e.target.value.slice(0, 500) })
+                        setError(null)
+                      }}
                       placeholder="What is this team for?"
                       rows={3}
                       className="rounded-lg"
+                      maxLength={500}
                     />
+                    <p className="text-xs text-muted-foreground">{formData.description.length}/500</p>
                   </div>
                   <Button
                     onClick={handleCreateTeam}
                     disabled={submitting || !formData.name.trim() || !formData.description.trim()}
-                    className="w-full bg-slate-900 hover:bg-slate-800 rounded-lg"
+                    className="w-full bg-primary hover:bg-primary/90 rounded-lg"
                   >
                     {submitting ? (
                       <>
@@ -358,28 +536,28 @@ export default function TeamsPage() {
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search"
+              placeholder="Search teams"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 rounded-lg border-slate-200 h-9 text-sm"
+              className="pl-9 rounded-lg border-border h-9 text-sm"
             />
           </div>
 
           {/* Quick Stats */}
           <div className="grid grid-cols-3 gap-2 mt-4">
-            <div className="bg-slate-50 rounded-lg p-2 text-center">
-              <div className="text-lg font-bold text-slate-900">{teams.length}</div>
-              <div className="text-[10px] text-slate-500">Teams</div>
+            <div className="bg-muted rounded-lg p-2 text-center">
+              <div className="text-lg font-bold text-foreground">{memberTeams.length}</div>
+              <div className="text-[10px] text-muted-foreground">Teams</div>
             </div>
-            <div className="bg-slate-50 rounded-lg p-2 text-center">
-              <div className="text-lg font-bold text-slate-900">{totalMessages}</div>
-              <div className="text-[10px] text-slate-500">Messages</div>
+            <div className="bg-muted rounded-lg p-2 text-center">
+              <div className="text-lg font-bold text-foreground">{totalMessages}</div>
+              <div className="text-[10px] text-muted-foreground">Messages</div>
             </div>
-            <div className="bg-slate-50 rounded-lg p-2 text-center">
-              <div className="text-lg font-bold text-emerald-600">{activeTeams}</div>
-              <div className="text-[10px] text-slate-500">Active</div>
+            <div className="bg-muted rounded-lg p-2 text-center">
+              <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{activeTeams}</div>
+              <div className="text-[10px] text-muted-foreground">Active</div>
             </div>
           </div>
         </div>
@@ -388,74 +566,100 @@ export default function TeamsPage() {
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-full">
-              <Loader2 className="h-8 w-8 animate-spin text-slate-400 mb-2" />
-              <p className="text-sm text-slate-500">Loading teams...</p>
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">Loading teams...</p>
+            </div>
+          ) : error && filteredTeams.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+              <AlertCircle className="h-12 w-12 text-red-300 mb-3" />
+              <p className="text-sm font-medium text-foreground mb-1">Error loading teams</p>
+              <p className="text-xs text-muted-foreground">{error}</p>
             </div>
           ) : filteredTeams.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-              <Users className="h-12 w-12 text-slate-300 mb-3" />
-              <p className="text-sm font-medium text-slate-900 mb-1">No teams found</p>
-              <p className="text-xs text-slate-500">
+              <Users className="h-12 w-12 text-muted-foreground mb-3" />
+              <p className="text-sm font-medium text-foreground mb-1">No teams found</p>
+              <p className="text-xs text-muted-foreground">
                 {searchTerm ? 'Try a different search' : 'Create your first team'}
               </p>
             </div>
           ) : (
             <div className="space-y-1 p-2">
               {filteredTeams.map((team) => {
-                const unreadCount = Math.floor(Math.random() * 5) // Placeholder
                 const isSelected = selectedTeamId === team.id
+                const isAdmin = team.user_role === 'admin'
                 
                 return (
-                  <button
-                    key={team.id}
-                    onClick={() => handleTeamClick(team.id)}
-                    className={`w-full p-3 rounded-lg transition-colors text-left group ${
-                      isSelected 
-                        ? 'bg-slate-900 text-white' 
-                        : 'hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="relative flex-shrink-0">
-                        <Avatar className="h-11 w-11">
-                          <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(team.id)} text-white font-semibold text-sm`}>
-                            {getInitials(team.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        {team.online_count && team.online_count > 0 && (
-                          <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-emerald-500 border-2 border-white rounded-full" />
-                        )}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <h3 className={`font-semibold text-sm truncate ${
-                            isSelected ? 'text-white' : 'text-slate-900'
-                          }`}>
-                            {team.name}
-                          </h3>
-                          <span className={`text-[11px] flex-shrink-0 ${
-                            isSelected ? 'text-slate-300' : 'text-slate-400'
-                          }`}>
-                            {team.last_message && getTimeAgo(team.last_message.created_at)}
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <p className={`text-xs truncate ${
-                            isSelected ? 'text-slate-300' : 'text-slate-600'
-                          }`}>
-                            {formatLastMessage(team)}
-                          </p>
-                          {unreadCount > 0 && !isSelected && (
-                            <Badge className="bg-slate-900 hover:bg-slate-900 text-white rounded-full h-5 min-w-5 flex items-center justify-center text-[10px] ml-2">
-                              {unreadCount}
-                            </Badge>
+                  <div key={team.id} className="group relative">
+                    <button
+                      onClick={() => handleTeamClick(team.id)}
+                      className={`w-full p-3 rounded-lg transition-colors text-left ${
+                        isSelected 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'hover:bg-muted'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="relative flex-shrink-0">
+                          <Avatar className="h-11 w-11">
+                            <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(team.id)} text-white font-semibold text-sm`}>
+                              {getInitials(team.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          {team.member_count && team.member_count > 0 && (
+                            <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-emerald-500 border-2 border-white rounded-full" />
                           )}
                         </div>
+                        
+                        <div className="flex-1 min-w-0 pr-8">
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className={`font-semibold text-sm truncate ${
+                              isSelected ? 'text-primary-foreground' : 'text-foreground'
+                            }`}>
+                              {team.name}
+                            </h3>
+                            <span className={`text-[11px] flex-shrink-0 ml-2 ${
+                              isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                            }`}>
+                              {team.last_message && getTimeAgo(team.last_message.created_at)}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center justify-between gap-2">
+                            <p className={`text-xs truncate ${
+                              isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                            }`}>
+                              {formatLastMessage(team)}
+                            </p>
+                            {isAdmin && !isSelected && (
+                              <Badge className="bg-primary text-primary-foreground rounded-full h-5 min-w-5 flex items-center justify-center text-[10px] flex-shrink-0">
+                                Admin
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </button>
+                    </button>
+
+                    {/* Delete button on hover (admin only) */}
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteTeam(team.id)
+                        }}
+                        disabled={deletingTeamId === team.id}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-red-50 rounded-lg text-red-600 z-10"
+                        title="Delete team"
+                      >
+                        {deletingTeamId === team.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </button>
+                    )}
+                  </div>
                 )
               })}
             </div>
@@ -464,23 +668,38 @@ export default function TeamsPage() {
       </div>
 
       {/* Main Content - Team Chat or Empty State */}
-      {selectedTeamId ? (
-        <TeamChatView 
-          teamId={selectedTeamId} 
-          onClose={() => setSelectedTeamId(null)}
-        />
-      ) : (
-        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-          <div className="text-center">
-            <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-              <MessageSquare className="h-10 w-10 text-slate-400" />
+      <div className="flex-1 flex flex-col md:static">
+        {selectedTeamId ? (
+          <TeamChatView 
+            teamId={selectedTeamId}
+            userRole={selectedTeamRole}
+            onClose={() => {
+              setSelectedTeamId(null)
+              setSelectedTeamRole(undefined)
+              setShowSidebar(true)
+            }}
+          />
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-background p-6">
+            <div className="text-center max-w-sm">
+              <div className="w-20 h-20 bg-card rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-border">
+                <MessageSquare className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold text-foreground mb-2">Select a team to start chatting</h3>
+              <p className="text-muted-foreground">
+                Choose a team from the list to view messages and collaborate with your team members
+              </p>
             </div>
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">Select a team to start chatting</h3>
-            <p className="text-slate-500 max-w-sm">
-              Choose a team from the list to view messages and collaborate with your team members
-            </p>
           </div>
-        </div>
+        )}
+      </div>
+
+      {/* Overlay for mobile when sidebar is open */}
+      {showSidebar && selectedTeamId && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setShowSidebar(false)}
+        />
       )}
     </div>
   )

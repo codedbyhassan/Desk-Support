@@ -1,4 +1,4 @@
-// App.tsx - Updated with HashRouter for Electron
+// App.tsx - Fixed version without redundant loading check
 
 import React from 'react'
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './lib/auth'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Toaster } from 'react-hot-toast'
 import { NotificationProvider, useNotifications } from './context/NotificationContext'
+import { QRCodeProvider } from './context/QRCodeContext'
 import { ToastContainer } from '@/components/ToastNotification'
 
 // ✅ Pages
@@ -26,10 +27,7 @@ import DepartmentDetailPage from './pages/departments/[id]'
 import TeamsPage from './pages/TeamsPage'
 import SettingsPage from './pages/SettingsPage'
 
-// ❌ REMOVED: TeamChatView is now a component, not a page
-// import TeamChatView from '@/pages/teams/TeamChatView'
-
-import Layout from './components/Layout'
+import Layout from './app/layout'
 
 /* ------------------------- PROTECTED ROUTE WRAPPERS ------------------------- */
 
@@ -81,15 +79,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 /* ------------------------------- MAIN ROUTES ------------------------------- */
 
 function AppRoutes() {
-  const { user, loading } = useAuth()
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
+  const { user } = useAuth() // ✅ REMOVED: loading check - let individual routes handle it
 
   return (
     <Routes>
@@ -118,7 +108,23 @@ function AppRoutes() {
         }
       />
 
-      {/* 🧭 Dashboard */}
+      {/* 🧭 Dashboard - More specific routes first */}
+      <Route
+        path="/app/dashboard/users"
+        element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/dashboard/assets"
+        element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/app/dashboard"
         element={
@@ -199,7 +205,6 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* ❌ REMOVED: /app/teams/:teamId route - chat is now embedded in TeamsPage */}
 
       {/* ⚙️ Settings */}
       <Route
@@ -248,15 +253,11 @@ function AppRoutes() {
 }
 
 /* ----------------------- TOAST WRAPPER COMPONENT ----------------------- */
-// ✅ This component accesses the notification context and renders toasts
 function ToastWrapper() {
   const location = useLocation()
   const { toasts, dismissToast, setCurrentPath } = useNotifications()
   
-  // ✅ Update current path whenever location changes
-  // Note: setCurrentPath is stable (from useState), so it doesn't need to be in deps
   React.useEffect(() => {
-    // Get path from hash for HashRouter
     const hashPath = window.location.hash.replace('#', '') || location.pathname
     setCurrentPath(hashPath)
   }, [location.pathname, setCurrentPath])
@@ -271,29 +272,27 @@ export default function App() {
     <ErrorBoundary>
       <AuthProvider>
         <NotificationProvider>
-          <HashRouter>
-            {/* ✅ Toast Container - Shows real-time notification toasts */}
-            <ToastWrapper />
-            
-            <AppRoutes />
-            
-            {/* Existing react-hot-toast for manual toasts */}
-            <Toaster
-              position="bottom-right"
-              toastOptions={{
-                duration: 5000,
-                className: 'rounded-xl shadow-lg p-4 bg-white dark:bg-gray-800',
-                success: {
-                  className: 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200',
-                  iconTheme: { primary: '#22c55e', secondary: '#fff' },
-                },
-                error: {
-                  className: 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200',
-                  iconTheme: { primary: '#ef4444', secondary: '#fff' },
-                },
-              }}
-            />
-          </HashRouter>
+          <QRCodeProvider>
+            <HashRouter>
+              <ToastWrapper />
+              <AppRoutes />
+              <Toaster
+                position="bottom-right"
+                toastOptions={{
+                  duration: 5000,
+                  className: 'rounded-xl shadow-lg p-4 bg-white dark:bg-gray-800',
+                  success: {
+                    className: 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200',
+                    iconTheme: { primary: '#22c55e', secondary: '#fff' },
+                  },
+                  error: {
+                    className: 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200',
+                    iconTheme: { primary: '#ef4444', secondary: '#fff' },
+                  },
+                }}
+              />
+            </HashRouter>
+          </QRCodeProvider>
         </NotificationProvider>
       </AuthProvider>
     </ErrorBoundary>

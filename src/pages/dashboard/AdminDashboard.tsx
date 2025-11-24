@@ -8,6 +8,10 @@ import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth'
+import { useNavigate } from 'react-router-dom'
+import { useAttendance } from '@/hooks/useAttendance'
+import { useToast } from '@/hooks/use-toast'
+import { useDashboardTab } from '@/context/DashboardTabContext'
 import { 
   Users, 
   Package, 
@@ -25,7 +29,15 @@ import {
   Target,
   Clock,
   UserPlus,
-  Plus
+  Plus,
+  FileText,
+  Download,
+  Sparkles,
+  Award,
+  PieChart,
+  LineChart,
+  LogIn,
+  LogOut
 } from 'lucide-react'
 
 interface DashboardStats {
@@ -41,8 +53,27 @@ interface DashboardStats {
   resolutionRate: number
 }
 
-export default function AdminDashboard() {
+interface AdminDashboardProps {
+  activeTab?: string
+}
+
+export default function AdminDashboard({ activeTab: initialTab = 'overview' }: AdminDashboardProps) {
   const { user, company } = useAuth()
+  const navigate = useNavigate()
+  const { toast } = useToast()
+  const { attendanceStatus, fetchAttendanceStatus } = useAttendance()
+  const { activeTab: mainTab, setActiveTab: setMainTab } = useDashboardTab()
+  
+  useEffect(() => {
+    fetchAttendanceStatus()
+  }, [fetchAttendanceStatus])
+  
+  // Update main tab when prop changes (from route)
+  useEffect(() => {
+    if (initialTab) {
+      setMainTab(initialTab)
+    }
+  }, [initialTab, setMainTab])
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalAssets: 0,
@@ -327,165 +358,9 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Stats Tabs */}
-      <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-slate-100 p-1 rounded-lg lg:rounded-xl h-auto">
-          <TabsTrigger 
-            value="users" 
-            className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
-          >
-            <Users className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-slate-900" />
-            <span className="text-[10px] lg:text-xs font-medium">Users</span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="assets" 
-            className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
-          >
-            <Package className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-blue-600" />
-            <span className="text-[10px] lg:text-xs font-medium">Assets</span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="tickets" 
-            className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
-          >
-            <Ticket className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-amber-600" />
-            <span className="text-[10px] lg:text-xs font-medium">Tickets</span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="rate" 
-            className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
-          >
-            <Target className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-emerald-600" />
-            <span className="text-[10px] lg:text-xs font-medium">Rate</span>
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Total Users Tab */}
-        <TabsContent value="users" className="mt-4">
-          <Card className="border-slate-200">
-            <div className="p-4 lg:p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg shadow-slate-900/20">
-                  <Users className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm lg:text-base font-medium text-slate-500 mb-1">Total Users</p>
-                  <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{stats.totalUsers}</h3>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {stats.userGrowthPercentage >= 0 ? (
-                      <>
-                        <div className="flex items-center gap-1 text-emerald-600">
-                          <TrendingUp className="h-4 w-4" />
-                          <span className="text-xs lg:text-sm font-semibold">{stats.userGrowthPercentage}%</span>
-                        </div>
-                        <span className="text-xs lg:text-sm text-slate-500">vs last month</span>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-1 text-red-600">
-                          <TrendingDown className="h-4 w-4" />
-                          <span className="text-xs lg:text-sm font-semibold">{Math.abs(stats.userGrowthPercentage)}%</span>
-                        </div>
-                        <span className="text-xs lg:text-sm text-slate-500">vs last month</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-
-        {/* Total Assets Tab */}
-        <TabsContent value="assets" className="mt-4">
-          <Card className="border-slate-200">
-            <div className="p-4 lg:p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <Package className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm lg:text-base font-medium text-slate-500 mb-1">Total Assets</p>
-                  <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{stats.totalAssets}</h3>
-                  <div className="flex items-center gap-1 text-emerald-600">
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span className="text-xs lg:text-sm font-semibold">{stats.availableAssets} available</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-
-        {/* Active Tickets Tab */}
-        <TabsContent value="tickets" className="mt-4">
-          <Card className="border-slate-200">
-            <div className="p-4 lg:p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
-                  <Ticket className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm lg:text-base font-medium text-slate-500 mb-1">Active Tickets</p>
-                  <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{stats.openTickets + stats.inProgressTickets}</h3>
-                  <div className="flex items-center gap-1">
-                    {stats.openTickets > 0 ? (
-                      <div className="flex items-center gap-1 text-amber-600">
-                        <Clock className="h-4 w-4" />
-                        <span className="text-xs lg:text-sm font-semibold">{stats.openTickets} pending</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 text-emerald-600">
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span className="text-xs lg:text-sm font-semibold">All handled</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-
-        {/* Resolution Rate Tab */}
-        <TabsContent value="rate" className="mt-4">
-          <Card className="border-slate-200">
-            <div className="p-4 lg:p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                  <Target className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm lg:text-base font-medium text-slate-500 mb-1">Resolution Rate</p>
-                  <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{stats.resolutionRate}%</h3>
-                  <div className="flex items-center gap-1">
-                    {stats.resolutionRate >= 90 ? (
-                      <div className="flex items-center gap-1 text-emerald-600">
-                        <Zap className="h-4 w-4" />
-                        <span className="text-xs lg:text-sm font-semibold">Excellent</span>
-                      </div>
-                    ) : stats.resolutionRate >= 70 ? (
-                      <div className="flex items-center gap-1 text-amber-600">
-                        <Activity className="h-4 w-4" />
-                        <span className="text-xs lg:text-sm font-semibold">Good</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 text-red-600">
-                        <AlertCircle className="h-4 w-4" />
-                        <span className="text-xs lg:text-sm font-semibold">Needs work</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
       {/* Main Content Tabs */}
-      <Tabs defaultValue="overview" className="space-y-4 lg:space-y-6">
-        <TabsList className="bg-slate-100 p-1 rounded-lg lg:rounded-xl w-full overflow-x-auto">
+      <Tabs value={mainTab} onValueChange={setMainTab} className="space-y-4 lg:space-y-6">
+        <TabsList className="bg-slate-100 p-1 rounded-lg lg:rounded-xl w-full overflow-x-auto hidden">
           <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs lg:text-sm flex-1 min-w-0">
             <BarChart3 className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
             <span className="truncate">Overview</span>
@@ -500,33 +375,362 @@ export default function AdminDashboard() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-4 lg:space-y-6">
-          <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
-            <Card className="border-slate-200">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 lg:p-6 border-b border-slate-200">
-                <h3 className="text-base lg:text-lg font-semibold text-slate-900">Performance Overview</h3>
-                <Button variant="outline" size="sm" className="rounded-lg h-9 lg:h-10 w-full lg:w-auto">
-                  <TrendingUp className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-                  <span className="text-xs lg:text-sm">View Report</span>
-                </Button>
+        <TabsContent value="overview" className="space-y-6 lg:space-y-8">
+          {/* Key Performance Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+            {/* Total Users Card */}
+            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
+              <div className="relative p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
+                    <Users className="h-6 w-6" />
+                  </div>
+                  {stats.userGrowthPercentage >= 0 ? (
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300">
+                      <TrendingUp className="h-3 w-3" />
+                      <span className="text-xs font-semibold">{stats.userGrowthPercentage}%</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/20 text-red-300">
+                      <TrendingDown className="h-3 w-3" />
+                      <span className="text-xs font-semibold">{Math.abs(stats.userGrowthPercentage)}%</span>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-slate-300 font-medium">Total Users</p>
+                  <h3 className="text-3xl font-bold">{stats.totalUsers}</h3>
+                  <p className="text-xs text-slate-400">Active team members</p>
+                </div>
               </div>
-              <ReportsPanel />
             </Card>
 
-            <Card className="border-slate-200">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 lg:p-6 border-b border-slate-200">
-                <h3 className="text-base lg:text-lg font-semibold text-slate-900">Asset Distribution</h3>
-                <Button variant="outline" size="sm" className="rounded-lg h-9 lg:h-10 w-full lg:w-auto">
-                  <Package className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-                  <span className="text-xs lg:text-sm">Manage</span>
-                </Button>
+            {/* Total Assets Card */}
+            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600 text-white">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+              <div className="relative p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <Package className="h-6 w-6" />
+                  </div>
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
+                    <CheckCircle2 className="h-3 w-3" />
+                    <span className="text-xs font-semibold">{stats.availableAssets} available</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-blue-100 font-medium">Total Assets</p>
+                  <h3 className="text-3xl font-bold">{stats.totalAssets}</h3>
+                  <p className="text-xs text-blue-100">{stats.assignedAssets} assigned</p>
+                </div>
               </div>
-              <AssetsInventory />
+            </Card>
+
+            {/* Active Tickets Card */}
+            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-amber-600 via-amber-500 to-amber-600 text-white">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+              <div className="relative p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <Ticket className="h-6 w-6" />
+                  </div>
+                  {stats.openTickets > 0 ? (
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
+                      <Clock className="h-3 w-3" />
+                      <span className="text-xs font-semibold">{stats.openTickets} pending</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/30 text-white">
+                      <CheckCircle2 className="h-3 w-3" />
+                      <span className="text-xs font-semibold">All clear</span>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-amber-100 font-medium">Active Tickets</p>
+                  <h3 className="text-3xl font-bold">{stats.openTickets + stats.inProgressTickets}</h3>
+                  <p className="text-xs text-amber-100">{stats.resolvedTickets} resolved</p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Resolution Rate Card */}
+            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-600 text-white">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+              <div className="relative p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <Target className="h-6 w-6" />
+                  </div>
+                  {stats.resolutionRate >= 90 ? (
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
+                      <Award className="h-3 w-3" />
+                      <span className="text-xs font-semibold">Excellent</span>
+                    </div>
+                  ) : stats.resolutionRate >= 70 ? (
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
+                      <Zap className="h-3 w-3" />
+                      <span className="text-xs font-semibold">Good</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/30 text-white">
+                      <AlertCircle className="h-3 w-3" />
+                      <span className="text-xs font-semibold">Needs work</span>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-emerald-100 font-medium">Resolution Rate</p>
+                  <h3 className="text-3xl font-bold">{stats.resolutionRate}%</h3>
+                  <p className="text-xs text-emerald-100">Ticket resolution efficiency</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Quick Actions & Insights */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Quick Actions */}
+            <Card className="border-slate-200 shadow-md hover:shadow-lg transition-shadow">
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center">
+                    <Sparkles className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">Quick Actions</h3>
+                    <p className="text-xs text-slate-500">Common tasks at your fingertips</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <Button 
+                    onClick={() => navigate('/app/users')}
+                    className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    variant="ghost"
+                  >
+                    <UserPlus className="h-4 w-4 mr-3 text-slate-600" />
+                    <div className="flex-1 text-left">
+                      <div className="font-medium text-slate-900 text-sm">Add New User</div>
+                      <div className="text-xs text-slate-500">Invite team member</div>
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-slate-400" />
+                  </Button>
+                  <Button 
+                    onClick={() => navigate('/app/assets')}
+                    className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    variant="ghost"
+                  >
+                    <Plus className="h-4 w-4 mr-3 text-slate-600" />
+                    <div className="flex-1 text-left">
+                      <div className="font-medium text-slate-900 text-sm">Add Asset</div>
+                      <div className="text-xs text-slate-500">Register new equipment</div>
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-slate-400" />
+                  </Button>
+                  <Button 
+                    onClick={() => navigate('/app/tickets')}
+                    className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    variant="ghost"
+                  >
+                    <Ticket className="h-4 w-4 mr-3 text-slate-600" />
+                    <div className="flex-1 text-left">
+                      <div className="font-medium text-slate-900 text-sm">View Tickets</div>
+                      <div className="text-xs text-slate-500">Manage support requests</div>
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-slate-400" />
+                  </Button>
+                  <Button 
+                    onClick={() => navigate('/app/analytics')}
+                    className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    variant="ghost"
+                  >
+                    <BarChart3 className="h-4 w-4 mr-3 text-slate-600" />
+                    <div className="flex-1 text-left">
+                      <div className="font-medium text-slate-900 text-sm">View Analytics</div>
+                      <div className="text-xs text-slate-500">Detailed insights & reports</div>
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-slate-400" />
+                  </Button>
+                  <Button 
+                    onClick={async () => {
+                      try {
+                        // For clock in/out, we need a QR code. For now, we'll use a simple toggle
+                        // In a real scenario, this would open a QR scanner or use location-based check-in
+                        const isClockedIn = attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break'
+                        if (isClockedIn) {
+                          // For clock out, we'd need the QR code from the check-in
+                          toast({
+                            title: 'Clock Out',
+                            description: 'Please use the QR code scanner in your profile to clock out.',
+                            variant: 'default'
+                          })
+                        } else {
+                          toast({
+                            title: 'Clock In',
+                            description: 'Please use the QR code scanner in your profile to clock in.',
+                            variant: 'default'
+                          })
+                        }
+                        navigate('/app/profile')
+                      } catch (error) {
+                        console.error('Error:', error)
+                      }
+                    }}
+                    className={`w-full justify-start h-auto py-3 px-4 rounded-xl border ${
+                      attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break'
+                        ? 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
+                        : 'hover:bg-slate-50 border-slate-200'
+                    }`}
+                    variant="ghost"
+                  >
+                    {attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break' ? (
+                      <LogOut className={`h-4 w-4 mr-3 ${attendanceStatus.status === 'clocked_in' ? 'text-emerald-600' : 'text-slate-600'}`} />
+                    ) : (
+                      <LogIn className="h-4 w-4 mr-3 text-slate-600" />
+                    )}
+                    <div className="flex-1 text-left">
+                      <div className={`font-medium text-sm ${
+                        attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break'
+                          ? 'text-emerald-900'
+                          : 'text-slate-900'
+                      }`}>
+                        {attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break' ? 'Clock Out' : 'Clock In'}
+                      </div>
+                      <div className={`text-xs ${
+                        attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break'
+                          ? 'text-emerald-700'
+                          : 'text-slate-500'
+                      }`}>
+                        {attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break'
+                          ? attendanceStatus.elapsedHours 
+                            ? `Time: ${attendanceStatus.elapsedHours}`
+                            : 'Currently clocked in'
+                          : 'Record your attendance'}
+                      </div>
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-slate-400" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            {/* Performance Insights */}
+            <Card className="border-slate-200 shadow-md hover:shadow-lg transition-shadow lg:col-span-2">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                      <LineChart className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">Performance Insights</h3>
+                      <p className="text-xs text-slate-500">Key metrics at a glance</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" className="rounded-lg">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export
+                </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <PieChart className="h-4 w-4 text-blue-600" />
+                      <span className="text-xs font-medium text-slate-600">Asset Utilization</span>
+                    </div>
+                    <div className="text-2xl font-bold text-slate-900 mb-1">
+                      {stats.totalAssets > 0 ? Math.round((stats.assignedAssets / stats.totalAssets) * 100) : 0}%
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      {stats.assignedAssets} of {stats.totalAssets} assets in use
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Activity className="h-4 w-4 text-emerald-600" />
+                      <span className="text-xs font-medium text-slate-600">Ticket Activity</span>
+                    </div>
+                    <div className="text-2xl font-bold text-slate-900 mb-1">{stats.totalTickets}</div>
+                    <div className="text-xs text-slate-500">
+                      {stats.inProgressTickets} in progress
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Users className="h-4 w-4 text-purple-600" />
+                      <span className="text-xs font-medium text-slate-600">Team Growth</span>
+                    </div>
+                    <div className="text-2xl font-bold text-slate-900 mb-1">
+                      {stats.userGrowthPercentage >= 0 ? '+' : ''}{stats.userGrowthPercentage}%
+                    </div>
+                    <div className="text-xs text-slate-500">vs last 30 days</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Target className="h-4 w-4 text-amber-600" />
+                      <span className="text-xs font-medium text-slate-600">Efficiency</span>
+                    </div>
+                    <div className="text-2xl font-bold text-slate-900 mb-1">{stats.resolutionRate}%</div>
+                    <div className="text-xs text-slate-500">Resolution success rate</div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Reports & Asset Distribution */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border-slate-200 shadow-md">
+              <div className="p-6 border-b border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center">
+                      <FileText className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">Reports & Export</h3>
+                      <p className="text-xs text-slate-500">Generate comprehensive reports</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6">
+                <ReportsPanel noCard />
+              </div>
+            </Card>
+
+            <Card className="border-slate-200 shadow-md">
+              <div className="p-6 border-b border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
+                      <Package className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">Asset Distribution</h3>
+                      <p className="text-xs text-slate-500">Overview of asset status</p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="rounded-lg"
+                    onClick={() => navigate('/app/assets')}
+                  >
+                    <Package className="h-4 w-4 mr-2" />
+                    Manage
+                </Button>
+                </div>
+              </div>
+              <div className="p-6">
+                <AssetsInventory noCard />
+              </div>
             </Card>
           </div>
         </TabsContent>
 
-        <TabsContent value="users">
+        <TabsContent value="users" className="mt-4">
           <Card className="border-slate-200">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 lg:p-6 border-b border-slate-200">
               <div className="space-y-1">
@@ -544,7 +748,7 @@ export default function AdminDashboard() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="assets">
+        <TabsContent value="assets" className="mt-4">
           <Card className="border-slate-200">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 lg:p-6 border-b border-slate-200">
               <div className="space-y-1">

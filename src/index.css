@@ -105,78 +105,53 @@
     /* Misc */
     --tracking-normal: 0em;
     --spacing: 0.25rem;
-    --radius: 0.75rem; /* Slightly larger for modern look */
+    --radius: 0.5rem; /* Matching Settings page rounded-lg */
   }
 
-  .dark {
-    --background: 222 47% 11%; /* Dark background */
-    --foreground: 210 40% 98%; /* Light text */
-    
-    --card: 222 47% 13%; /* Slightly lighter than background */
-    --card-foreground: 210 40% 98%;
-    
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-    
-    /* Primary - Brand Blue (same in dark mode) */
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    
-    /* Secondary - Darker blue in dark mode */
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    
-    /* Muted */
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    
-    /* Accent - Orange (same in dark mode) */
-    --accent: 24 95% 53%;
-    --accent-foreground: 0 0% 100%;
-    
-    /* Destructive */
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    
-    /* Borders & Inputs */
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 217 91% 60%;
-
-    /* Charts - Same as light mode */
-    --chart-1: 217 91% 60%;
-    --chart-2: 24 95% 53%;
-    --chart-3: 142 71% 45%;
-    --chart-4: 262 83% 58%;
-    --chart-5: 346 77% 50%;
-
-    /* Sidebar */
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 17%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 217 91% 60%;
-
-    /* Theme Customizer Variables - Dark Mode Defaults */
-    --color-primary: #60a5fa;
-    --color-primary-hover: #3b82f6;
-    --color-primary-light: #1e3a8a;
-    --color-secondary: #a78bfa;
-    --color-secondary-hover: #8b5cf6;
-    --color-accent: #34d399;
-    --color-accent-hover: #10b981;
-    --color-background: #0f172a;
-    --color-foreground: #f1f5f9;
-    --color-muted: #1e293b;
-    --color-border: #334155;
-    --color-destructive: #f87171;
-    --color-destructive-hover: #ef4444;
-    --color-warning: #fbbf24;
-    --color-warning-hover: #f59e0b;
-  }
+.dark {
+  /* Purple Palette - All shades of one color, no white */
+  --background: 300 100% 5%;        /* #190019 - Darkest purple background */
+  --foreground: 6 40% 80%;         /* #DFB6B2 - Consistent cream/beige text */
+  
+  /* Cards - Different shades of purple */
+  --card: 280 62% 18%;             /* #2B124C - Card shade 1 */
+  --card-foreground: 6 40% 80%;    /* #DFB6B2 - Consistent text */
+  
+  --popover: 285 35% 27%;          /* #522B5B - Card shade 2 */
+  --popover-foreground: 6 40% 80%; /* #DFB6B2 - Consistent text */
+  
+  --muted: 330 25% 42%;            /* #854F6C - Card shade 3 */
+  --muted-foreground: 15 75% 91%;  /* #FBE4D8 - Lighter cream for muted text */
+  
+  /* Borders - Purple shades, no white */
+  --border: 280 62% 25% / 0.3;     /* Purple border shade */
+  --input: 280 62% 25% / 0.3;      /* Purple input borders */
+  
+  /* Buttons - Different purple shades */
+  --primary: 280 62% 22%;          /* #2B124C variant - Button shade 1 */
+  --primary-foreground: 15 75% 91%; /* #FBE4D8 - Light cream text */
+  
+  --secondary: 285 35% 27%;        /* #522B5B - Button shade 2 */
+  --secondary-foreground: 6 40% 80%; /* #DFB6B2 - Cream text */
+  
+  --accent: 330 25% 42%;           /* #854F6C - Button shade 3 */
+  --accent-foreground: 15 75% 91%; /* #FBE4D8 - Light cream text */
+  
+  --destructive: 0 84% 60%;         /* Keep red for errors */
+  --destructive-foreground: 15 75% 91%; /* Cream text on red */
+  
+  --ring: 280 62% 30%;             /* Purple focus ring */
+  
+  /* Sidebar - Purple shades */
+  --sidebar-background: 300 100% 5%; /* #190019 - Darkest */
+  --sidebar-foreground: 6 40% 80%;   /* #DFB6B2 - Consistent text */
+  --sidebar-primary: 280 62% 22%;    /* Purple shade */
+  --sidebar-primary-foreground: 15 75% 91%; /* Light cream */
+  --sidebar-accent: 285 35% 27%;     /* #522B5B */
+  --sidebar-accent-foreground: 6 40% 80%; /* Cream */
+  --sidebar-border: 280 62% 25% / 0.3; /* Purple border */
+  --sidebar-ring: 280 62% 30%;      /* Purple ring */
+}
 
   * {
     @apply border-border;
@@ -301,6 +276,46 @@
   
   .bg-status-info {
     background-color: var(--color-primary);
+  }
+  
+  /* Dark Mode Text Color Overrides - Consistent Cream/Beige */
+  .dark .text-gray-500,
+  .dark .text-gray-400,
+  .dark .text-gray-600,
+  .dark .text-slate-500,
+  .dark .text-slate-400,
+  .dark .text-slate-600 {
+    color: hsl(6 40% 80%); /* #DFB6B2 - Consistent cream text */
+  }
+  
+  .dark .text-gray-700,
+  .dark .text-gray-800,
+  .dark .text-gray-900,
+  .dark .text-slate-700,
+  .dark .text-slate-800,
+  .dark .text-slate-900 {
+    color: hsl(15 75% 91%); /* #FBE4D8 - Lighter cream for headings */
+  }
+  
+  /* Dark Mode Background Overrides - Purple Shades Only */
+  .dark .bg-gray-50,
+  .dark .bg-gray-100,
+  .dark .bg-slate-50,
+  .dark .bg-slate-100 {
+    background-color: hsl(285 35% 27%); /* #522B5B - Purple shade */
+  }
+  
+  .dark .bg-gray-200,
+  .dark .bg-slate-200 {
+    background-color: hsl(330 25% 42%); /* #854F6C - Lighter purple */
+  }
+  
+  /* Dark Mode Border Overrides - Purple Shades */
+  .dark .border-gray-200,
+  .dark .border-gray-300,
+  .dark .border-slate-200,
+  .dark .border-slate-300 {
+    border-color: hsl(280 62% 25% / 0.3); /* Purple border */
   }
 }
 

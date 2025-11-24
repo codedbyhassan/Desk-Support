@@ -1,10 +1,9 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
 import { supabase } from './supabase'
 import { Session } from '@supabase/supabase-js'
 
 import { Company, User } from '../types/database'
 
-// Define CompanySettings type based on your database schema
 export interface CompanySettings {
   id: string
   company_id: string
@@ -66,196 +65,258 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error: null,
   });
 
-  // ✅ Track if we're currently loading to prevent concurrent calls
-  const isLoadingProfile = useRef(false);
-  const initialLoadDone = useRef(false);
-  const lastLoadedUserId = useRef<string | null>(null); // ✅ Track which user we last loaded
+  // Single source of truth for profile loading
+  const loadUserProfile = useCallback(async (userId: string, signal: AbortSignal) => {
+    console.log('📥 Loading profile for user:', userId);
+    
+    try {
+      // Check if request was aborted before starting
+      if (signal.aborted) {
+        console.log('⚠️ Request aborted before starting');
+        return null;
+      }
+
+      // Fetch user data
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .abortSignal(signal)
+        .single();
+      
+      if (signal.aborted) return null;
+      if (userError) throw userError;
+      if (!user.company_id) throw new Error('User does not have a company_id assigned');
+
+      console.log('👤 User loaded:', user.id);
+
+      // Fetch company data
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', user.company_id)
+        .abortSignal(signal)
+        .single();
+
+      if (signal.aborted) return null;
+      if (companyError) throw companyError;
+
+      console.log('🏢 Company loaded:', company.id);
+
+      // Fetch or create company settings
+      let settings: CompanySettings | null = null;
+      const { data: existingSettings, error: settingsError } = await supabase
+        .from('company_settings')
+        .select('*')
+        .eq('company_id', company.id)
+        .abortSignal(signal)
+        .single();
+
+      if (signal.aborted) return null;
+
+      if (settingsError && settingsError.code === 'PGRST116') {
+        // Settings don't exist, create them
+        console.log('⚙️ Creating default settings');
+        const { data: newSettings, error: createError } = await supabase
+          .from('company_settings')
+          .insert({ company_id: company.id })
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        settings = newSettings as CompanySettings;
+      } else if (settingsError) {
+        throw settingsError;
+      } else {
+        settings = existingSettings as CompanySettings;
+      }
+
+      console.log('⚙️ Settings loaded');
+
+      return {
+        user: user as User,
+        company: company as Company,
+        settings: settings as CompanySettings,
+      };
+    } catch (error: any) {
+      // Don't throw on abort
+      if (signal.aborted || error.name === 'AbortError') {
+        console.log('⚠️ Request aborted');
+        return null;
+      }
+      console.error('❌ Error loading profile:', error);
+      throw error;
+    }
+  }, []);
 
   useEffect(() => {
-    let mounted = true;
+    const abortController = new AbortController();
+    let authSubscription: { unsubscribe: () => void } | null = null;
+    let loadingTimeout: NodeJS.Timeout | null = null;
+    let isInitialized = false;
+
+    // Safety timeout: if loading takes more than 10 seconds, force it to false
+    loadingTimeout = setTimeout(() => {
+      console.warn('⚠️ Loading timeout reached - forcing loading to false');
+      setState(prev => {
+        if (prev.loading) {
+          return { ...prev, loading: false, error: 'Loading timeout - please try refreshing' };
+        }
+        return prev;
+      });
+    }, 10000);
 
     async function initialize() {
+      // Prevent double initialization in StrictMode
+      if (isInitialized) {
+        console.log('⚠️ Already initialized, skipping...');
+        return;
+      }
+      isInitialized = true;
+
+      console.log('🚀 Initializing auth provider');
+
       try {
-        // Get initial session
-        const { data: { session } } = await supabase.auth.getSession();
+        // CRITICAL: Get session BEFORE setting up listener
+        // This prevents session loss during StrictMode double-mount
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
         
-        if (!mounted) return;
-        
-        setState(prev => ({ ...prev, session }));
-        
-        if (session?.user) {
-          await loadUserProfile(session.user.id);
+        if (sessionError) {
+          console.error('❌ Error getting session:', sessionError);
+          throw sessionError;
+        }
+
+        console.log('📦 Initial session retrieved:', !!initialSession);
+
+        // If we have a session, immediately load the profile
+        if (initialSession?.user) {
+          console.log('✅ Session found, loading profile immediately');
+          setState(prev => ({ ...prev, session: initialSession, loading: true, error: null }));
+
+          try {
+            const profileData = await loadUserProfile(
+              initialSession.user.id,
+              abortController.signal
+            );
+
+            if (abortController.signal.aborted) return;
+
+            if (profileData) {
+              setState(prev => ({
+                ...prev,
+                user: profileData.user,
+                company: profileData.company,
+                settings: profileData.settings,
+                session: initialSession,
+                loading: false,
+                error: null,
+              }));
+              console.log('✅ Profile loaded on initialization');
+              if (loadingTimeout) clearTimeout(loadingTimeout);
+            }
+          } catch (error: any) {
+            if (abortController.signal.aborted) return;
+            console.error('❌ Failed to load profile on init:', error);
+            setState(prev => ({
+              ...prev,
+              error: error.message || 'Failed to load user profile',
+              loading: false,
+            }));
+          }
         } else {
-          setState(prev => ({ ...prev, loading: false }));
+          console.log('❌ No session found - user needs to log in');
+          setState(prev => ({ ...prev, loading: false, session: null }));
+          if (loadingTimeout) clearTimeout(loadingTimeout);
         }
-        
-        initialLoadDone.current = true;
+
+        // Now set up the listener for future auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            console.log('🔄 Auth event:', event, '| Session:', !!session);
+
+            if (abortController.signal.aborted) return;
+
+            // Update session
+            setState(prev => ({ ...prev, session }));
+
+            // Handle sign out
+            if (event === 'SIGNED_OUT') {
+              console.log('👋 User signed out - clearing all data');
+              setState({
+                user: null,
+                company: null,
+                settings: null,
+                session: null,
+                loading: false,
+                error: null,
+              });
+              if (loadingTimeout) clearTimeout(loadingTimeout);
+              return;
+            }
+
+            // Only reload profile on SIGNED_IN (new login)
+            // Skip INITIAL_SESSION since we already loaded above
+            if (event === 'SIGNED_IN' && session?.user) {
+              console.log('🔄 New sign in - loading profile');
+              setState(prev => ({ ...prev, loading: true, error: null }));
+
+              try {
+                const profileData = await loadUserProfile(
+                  session.user.id,
+                  abortController.signal
+                );
+
+                if (abortController.signal.aborted) return;
+
+                if (profileData) {
+                  setState(prev => ({
+                    ...prev,
+                    user: profileData.user,
+                    company: profileData.company,
+                    settings: profileData.settings,
+                    loading: false,
+                    error: null,
+                  }));
+                  console.log('✅ Profile loaded after sign in');
+                  if (loadingTimeout) clearTimeout(loadingTimeout);
+                }
+              } catch (error: any) {
+                if (abortController.signal.aborted) return;
+                console.error('❌ Failed to load profile:', error);
+                setState(prev => ({
+                  ...prev,
+                  error: error.message || 'Failed to load user profile',
+                  loading: false,
+                }));
+              }
+            }
+
+            // Token refresh - just update session, keep existing profile
+            if (event === 'TOKEN_REFRESHED') {
+              console.log('🔄 Token refreshed - keeping existing profile');
+            }
+          }
+        );
+
+        authSubscription = subscription;
       } catch (error) {
-        console.error('Error initializing auth:', error);
-        if (mounted) {
-          setState(prev => ({ ...prev, loading: false, error: 'Failed to initialize' }));
-        }
+        console.error('❌ Initialization error:', error);
+        setState(prev => ({ ...prev, loading: false, error: 'Failed to initialize auth' }));
+        if (loadingTimeout) clearTimeout(loadingTimeout);
       }
     }
 
     initialize();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
-
-      console.log('Auth state changed:', event);
-      
-      setState(prev => ({ ...prev, session }));
-      
-      // ✅ Only reload profile for actual auth changes, not tab visibility
-      if (event === 'SIGNED_IN' && session?.user) {
-        // Only load if we haven't loaded this user yet, or if it's a different user
-        if (lastLoadedUserId.current !== session.user.id && !isLoadingProfile.current) {
-          await loadUserProfile(session.user.id);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        lastLoadedUserId.current = null;
-        setState(prev => ({
-          ...prev,
-          user: null,
-          company: null,
-          settings: null,
-          loading: false,
-        }));
-      }
-      // ✅ Ignore INITIAL_SESSION and TOKEN_REFRESHED events - they don't need profile reload
-    });
-
     return () => {
-      mounted = false;
-      subscription.unsubscribe();
+      console.log('🧹 Cleaning up auth provider');
+      if (loadingTimeout) clearTimeout(loadingTimeout);
+      abortController.abort();
+      authSubscription?.unsubscribe();
     };
-  }, []);
+  }, [loadUserProfile]);
 
-  async function loadUserProfile(userId: string) {
-    // ✅ Prevent concurrent loads
-    if (isLoadingProfile.current) {
-      console.log('Profile load already in progress, skipping...');
-      return;
-    }
-
-    // ✅ Don't reload if we already have this user's data
-    if (lastLoadedUserId.current === userId && state.user) {
-      console.log('User already loaded, skipping...');
-      setState(prev => ({ ...prev, loading: false }));
-      return;
-    }
-
-    isLoadingProfile.current = true;
-
-    try {
-      setState(prev => ({ ...prev, loading: true, error: null }));
-
-      // Get user data with company_id
-      const { data: user, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (userError) throw userError;
-
-      // Validate company_id exists
-      if (!user.company_id) {
-        throw new Error('User does not have a company_id assigned');
-      }
-
-      console.log('User loaded:', {
-        id: user.id,
-        email: user.email,
-        company_id: user.company_id,
-        role: user.role,
-      });
-
-      // Get company data
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('id', user.company_id)
-        .single();
-
-      if (companyError) throw companyError;
-
-      console.log('Company loaded:', {
-        id: company.id,
-        name: company.name,
-        subscription_plan: company.subscription_plan,
-      });
-
-      // Get company settings
-      const { data: settings, error: settingsError } = await supabase
-        .from('company_settings')
-        .select('*')
-        .eq('company_id', company.id)
-        .single();
-
-      if (settingsError) {
-        console.warn('No company settings found, creating default settings');
-        
-        // Create default settings if they don't exist
-        const { data: newSettings, error: createError } = await supabase
-          .from('company_settings')
-          .insert({
-            company_id: company.id,
-          })
-          .select()
-          .single();
-
-        if (createError) throw createError;
-        
-        lastLoadedUserId.current = userId;
-        
-        setState(prev => ({
-          ...prev,
-          user: user as User,
-          company: company as Company,
-          settings: newSettings as CompanySettings,
-          loading: false,
-          error: null,
-        }));
-        
-        isLoadingProfile.current = false;
-        return;
-      }
-
-      console.log('Company settings loaded:', {
-        company_id: settings.company_id,
-        theme: settings.default_theme,
-      });
-
-      lastLoadedUserId.current = userId;
-
-      setState(prev => ({
-        ...prev,
-        user: user as User,
-        company: company as Company,
-        settings: settings as CompanySettings,
-        loading: false,
-        error: null,
-      }));
-    } catch (error: any) {
-      console.error('Error loading user profile:', error);
-      setState(prev => ({
-        ...prev,
-        error: error.message || 'Failed to load user profile',
-        loading: false,
-        user: null,
-        company: null,
-        settings: null,
-      }));
-      lastLoadedUserId.current = null; // ✅ Reset on error
-    } finally {
-      isLoadingProfile.current = false;
-    }
-  }
-
-  async function signIn(email: string, password: string) {
+  const signIn = useCallback(async (email: string, password: string) => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
@@ -266,7 +327,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (error) throw error;
 
-      // loadUserProfile will be called automatically by onAuthStateChange
+      // Profile loading handled by onAuthStateChange
     } catch (error: any) {
       console.error('Error signing in:', error);
       const errorMessage = error.message || 'Failed to sign in';
@@ -277,19 +338,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }));
       throw error;
     }
-  }
+  }, []);
 
-  async function signUp(
+  const signUp = useCallback(async (
     email: string, 
     password: string, 
     fullName: string, 
     companyName: string, 
     role: 'admin' | 'employee'
-  ) {
+  ) => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
-      // Step 1: Create auth user
+      // Create auth user
       const { data: authUser, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -298,9 +359,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (authError) throw authError;
       if (!authUser.user) throw new Error('No user returned from signup');
 
-      console.log('Auth user created:', authUser.user.id);
+      console.log('✅ Auth user created:', authUser.user.id);
 
-      // Step 2: Setup company and user profile via RPC
+      // Setup company and user profile
       const { error: setupError } = await supabase.rpc('setup_new_company', {
         p_company_name: companyName,
         p_user_id: authUser.user.id,
@@ -309,20 +370,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         p_user_role: role,
       });
 
-      if (setupError) {
-        console.error('Setup error:', setupError);
-        throw setupError;
-      }
+      if (setupError) throw setupError;
 
-      console.log('Company setup completed');
+      console.log('✅ Company setup completed');
 
-      // Step 3: Load the complete user profile with company data
-      await loadUserProfile(authUser.user.id);
-
-      // Step 4: Refresh session to ensure tokens are up to date
-      await supabase.auth.refreshSession();
-
-      console.log('User profile loaded and session refreshed');
+      // Profile loading will be handled by onAuthStateChange SIGNED_IN event
     } catch (error: any) {
       console.error('Error signing up:', error);
       const errorMessage = error.message || 'Failed to sign up';
@@ -333,19 +385,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }));
       throw error;
     }
-  }
+  }, []);
 
-  async function signOut() {
+  const signOut = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
 
-      // Clear cached user ID
-      lastLoadedUserId.current = null;
-
-      // State will be cleared automatically by onAuthStateChange
+      // State clearing handled by onAuthStateChange
     } catch (error: any) {
       console.error('Error signing out:', error);
       const errorMessage = error.message || 'Failed to sign out';
@@ -356,13 +405,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }));
       throw error;
     }
-  }
+  }, []);
 
-  async function updateProfile(data: Partial<User>) {
+  const updateProfile = useCallback(async (data: Partial<User>) => {
     try {
       if (!state.user?.id) throw new Error('No user logged in');
 
-      // Don't allow changing company_id or id
       const { id, company_id, ...updateData } = data as any;
 
       const { data: updatedUser, error } = await supabase
@@ -374,28 +422,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
-      // Update local state with returned data
       setState(prev => ({
         ...prev,
         user: updatedUser as User,
         error: null,
       }));
 
-      console.log('Profile updated successfully');
+      console.log('✅ Profile updated');
     } catch (error: any) {
       console.error('Error updating profile:', error);
       const errorMessage = error.message || 'Failed to update profile';
       setState(prev => ({ ...prev, error: errorMessage }));
       throw error;
     }
-  }
+  }, [state.user?.id]);
 
-  async function updateCompany(data: Partial<Company>) {
+  const updateCompany = useCallback(async (data: Partial<Company>) => {
     try {
       if (!state.company?.id) throw new Error('No company found');
       if (state.user?.role !== 'admin') throw new Error('Only admins can update company');
 
-      // Don't allow changing id
       const { id, ...updateData } = data as any;
 
       const { data: updatedCompany, error } = await supabase
@@ -407,48 +453,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
-      // Update local state with returned data
       setState(prev => ({
         ...prev,
         company: updatedCompany as Company,
         error: null,
       }));
 
-      console.log('Company updated successfully');
+      console.log('✅ Company updated');
     } catch (error: any) {
       console.error('Error updating company:', error);
       const errorMessage = error.message || 'Failed to update company';
       setState(prev => ({ ...prev, error: errorMessage }));
       throw error;
     }
-  }
+  }, [state.company?.id, state.user?.role]);
 
-  async function updateSettings(data: Partial<CompanySettings>): Promise<void> {
+  const updateSettings = useCallback(async (data: Partial<CompanySettings>): Promise<void> => {
     try {
-      console.log('=== UPDATE SETTINGS DEBUG ===')
-      console.log('Current settings state:', state.settings)
-      console.log('Data to update:', data)
+      console.log('⚙️ Updating settings');
       
-      if (!state.settings?.id) {
-        throw new Error('No settings found - settings.id is missing')
-      }
-      
-      if (!state.company?.id) {
-        throw new Error('No company found')
-      }
-      
-      if (state.user?.role !== 'admin') {
-        throw new Error('Only admins can update settings')
-      }
+      if (!state.settings?.id) throw new Error('No settings found');
+      if (!state.company?.id) throw new Error('No company found');
+      if (state.user?.role !== 'admin') throw new Error('Only admins can update settings');
 
-      // Don't allow changing id or company_id
       const { id, company_id, ...updateData } = data as any;
 
-      console.log('Settings ID:', state.settings.id)
-      console.log('Company ID:', state.company.id)
-      console.log('Update data (cleaned):', updateData)
-
-      // Use company_id instead of id for the WHERE clause (more reliable)
       const { data: updatedSettings, error } = await supabase
         .from('company_settings')
         .update(updateData)
@@ -456,38 +485,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select()
         .single();
 
-      if (error) {
-        console.error('Supabase error:', error)
-        throw error
-      }
+      if (error) throw error;
 
-      console.log('Settings updated successfully:', updatedSettings)
-
-      // Update local state with the returned data
       setState(prev => ({
         ...prev,
         settings: updatedSettings as CompanySettings,
         error: null,
       }));
+
+      console.log('✅ Settings updated');
     } catch (error: any) {
-      console.error('=== UPDATE SETTINGS ERROR ===')
-      console.error('Error updating settings:', error)
-      console.error('Error message:', error?.message)
-      console.error('Error code:', error?.code)
-      console.error('Error details:', error?.details)
-      console.error('Error hint:', error?.hint)
-      
+      console.error('Error updating settings:', error);
       const errorMessage = error.message || 'Failed to update settings';
       setState(prev => ({ ...prev, error: errorMessage }));
       throw error;
     }
-  }
+  }, [state.settings?.id, state.company?.id, state.user?.role]);
 
-  async function refreshProfile() {
+  const refreshProfile = useCallback(async () => {
     if (!state.user?.id) return;
-    lastLoadedUserId.current = null; // ✅ Force reload
-    await loadUserProfile(state.user.id);
-  }
+    
+    console.log('🔄 Refreshing profile');
+    setState(prev => ({ ...prev, loading: true, error: null }));
+
+    const abortController = new AbortController();
+    
+    try {
+      const profileData = await loadUserProfile(state.user.id, abortController.signal);
+
+      if (profileData) {
+        setState(prev => ({
+          ...prev,
+          user: profileData.user,
+          company: profileData.company,
+          settings: profileData.settings,
+          loading: false,
+          error: null,
+        }));
+        console.log('✅ Profile refreshed');
+      }
+    } catch (error: any) {
+      console.error('Error refreshing profile:', error);
+      setState(prev => ({
+        ...prev,
+        error: error.message || 'Failed to refresh profile',
+        loading: false,
+      }));
+    }
+  }, [state.user?.id, loadUserProfile]);
 
   const value = {
     user: state.user,
@@ -516,23 +561,21 @@ export function useAuth() {
   return context
 }
 
-// Helper hook to ensure user is loaded with company_id
 export function useRequireAuth() {
   const auth = useAuth();
   
   useEffect(() => {
     if (!auth.loading && !auth.user) {
-      console.warn('User not authenticated');
+      console.warn('⚠️ User not authenticated');
     }
     if (!auth.loading && auth.user && !auth.user.company_id) {
-      console.error('User loaded without company_id');
+      console.error('❌ User loaded without company_id');
     }
   }, [auth.loading, auth.user]);
   
   return auth;
 }
 
-// Helper hook to get company_id safely
 export function useCompanyId(): string | null {
   const { user } = useAuth();
   return user?.company_id || null;
