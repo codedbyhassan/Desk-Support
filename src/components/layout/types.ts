@@ -8,6 +8,7 @@ export interface NavItem {
   description?: string
   id: string
   adminOnly?: boolean
+  adminOrHR?: boolean
 }
 
 export interface NavLinksProps {

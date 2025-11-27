@@ -113,6 +113,9 @@
   --background: 300 100% 5%;        /* #190019 - Darkest purple background */
   --foreground: 6 40% 80%;         /* #DFB6B2 - Consistent cream/beige text */
   
+  /* Coffee color for text on whitish backgrounds */
+  --coffee-text: 25 35% 35%;        /* #6F4E37 - Coffee brown for text on white/light backgrounds */
+  
   /* Cards - Different shades of purple */
   --card: 280 62% 18%;             /* #2B124C - Card shade 1 */
   --card-foreground: 6 40% 80%;    /* #DFB6B2 - Consistent text */
@@ -316,6 +319,130 @@
   .dark .border-slate-200,
   .dark .border-slate-300 {
     border-color: hsl(280 62% 25% / 0.3); /* Purple border */
+  }
+
+  /* Dark Mode Text Color for Whitish Backgrounds - Coffee Color */
+  .dark .bg-white,
+  .dark .bg-white\/10,
+  .dark .bg-white\/20,
+  .dark .bg-white\/5,
+  .dark [data-state="active"].bg-white,
+  .dark .bg-slate-50,
+  .dark .bg-gray-50,
+  .dark .bg-slate-100,
+  .dark .bg-gray-100 {
+    color: hsl(var(--coffee-text));
+  }
+
+  /* Coffee text for text elements inside whitish backgrounds */
+  .dark .bg-white span,
+  .dark .bg-white p,
+  .dark .bg-white div,
+  .dark .bg-white h1,
+  .dark .bg-white h2,
+  .dark .bg-white h3,
+  .dark .bg-white h4,
+  .dark .bg-white h5,
+  .dark .bg-white h6,
+  .dark .bg-white\/10 span,
+  .dark .bg-white\/10 p,
+  .dark .bg-white\/10 div,
+  .dark .bg-white\/20 span,
+  .dark .bg-white\/20 p,
+  .dark .bg-white\/20 div,
+  .dark [data-state="active"].bg-white span,
+  .dark [data-state="active"].bg-white p,
+  .dark [data-state="active"].bg-white div,
+  .dark .bg-slate-50 span,
+  .dark .bg-slate-50 p,
+  .dark .bg-slate-50 div,
+  .dark .bg-gray-50 span,
+  .dark .bg-gray-50 p,
+  .dark .bg-gray-50 div,
+  .dark .bg-slate-100 span,
+  .dark .bg-slate-100 p,
+  .dark .bg-slate-100 div,
+  .dark .bg-gray-100 span,
+  .dark .bg-gray-100 p,
+  .dark .bg-gray-100 div {
+    color: hsl(var(--coffee-text));
+  }
+
+  /* Coffee text for icons and SVG inside whitish backgrounds */
+  .dark .bg-white svg,
+  .dark .bg-white\/10 svg,
+  .dark .bg-white\/20 svg,
+  .dark [data-state="active"].bg-white svg,
+  .dark .bg-slate-50 svg,
+  .dark .bg-gray-50 svg {
+    color: hsl(var(--coffee-text));
+    stroke: hsl(var(--coffee-text));
+  }
+
+  /* Coffee text for buttons with white/light backgrounds on hover */
+  .dark .hover\:bg-slate-50:hover,
+  .dark .hover\:bg-gray-50:hover {
+    color: hsl(var(--coffee-text));
+  }
+
+  .dark .hover\:bg-slate-50:hover span,
+  .dark .hover\:bg-slate-50:hover p,
+  .dark .hover\:bg-slate-50:hover div,
+  .dark .hover\:bg-gray-50:hover span,
+  .dark .hover\:bg-gray-50:hover p,
+  .dark .hover\:bg-gray-50:hover div {
+    color: hsl(var(--coffee-text));
+  }
+
+  /* Override specific text color classes on whitish backgrounds in dark mode */
+  .dark .bg-white .text-slate-600,
+  .dark .bg-white .text-slate-500,
+  .dark .bg-white .text-slate-700,
+  .dark .bg-white .text-slate-800,
+  .dark .bg-white .text-slate-900,
+  .dark .bg-white .text-gray-600,
+  .dark .bg-white .text-gray-500,
+  .dark .bg-white .text-gray-700,
+  .dark .bg-white .text-gray-800,
+  .dark .bg-white .text-gray-900,
+  .dark [data-state="active"].bg-white .text-slate-600,
+  .dark [data-state="active"].bg-white .text-slate-500,
+  .dark [data-state="active"].bg-white .text-slate-700,
+  .dark [data-state="active"].bg-white .text-slate-800,
+  .dark [data-state="active"].bg-white .text-slate-900,
+  .dark .bg-slate-50 .text-slate-600,
+  .dark .bg-slate-50 .text-slate-500,
+  .dark .bg-slate-50 .text-slate-700,
+  .dark .bg-slate-50 .text-slate-800,
+  .dark .bg-slate-50 .text-slate-900,
+  .dark .bg-gray-50 .text-slate-600,
+  .dark .bg-gray-50 .text-slate-500,
+  .dark .bg-gray-50 .text-slate-700,
+  .dark .bg-gray-50 .text-slate-800,
+  .dark .bg-gray-50 .text-slate-900 {
+    color: hsl(var(--coffee-text)) !important;
+  }
+
+  /* Handle opacity variants of white backgrounds */
+  .dark .bg-white\/30,
+  .dark .bg-white\/50,
+  .dark .bg-white\/70,
+  .dark .bg-white\/80,
+  .dark .bg-white\/90 {
+    color: hsl(var(--coffee-text));
+  }
+
+  .dark .bg-white\/30 *,
+  .dark .bg-white\/50 *,
+  .dark .bg-white\/70 *,
+  .dark .bg-white\/80 *,
+  .dark .bg-white\/90 * {
+    color: hsl(var(--coffee-text));
+  }
+
+  /* Coffee text utility class */
+  .dark .text-coffee {
+    color: hsl(var(--coffee-text));
   }
 }
 

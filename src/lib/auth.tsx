@@ -154,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let authSubscription: { unsubscribe: () => void } | null = null;
     let loadingTimeout: NodeJS.Timeout | null = null;
     let isInitialized = false;
+    let hasLoadedInitialProfile = false; // Track if we've already loaded the profile
 
     // Safety timeout: if loading takes more than 10 seconds, force it to false
     loadingTimeout = setTimeout(() => {
@@ -202,6 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (abortController.signal.aborted) return;
 
             if (profileData) {
+              hasLoadedInitialProfile = true; // Mark that we've loaded the profile
               setState(prev => ({
                 ...prev,
                 user: profileData.user,
@@ -242,6 +244,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Handle sign out
             if (event === 'SIGNED_OUT') {
               console.log('👋 User signed out - clearing all data');
+              hasLoadedInitialProfile = false; // Reset flag on sign out
               setState({
                 user: null,
                 company: null,
@@ -254,9 +257,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               return;
             }
 
-            // Only reload profile on SIGNED_IN (new login)
-            // Skip INITIAL_SESSION since we already loaded above
-            if (event === 'SIGNED_IN' && session?.user) {
+            // Only reload profile on SIGNED_IN if we haven't already loaded it
+            // This prevents duplicate loads when Supabase fires SIGNED_IN after INITIAL_SESSION
+            if (event === 'SIGNED_IN' && session?.user && !hasLoadedInitialProfile) {
               console.log('🔄 New sign in - loading profile');
               setState(prev => ({ ...prev, loading: true, error: null }));
 
@@ -269,6 +272,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 if (abortController.signal.aborted) return;
 
                 if (profileData) {
+                  hasLoadedInitialProfile = true; // Mark that we've loaded the profile
                   setState(prev => ({
                     ...prev,
                     user: profileData.user,
@@ -289,6 +293,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   loading: false,
                 }));
               }
+            } else if (event === 'SIGNED_IN' && hasLoadedInitialProfile) {
+              console.log('⏭️ Skipping profile load - already loaded on initialization');
             }
 
             // Token refresh - just update session, keep existing profile

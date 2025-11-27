@@ -52,6 +52,12 @@ import {
   FileText,
   Copy,
   Check,
+  Clock,
+  Shield,
+  Camera,
+  Search,
+  Filter,
+  Sparkles,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import { useToast } from '@/hooks/use-toast'
@@ -109,475 +115,18 @@ const actionConfig = {
   clock_in: {
     icon: ArrowDown,
     label: 'Clock In Only',
-    color: 'bg-green-100 text-green-800 border-green-200',
+    color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   },
   clock_out: {
     icon: ArrowUp,
     label: 'Clock Out Only',
-    color: 'bg-red-100 text-red-800 border-red-200',
+    color: 'bg-red-50 text-red-700 border-red-200',
   },
   toggle: {
     icon: RefreshCw,
     label: 'Smart Toggle',
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    color: 'bg-blue-50 text-blue-700 border-blue-200',
   },
-}
-
-// QR Type Selector Component
-function QRTypeSelector({
-  value,
-  onChange,
-}: {
-  value: QRCodeType
-  onChange: (value: QRCodeType) => void
-}) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-lg font-semibold mb-2">QR Code Type</h3>
-        <p className="text-sm text-muted-foreground">
-          Choose the type of QR code you want to generate
-        </p>
-      </div>
-      <RadioGroup value={value} onValueChange={(v) => onChange(v as QRCodeType)}>
-        <Card
-          className={cn(
-            'cursor-pointer transition-colors',
-            value === 'location' ? 'border-primary' : 'hover:border-primary/50'
-          )}
-        >
-          <CardContent className="p-4">
-            <div className="flex items-start gap-4">
-              <RadioGroupItem value="location" id="location" className="mt-1" />
-              <Label htmlFor="location" className="cursor-pointer flex-1">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <MapPin className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold">Location-Based QR Code</span>
-                      <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                        Recommended
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      One QR code per location/entrance
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      <strong>Use case:</strong> All employees use the same code
-                    </p>
-                  </div>
-                </div>
-              </Label>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className={cn(
-            'cursor-pointer transition-colors',
-            value === 'individual' ? 'border-primary' : 'hover:border-primary/50'
-          )}
-        >
-          <CardContent className="p-4">
-            <div className="flex items-start gap-4">
-              <RadioGroupItem value="individual" id="individual" className="mt-1" />
-              <Label htmlFor="individual" className="cursor-pointer flex-1">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <User className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold">Individual User QR Code</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Each employee gets unique QR code
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      <strong>Use case:</strong> For printed badges or ID cards
-                    </p>
-                  </div>
-                </div>
-              </Label>
-            </div>
-          </CardContent>
-        </Card>
-      </RadioGroup>
-    </div>
-  )
-}
-
-// QR Code Form Component
-function QRCodeForm({
-  type,
-  onGenerate,
-}: {
-  type: QRCodeType
-  onGenerate: (data: QRCodeFormData) => void
-}) {
-  const [formData, setFormData] = useState<QRCodeFormData>({
-    type,
-    location_name: '',
-    action: 'toggle',
-    use_active_hours: false,
-    active_hours_start: '08:00',
-    active_hours_end: '18:00',
-    never_expires: true,
-    requires_auth: true,
-    requires_gps: false,
-    requires_photo: false,
-  })
-  const [expiryDate, setExpiryDate] = useState<Date>()
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!formData.location_name.trim()) {
-      return
-    }
-
-    onGenerate({
-      ...formData,
-      expires_at: !formData.never_expires && expiryDate ? expiryDate.toISOString() : undefined,
-    })
-  }
-
-  const updateFormData = (updates: Partial<QRCodeFormData>) => {
-    setFormData((prev) => ({ ...prev, ...updates }))
-  }
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <Card className="border-slate-200">
-        <CardHeader>
-          <CardTitle className="text-lg">
-            Generate {type === 'location' ? 'Location-Based' : 'Individual'} QR Code
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Location Name */}
-          <div className="space-y-2">
-            <Label htmlFor="location_name">
-              Location Name <span className="text-red-600">*</span>
-            </Label>
-            <Input
-              id="location_name"
-              placeholder="Main Office Entrance"
-              value={formData.location_name}
-              onChange={(e) => updateFormData({ location_name: e.target.value })}
-              required
-            />
-          </div>
-
-          {/* QR Code Purpose */}
-          <div className="space-y-3">
-            <Label>QR Code Purpose</Label>
-            <RadioGroup
-              value={formData.action}
-              onValueChange={(v: any) => updateFormData({ action: v })}
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="clock_in" id="clock_in" />
-                <Label htmlFor="clock_in" className="cursor-pointer flex items-center gap-2">
-                  <ArrowDown className="h-4 w-4 text-green-600" />
-                  Clock In Only
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="clock_out" id="clock_out" />
-                <Label htmlFor="clock_out" className="cursor-pointer flex items-center gap-2">
-                  <ArrowUp className="h-4 w-4 text-red-600" />
-                  Clock Out Only
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="toggle" id="toggle" />
-                <Label htmlFor="toggle" className="cursor-pointer flex items-center gap-2">
-                  <RefreshCw className="h-4 w-4 text-blue-600" />
-                  Smart Toggle (Clock In/Out)
-                  <Badge
-                    variant="outline"
-                    className="bg-green-100 text-green-800 border-green-200 ml-1"
-                  >
-                    Recommended
-                  </Badge>
-                </Label>
-              </div>
-            </RadioGroup>
-            <p className="text-xs text-muted-foreground">
-              Smart Toggle automatically determines action based on user's current status
-            </p>
-          </div>
-
-          {/* Active Hours */}
-          <div className="space-y-3">
-            <Label>Active Hours (Optional)</Label>
-            <div className="flex items-center gap-2 mb-3">
-              <Checkbox
-                id="use_24_7"
-                checked={!formData.use_active_hours}
-                onCheckedChange={(checked) => updateFormData({ use_active_hours: !checked })}
-              />
-              <Label htmlFor="use_24_7" className="cursor-pointer text-sm">
-                24/7 Access
-              </Label>
-            </div>
-
-            {formData.use_active_hours && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="start_time">From</Label>
-                  <Input
-                    id="start_time"
-                    type="time"
-                    value={formData.active_hours_start}
-                    onChange={(e) => updateFormData({ active_hours_start: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="end_time">To</Label>
-                  <Input
-                    id="end_time"
-                    type="time"
-                    value={formData.active_hours_end}
-                    onChange={(e) => updateFormData({ active_hours_end: e.target.value })}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Expiry Settings */}
-          <div className="space-y-3">
-            <Label>Expiry Settings</Label>
-            <RadioGroup
-              value={formData.never_expires ? 'never' : 'date'}
-              onValueChange={(v) => updateFormData({ never_expires: v === 'never' })}
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="never" id="never" />
-                <Label htmlFor="never" className="cursor-pointer">
-                  Never expires
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="date" id="expires_date" />
-                <Label htmlFor="expires_date" className="cursor-pointer">
-                  Expires on
-                </Label>
-              </div>
-            </RadioGroup>
-
-            {!formData.never_expires && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      'w-full justify-start text-left font-normal',
-                      !expiryDate && 'text-muted-foreground'
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {expiryDate ? format(expiryDate, 'PPP') : 'Pick a date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={expiryDate}
-                    onSelect={setExpiryDate}
-                    initialFocus
-                    disabled={(date) => date < new Date()}
-                  />
-                </PopoverContent>
-              </Popover>
-            )}
-          </div>
-
-          {/* Security Options */}
-          <div className="space-y-3">
-            <Label>Security Options</Label>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="requires_auth"
-                  checked={formData.requires_auth}
-                  onCheckedChange={(checked) => updateFormData({ requires_auth: !!checked })}
-                />
-                <Label htmlFor="requires_auth" className="cursor-pointer text-sm">
-                  Require employee to be logged in
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="requires_gps"
-                  checked={formData.requires_gps}
-                  onCheckedChange={(checked) => updateFormData({ requires_gps: !!checked })}
-                />
-                <Label htmlFor="requires_gps" className="cursor-pointer text-sm">
-                  Verify GPS location (within 100m radius)
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="requires_photo"
-                  checked={formData.requires_photo}
-                  onCheckedChange={(checked) => updateFormData({ requires_photo: !!checked })}
-                />
-                <Label htmlFor="requires_photo" className="cursor-pointer text-sm">
-                  Require photo verification
-                </Label>
-              </div>
-            </div>
-          </div>
-
-          {/* Generate Button */}
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full"
-            disabled={!formData.location_name.trim()}
-          >
-            <QrCode className="h-5 w-5 mr-2" />
-            Generate QR Code
-          </Button>
-        </CardContent>
-      </Card>
-    </form>
-  )
-}
-
-// QR Code Preview Component
-function QRCodePreview({
-  qrCode,
-  qrCodeUrl,
-  onDeactivate,
-  onPrint,
-  onDownload,
-}: {
-  qrCode: QRCodeRecord
-  qrCodeUrl: string
-  onDeactivate: () => void
-  onPrint: () => void
-  onDownload: () => void
-}) {
-  const { toast } = useToast()
-  const ActionIcon = actionConfig[qrCode.action].icon
-  const [copied, setCopied] = useState(false)
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(
-        `${window.location.origin}/scan/${qrCode.qr_code_id}`
-      )
-      setCopied(true)
-      toast({
-        title: 'Success',
-        description: 'Shareable link copied to clipboard',
-      })
-      setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to copy link',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const isExpired = qrCode.expires_at && new Date(qrCode.expires_at) < new Date()
-  const status = isExpired ? 'expired' : qrCode.is_active ? 'active' : 'inactive'
-
-  return (
-    <Card className="border-slate-200" id="qr-preview">
-      <CardHeader>
-        <CardTitle className="text-lg">QR Code Preview</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* QR Code Display */}
-        <div className="flex flex-col items-center p-6 lg:p-8 bg-muted/30 rounded-lg">
-          <div className="bg-white p-4 lg:p-6 rounded-lg shadow-md mb-4">
-            <img src={qrCodeUrl} alt="QR Code" className="w-full max-w-[300px]" />
-          </div>
-
-          <div className="text-center space-y-2">
-            <p className="text-sm font-mono text-muted-foreground">
-              QR Code ID: <span className="font-semibold text-foreground">#{qrCode.qr_code_id}</span>
-            </p>
-
-            <div className="flex items-center justify-center gap-2 flex-wrap">
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                <MapPin className="h-3 w-3 mr-1" />
-                {qrCode.location_name}
-              </Badge>
-
-              <Badge variant="outline" className={actionConfig[qrCode.action].color}>
-                <ActionIcon className="h-3 w-3 mr-1" />
-                {actionConfig[qrCode.action].label}
-              </Badge>
-
-              {status === 'active' && (
-                <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                  ✅ Active
-                </Badge>
-              )}
-              {status === 'expired' && qrCode.expires_at && (
-                <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">
-                  ⚠️ Expires {format(new Date(qrCode.expires_at), 'MMM dd, yyyy')}
-                </Badge>
-              )}
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Created: {format(new Date(qrCode.created_at), "PPP 'at' p")}
-            </p>
-            {qrCode.usage_count > 0 && (
-              <p className="text-xs text-muted-foreground">
-                Used {qrCode.usage_count} time{qrCode.usage_count !== 1 ? 's' : ''}
-                {qrCode.last_used_at && ` - Last used ${formatDistanceToNow(new Date(qrCode.last_used_at), { addSuffix: true })}`}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" onClick={onDownload}>
-              <Download className="h-4 w-4 mr-2" />
-              Download
-            </Button>
-            <Button variant="outline" onClick={onPrint}>
-              <Printer className="h-4 w-4 mr-2" />
-              Print
-            </Button>
-          </div>
-
-          <Button variant="outline" className="w-full" onClick={handleCopyLink}>
-            {copied ? (
-              <>
-                <Check className="h-4 w-4 mr-2" />
-                Copied!
-              </>
-            ) : (
-              <>
-                <LinkIcon className="h-4 w-4 mr-2" />
-                Copy Shareable Link
-              </>
-            )}
-          </Button>
-
-          <Button variant="destructive" className="w-full" onClick={onDeactivate}>
-            <XCircle className="h-4 w-4 mr-2" />
-            Deactivate QR Code
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  )
 }
 
 // Main Component
@@ -590,6 +139,23 @@ export default function QRCodeGeneratorTab() {
   const [qrCodeUrl, setQrCodeUrl] = useState('')
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<QRCodeRecord | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'expired'>('all')
+
+  // Form state
+  const [formData, setFormData] = useState<QRCodeFormData>({
+    type: 'location',
+    location_name: '',
+    action: 'toggle',
+    use_active_hours: false,
+    active_hours_start: '08:00',
+    active_hours_end: '18:00',
+    never_expires: true,
+    requires_auth: true,
+    requires_gps: false,
+    requires_photo: false,
+  })
+  const [expiryDate, setExpiryDate] = useState<Date>()
 
   useEffect(() => {
     if (user?.company_id) {
@@ -639,8 +205,9 @@ export default function QRCodeGeneratorTab() {
     }
   }
 
-  const handleGenerate = async (formData: QRCodeFormData) => {
-    if (!user?.company_id) return
+  const handleGenerate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user?.company_id || !formData.location_name.trim()) return
 
     try {
       const qrCodeId = `CLK_${formData.location_name
@@ -796,56 +363,563 @@ export default function QRCodeGeneratorTab() {
     })
   }
 
+  const handleCopyLink = async () => {
+    if (!generatedQR) return
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/scan/${generatedQR.qr_code_id}`
+      )
+      toast({
+        title: 'Success',
+        description: 'Shareable link copied to clipboard',
+      })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to copy link',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const getStatus = (qr: QRCodeRecord) => {
     if (qr.expires_at && new Date(qr.expires_at) < new Date()) {
-      return { label: 'Expired', color: 'bg-gray-100 text-gray-800' }
+      return { label: 'Expired', color: 'bg-amber-50 text-amber-700 border-amber-200' }
     }
     if (!qr.is_active) {
-      return { label: 'Inactive', color: 'bg-gray-100 text-gray-800' }
+      return { label: 'Inactive', color: 'bg-slate-50 text-slate-700 border-slate-200' }
     }
-    return { label: 'Active', color: 'bg-green-100 text-green-800 border-green-200' }
+    return { label: 'Active', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
   }
+
+  const filteredQRCodes = qrCodes.filter((qr) => {
+    const matchesSearch = qr.location_name.toLowerCase().includes(searchTerm.toLowerCase())
+    const status = getStatus(qr)
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'active' && status.label === 'Active') ||
+      (statusFilter === 'inactive' && status.label === 'Inactive') ||
+      (statusFilter === 'expired' && status.label === 'Expired')
+    return matchesSearch && matchesStatus
+  })
+
+  const ActionIcon = generatedQR ? actionConfig[generatedQR.action].icon : null
 
   return (
     <div className="space-y-6 lg:space-y-8">
-      {/* QR Type Selector */}
-      <QRTypeSelector value={qrType} onChange={setQrType} />
-
-      {/* Form and Preview */}
-      <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
+      {/* Header Section */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+            <QrCode className="h-6 w-6 text-white" />
+          </div>
         <div>
-          <QRCodeForm type={qrType} onGenerate={handleGenerate} />
+            <h2 className="text-2xl lg:text-3xl font-bold text-slate-900">QR Code Generator</h2>
+            <p className="text-sm text-slate-500">Create and manage attendance QR codes</p>
+          </div>
+        </div>
         </div>
 
+      {/* Generated QR Preview - Show at top if exists */}
         {generatedQR && qrCodeUrl && (
+        <Card id="qr-preview" className="border-2 border-blue-200 shadow-lg bg-gradient-to-br from-blue-50/50 to-white">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center">
+                  <Check className="h-5 w-5 text-white" />
+                </div>
           <div>
-            <QRCodePreview
-              qrCode={generatedQR}
-              qrCodeUrl={qrCodeUrl}
-              onDeactivate={() => handleDeactivate()}
-              onPrint={handlePrint}
-              onDownload={handleDownload}
+                  <CardTitle className="text-lg">Generated QR Code</CardTitle>
+                  <p className="text-sm text-slate-500">{generatedQR.location_name}</p>
+                </div>
+              </div>
+              <Badge className={getStatus(generatedQR).color}>
+                {getStatus(generatedQR).label}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid lg:grid-cols-2 gap-6">
+              {/* QR Code Display */}
+              <div className="flex flex-col items-center justify-center p-6 bg-white rounded-xl border-2 border-slate-200">
+                <img src={qrCodeUrl} alt="QR Code" className="w-full max-w-[280px] mb-4" />
+                <div className="text-center space-y-2">
+                  <p className="text-xs font-mono text-slate-600">
+                    ID: <span className="font-semibold text-slate-900">#{generatedQR.qr_code_id}</span>
+                  </p>
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      <MapPin className="h-3 w-3 mr-1" />
+                      {generatedQR.location_name}
+                    </Badge>
+                    {ActionIcon && (
+                      <Badge variant="outline" className={actionConfig[generatedQR.action].color}>
+                        <ActionIcon className="h-3 w-3 mr-1" />
+                        {actionConfig[generatedQR.action].label}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <Button onClick={handleDownload} variant="outline" className="h-auto py-3">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                  <Button onClick={handlePrint} variant="outline" className="h-auto py-3">
+                    <Printer className="h-4 w-4 mr-2" />
+                    Print
+                  </Button>
+                </div>
+                <Button onClick={handleCopyLink} variant="outline" className="w-full h-auto py-3">
+                  <LinkIcon className="h-4 w-4 mr-2" />
+                  Copy Shareable Link
+                </Button>
+                <Button
+                  onClick={() => handleDeactivate()}
+                  variant="destructive"
+                  className="w-full h-auto py-3"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Deactivate QR Code
+                </Button>
+                <div className="pt-4 border-t border-slate-200 space-y-2 text-xs text-slate-600">
+                  <p>Created: {format(new Date(generatedQR.created_at), "PPP 'at' p")}</p>
+                  {generatedQR.usage_count > 0 && (
+                    <p>
+                      Used {generatedQR.usage_count} time{generatedQR.usage_count !== 1 ? 's' : ''}
+                      {generatedQR.last_used_at &&
+                        ` - Last used ${formatDistanceToNow(new Date(generatedQR.last_used_at), { addSuffix: true })}`}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+        {/* Generation Form - Left Side */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* QR Type Selection */}
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-blue-500" />
+                QR Code Type
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RadioGroup value={qrType} onValueChange={(v) => setQrType(v as QRCodeType)}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card
+                    className={cn(
+                      'cursor-pointer transition-all border-2',
+                      qrType === 'location'
+                        ? 'border-blue-500 bg-blue-50/50'
+                        : 'border-slate-200 hover:border-blue-300'
+                    )}
+                    onClick={() => setQrType('location')}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <RadioGroupItem value="location" id="location" className="mt-1" />
+                        <Label htmlFor="location" className="cursor-pointer flex-1">
+                          <div className="flex items-start gap-3">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                              <MapPin className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-semibold text-sm">Location-Based</span>
+                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
+                                  Recommended
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-slate-600">
+                                One QR code for all employees at this location
+                              </p>
+                            </div>
+                          </div>
+                        </Label>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card
+                    className={cn(
+                      'cursor-pointer transition-all border-2',
+                      qrType === 'individual'
+                        ? 'border-purple-500 bg-purple-50/50'
+                        : 'border-slate-200 hover:border-purple-300'
+                    )}
+                    onClick={() => setQrType('individual')}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <RadioGroupItem value="individual" id="individual" className="mt-1" />
+                        <Label htmlFor="individual" className="cursor-pointer flex-1">
+                          <div className="flex items-start gap-3">
+                            <div className="p-2 bg-purple-100 rounded-lg">
+                              <User className="h-5 w-5 text-purple-600" />
+                            </div>
+                            <div className="flex-1">
+                              <span className="font-semibold text-sm">Individual</span>
+                              <p className="text-xs text-slate-600 mt-1">
+                                Unique QR code per employee
+                              </p>
+                            </div>
+                          </div>
+                        </Label>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </RadioGroup>
+            </CardContent>
+          </Card>
+
+          {/* Generation Form */}
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="h-5 w-5 text-blue-500" />
+                Configuration
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleGenerate} className="space-y-6">
+                {/* Location Name */}
+                <div className="space-y-2">
+                  <Label htmlFor="location_name" className="text-sm font-medium">
+                    Location Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="location_name"
+                    placeholder="e.g., Main Office Entrance, Conference Room A"
+                    value={formData.location_name}
+                    onChange={(e) => setFormData({ ...formData, location_name: e.target.value })}
+                    required
+                    className="h-11"
             />
           </div>
-        )}
+
+                {/* Action Type */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Action Type</Label>
+                  <RadioGroup
+                    value={formData.action}
+                    onValueChange={(v: any) => setFormData({ ...formData, action: v })}
+                    className="grid grid-cols-1 md:grid-cols-3 gap-3"
+                  >
+                    {Object.entries(actionConfig).map(([value, config]) => {
+                      const Icon = config.icon
+                      return (
+                        <Card
+                          key={value}
+                          className={cn(
+                            'cursor-pointer transition-all border-2',
+                            formData.action === value
+                              ? 'border-blue-500 bg-blue-50/50'
+                              : 'border-slate-200 hover:border-slate-300'
+                          )}
+                          onClick={() => setFormData({ ...formData, action: value as QRCodeAction })}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                              <RadioGroupItem value={value} id={value} />
+                              <Label htmlFor={value} className="cursor-pointer flex-1 flex items-center gap-2">
+                                <Icon className="h-4 w-4" />
+                                <span className="text-sm">{config.label}</span>
+                                {value === 'toggle' && (
+                                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs ml-auto">
+                                    Recommended
+                                  </Badge>
+                                )}
+                              </Label>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </RadioGroup>
       </div>
 
-      {/* Active QR Codes List */}
-      <Card className="border-slate-200">
+                {/* Active Hours */}
+                <div className="space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Active Hours
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="use_24_7"
+                        checked={!formData.use_active_hours}
+                        onCheckedChange={(checked) =>
+                          setFormData({ ...formData, use_active_hours: !checked })
+                        }
+                      />
+                      <Label htmlFor="use_24_7" className="cursor-pointer text-sm">
+                        24/7 Access
+                      </Label>
+                    </div>
+                  </div>
+                  {formData.use_active_hours && (
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="start_time" className="text-xs">Start Time</Label>
+                        <Input
+                          id="start_time"
+                          type="time"
+                          value={formData.active_hours_start}
+                          onChange={(e) =>
+                            setFormData({ ...formData, active_hours_start: e.target.value })
+                          }
+                          className="h-10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="end_time" className="text-xs">End Time</Label>
+                        <Input
+                          id="end_time"
+                          type="time"
+                          value={formData.active_hours_end}
+                          onChange={(e) =>
+                            setFormData({ ...formData, active_hours_end: e.target.value })
+                          }
+                          className="h-10"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Expiry Settings */}
+                <div className="space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4" />
+                    Expiry Settings
+                  </Label>
+                  <RadioGroup
+                    value={formData.never_expires ? 'never' : 'date'}
+                    onValueChange={(v) => setFormData({ ...formData, never_expires: v === 'never' })}
+                    className="space-y-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="never" id="never" />
+                      <Label htmlFor="never" className="cursor-pointer text-sm">
+                        Never expires
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="date" id="expires_date" />
+                      <Label htmlFor="expires_date" className="cursor-pointer text-sm">
+                        Expires on specific date
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                  {!formData.never_expires && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'w-full justify-start text-left font-normal h-10',
+                            !expiryDate && 'text-muted-foreground'
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {expiryDate ? format(expiryDate, 'PPP') : 'Pick a date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={expiryDate}
+                          onSelect={(date) => {
+                            setExpiryDate(date)
+                            setFormData({
+                              ...formData,
+                              expires_at: date ? date.toISOString() : undefined,
+                            })
+                          }}
+                          initialFocus
+                          disabled={(date) => date < new Date()}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+
+                {/* Security Options */}
+                <div className="space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    Security Options
+                  </Label>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="requires_auth"
+                        checked={formData.requires_auth}
+                        onCheckedChange={(checked) =>
+                          setFormData({ ...formData, requires_auth: !!checked })
+                        }
+                      />
+                      <Label htmlFor="requires_auth" className="cursor-pointer text-sm flex items-center gap-2">
+                        <User className="h-3 w-3" />
+                        Require employee authentication
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="requires_gps"
+                        checked={formData.requires_gps}
+                        onCheckedChange={(checked) =>
+                          setFormData({ ...formData, requires_gps: !!checked })
+                        }
+                      />
+                      <Label htmlFor="requires_gps" className="cursor-pointer text-sm flex items-center gap-2">
+                        <MapPin className="h-3 w-3" />
+                        Verify GPS location (100m radius)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="requires_photo"
+                        checked={formData.requires_photo}
+                        onCheckedChange={(checked) =>
+                          setFormData({ ...formData, requires_photo: !!checked })
+                        }
+                      />
+                      <Label htmlFor="requires_photo" className="cursor-pointer text-sm flex items-center gap-2">
+                        <Camera className="h-3 w-3" />
+                        Require photo verification
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Generate Button */}
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full h-12 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg"
+                  disabled={!formData.location_name.trim()}
+                >
+                  <QrCode className="h-5 w-5 mr-2" />
+                  Generate QR Code
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Stats - Right Side */}
+        <div className="space-y-6">
+          <Card className="border-slate-200 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg">Active QR Codes</CardTitle>
+              <CardTitle className="text-lg">Quick Stats</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-900">Total QR Codes</span>
+                  <QrCode className="h-4 w-4 text-blue-600" />
+                </div>
+                <p className="text-2xl font-bold text-blue-900">{qrCodes.length}</p>
+              </div>
+              <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-emerald-900">Active</span>
+                  <Check className="h-4 w-4 text-emerald-600" />
+                </div>
+                <p className="text-2xl font-bold text-emerald-900">
+                  {qrCodes.filter((q) => q.is_active && (!q.expires_at || new Date(q.expires_at) > new Date())).length}
+                </p>
+              </div>
+              <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-amber-900">Total Uses</span>
+                  <RefreshCw className="h-4 w-4 text-amber-600" />
+                </div>
+                <p className="text-2xl font-bold text-amber-900">
+                  {qrCodes.reduce((sum, q) => sum + q.usage_count, 0)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* QR Codes List */}
+      <Card className="border-slate-200 shadow-sm">
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <QrCode className="h-5 w-5" />
+              All QR Codes ({filteredQRCodes.length})
+            </CardTitle>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1 sm:max-w-xs">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Search QR codes..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 h-10"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant={statusFilter === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setStatusFilter('all')}
+                  className="h-10"
+                >
+                  All
+                </Button>
+                <Button
+                  variant={statusFilter === 'active' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setStatusFilter('active')}
+                  className="h-10"
+                >
+                  Active
+                </Button>
+                <Button
+                  variant={statusFilter === 'inactive' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setStatusFilter('inactive')}
+                  className="h-10"
+                >
+                  Inactive
+                </Button>
+              </div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8 text-gray-500">
-              <QrCode className="h-8 w-8 mx-auto mb-2 animate-spin" />
-              Loading...
+            <div className="text-center py-12">
+              <QrCode className="h-8 w-8 mx-auto mb-3 animate-spin text-slate-400" />
+              <p className="text-sm text-slate-500">Loading QR codes...</p>
             </div>
-          ) : qrCodes.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <QrCode className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-              <h3 className="text-base font-medium text-gray-900 mb-1">No QR codes yet</h3>
-              <p className="text-sm">Generate your first QR code to get started</p>
+          ) : filteredQRCodes.length === 0 ? (
+            <div className="text-center py-12">
+              <QrCode className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+              <h3 className="text-base font-medium text-slate-900 mb-1">No QR codes found</h3>
+              <p className="text-sm text-slate-500">
+                {searchTerm || statusFilter !== 'all'
+                  ? 'Try adjusting your filters'
+                  : 'Generate your first QR code to get started'}
+              </p>
             </div>
           ) : (
             <>
@@ -853,21 +927,22 @@ export default function QRCodeGeneratorTab() {
               <div className="hidden md:block rounded-lg border overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="text-xs">Location</TableHead>
-                      <TableHead className="text-xs">Type</TableHead>
-                      <TableHead className="text-xs">Action</TableHead>
-                      <TableHead className="text-xs text-center">Usage</TableHead>
-                      <TableHead className="text-xs">Status</TableHead>
-                      <TableHead className="text-xs">Created</TableHead>
-                      <TableHead className="text-xs text-right">Actions</TableHead>
+                    <TableRow className="bg-slate-50">
+                      <TableHead className="text-xs font-semibold">Location</TableHead>
+                      <TableHead className="text-xs font-semibold">Type</TableHead>
+                      <TableHead className="text-xs font-semibold">Action</TableHead>
+                      <TableHead className="text-xs font-semibold text-center">Usage</TableHead>
+                      <TableHead className="text-xs font-semibold">Status</TableHead>
+                      <TableHead className="text-xs font-semibold">Created</TableHead>
+                      <TableHead className="text-xs font-semibold text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {qrCodes.map((qr) => {
+                    {filteredQRCodes.map((qr) => {
                       const status = getStatus(qr)
+                      const ActionIcon = actionConfig[qr.action].icon
                       return (
-                        <TableRow key={qr.id} className="hover:bg-muted/50">
+                        <TableRow key={qr.id} className="hover:bg-slate-50/50">
                           <TableCell className="font-medium text-sm">{qr.location_name}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className="text-xs">
@@ -886,16 +961,17 @@ export default function QRCodeGeneratorTab() {
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className={`text-xs ${actionConfig[qr.action].color}`}>
+                              <ActionIcon className="h-3 w-3 mr-1" />
                               {actionConfig[qr.action].label}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-center text-sm">{qr.usage_count}</TableCell>
+                          <TableCell className="text-center text-sm font-medium">{qr.usage_count}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className={`text-xs ${status.color}`}>
                               {status.label}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
+                          <TableCell className="text-xs text-slate-600">
                             {format(new Date(qr.created_at), 'MMM dd, yyyy')}
                           </TableCell>
                           <TableCell className="text-right">
@@ -933,15 +1009,16 @@ export default function QRCodeGeneratorTab() {
 
               {/* Mobile Cards */}
               <div className="md:hidden space-y-3">
-                {qrCodes.map((qr) => {
+                {filteredQRCodes.map((qr) => {
                   const status = getStatus(qr)
+                  const ActionIcon = actionConfig[qr.action].icon
                   return (
                     <Card key={qr.id} className="p-4">
                       <div className="space-y-3">
                         <div className="flex items-start justify-between">
-                          <div>
-                            <p className="font-medium">{qr.location_name}</p>
-                            <p className="text-xs text-muted-foreground">
+                          <div className="flex-1">
+                            <p className="font-semibold text-sm">{qr.location_name}</p>
+                            <p className="text-xs text-slate-500 mt-1">
                               {format(new Date(qr.created_at), 'MMM dd, yyyy')}
                             </p>
                           </div>
@@ -952,9 +1029,20 @@ export default function QRCodeGeneratorTab() {
 
                         <div className="flex gap-2 flex-wrap">
                           <Badge variant="outline" className="text-xs">
-                            {qr.type === 'location' ? 'Location' : 'Individual'}
+                            {qr.type === 'location' ? (
+                              <>
+                                <MapPin className="h-3 w-3 mr-1" />
+                                Location
+                              </>
+                            ) : (
+                              <>
+                                <User className="h-3 w-3 mr-1" />
+                                Individual
+                              </>
+                            )}
                           </Badge>
                           <Badge variant="outline" className={`text-xs ${actionConfig[qr.action].color}`}>
+                            <ActionIcon className="h-3 w-3 mr-1" />
                             {actionConfig[qr.action].label}
                           </Badge>
                           <Badge variant="outline" className="text-xs">
@@ -962,11 +1050,12 @@ export default function QRCodeGeneratorTab() {
                           </Badge>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleView(qr)}
+                            className="h-9"
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             View
@@ -975,6 +1064,7 @@ export default function QRCodeGeneratorTab() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleDeactivate(qr)}
+                            className="h-9"
                           >
                             <XCircle className="h-4 w-4 mr-1" />
                             Deactivate
@@ -982,7 +1072,7 @@ export default function QRCodeGeneratorTab() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-red-600"
+                            className="text-red-600 h-9"
                             onClick={() => handleDelete(qr)}
                           >
                             <Trash2 className="h-4 w-4 mr-1" />
@@ -1005,13 +1095,13 @@ export default function QRCodeGeneratorTab() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete QR Code</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the QR code for "{deleteTarget?.location_name}"? This action
-              cannot be undone.
+              Are you sure you want to delete the QR code for "{deleteTarget?.location_name}"? This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600">
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

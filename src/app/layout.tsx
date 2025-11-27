@@ -14,7 +14,6 @@ import {
   Package,
   Building2,
   Users,
-  BarChart3,
   User,
   Settings,
 } from 'lucide-react'
@@ -39,26 +38,39 @@ export default function Layout({ children }: LayoutProps) {
   }, [pathname, setCurrentPath])
 
   useEffect(() => {
-    if (user?.id && user?.company_id) {
-      fetchActiveTicketCount()
-      
-      const channel = supabase
-        .channel('active-tickets-count')
-        .on('postgres_changes', {
+    if (!user?.id || !user?.company_id) return
+
+    // If user is actively viewing tickets, hide the sidebar badge
+    if (pathname.startsWith('/app/tickets')) {
+      setActiveTicketCount(0)
+      return
+    }
+
+    fetchActiveTicketCount()
+
+    const channel = supabase
+      .channel('active-tickets-count')
+      .on(
+        'postgres_changes',
+        {
           event: '*',
           schema: 'public',
           table: 'tickets',
-          filter: `assigned_to=eq.${user.id}`
-        }, () => {
-          fetchActiveTicketCount()
-        })
-        .subscribe()
+          filter: `assigned_to=eq.${user.id}`,
+        },
+        () => {
+          // Only update the badge when we're not on the tickets pages
+          if (!pathname.startsWith('/app/tickets')) {
+            fetchActiveTicketCount()
+          }
+        }
+      )
+      .subscribe()
 
-      return () => {
-        supabase.removeChannel(channel)
-      }
+    return () => {
+      supabase.removeChannel(channel)
     }
-  }, [user?.id, user?.company_id])
+  }, [user?.id, user?.company_id, pathname])
 
   const fetchActiveTicketCount = async () => {
     if (!user?.id || !user?.company_id) return
@@ -115,20 +127,12 @@ export default function Layout({ children }: LayoutProps) {
       description: 'Team management'
     },
     { 
-      id: 'analytics',
-      name: 'Analytics', 
-      href: '/app/analytics', 
-      icon: BarChart3,
-      description: 'Reports and metrics',
-      adminOnly: true
-    },
-    { 
       id: 'users',
       name: 'Users', 
       href: '/app/users', 
       icon: User,
       description: 'User management',
-      adminOnly: true
+      adminOrHR: true
     },
     { 
       id: 'settings',
@@ -139,7 +143,11 @@ export default function Layout({ children }: LayoutProps) {
     }
   ]
 
-  const navItems = allNavItems.filter(item => !item.adminOnly || user?.role === 'admin')
+  const navItems = allNavItems.filter(item => {
+    if (item.adminOnly && user?.role !== 'admin') return false
+    if (item.adminOrHR && user?.role !== 'admin' && user?.role !== 'hr') return false
+    return true
+  })
 
   return (
     <DashboardTabProvider>

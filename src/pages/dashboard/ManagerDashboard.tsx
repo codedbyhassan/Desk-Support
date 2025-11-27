@@ -20,45 +20,51 @@ import {
   Plus,
   Eye,
   AlertTriangle,
+  Users,
+  Briefcase,
   Award,
   PieChart,
   LineChart,
   Download,
-  Sparkles,
-  Users
+  Sparkles
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useDashboardTab } from '@/context/DashboardTabContext'
 
-interface EmployeeStats {
-  totalAssets: number
-  totalTickets: number
+interface ManagerStats {
+  departmentMembers: number
+  departmentAssets: number
+  departmentTickets: number
   openTickets: number
   resolvedTickets: number
   inProgressTickets: number
   ticketGrowthPercentage: number
   resolutionRate: number
+  departmentName: string
 }
 
-export default function EmployeeDashboard() {
+export default function ManagerDashboard() {
   const { user, company } = useAuth()
   const navigate = useNavigate()
   const { activeTab, setActiveTab } = useDashboardTab()
-  const [stats, setStats] = useState<EmployeeStats>({
-    totalAssets: 0,
-    totalTickets: 0,
+  const [stats, setStats] = useState<ManagerStats>({
+    departmentMembers: 0,
+    departmentAssets: 0,
+    departmentTickets: 0,
     openTickets: 0,
     resolvedTickets: 0,
     inProgressTickets: 0,
     ticketGrowthPercentage: 0,
-    resolutionRate: 0
+    resolutionRate: 0,
+    departmentName: ''
   })
   const [assets, setAssets] = useState<Asset[]>([])
   const [tickets, setTickets] = useState<Tickets[]>([])
+  const [departmentMembers, setDepartmentMembers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const employeeTabs = ['overview', 'assets', 'tickets'] as const
-  const normalizedTab = (employeeTabs as readonly string[]).includes(activeTab) ? activeTab : employeeTabs[0]
+  const managerTabs = ['overview', 'tickets', 'assets', 'members'] as const
+  const normalizedTab = (managerTabs as readonly string[]).includes(activeTab) ? activeTab : managerTabs[0]
 
   useEffect(() => {
     if (activeTab !== normalizedTab) {
@@ -68,43 +74,59 @@ export default function EmployeeDashboard() {
 
   useEffect(() => {
     if (!user?.company_id) {
-      console.error('Employee Dashboard: No company_id found for user')
+      console.error('Manager Dashboard: No company_id found for user')
       setError('Unable to load dashboard. Company information is missing.')
       setLoading(false)
       return
     }
 
-    console.log('Employee Dashboard: Loading data for user:', user.id, 'company:', user.company_id)
+    console.log('Manager Dashboard: Loading data for user:', user.id, 'company:', user.company_id)
     fetchData()
 
     const channels = [
-      supabase.channel('employee_assets_changes')
+      supabase.channel('manager_departments_changes')
+        .on(
+          'postgres_changes',
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'departments',
+            filter: `manager_id=eq.${user.id}`
+          },
+          () => {
+            console.log('Manager Dashboard: Department changed, refreshing data')
+            fetchData()
+          }
+        )
+        .subscribe(),
+      
+      supabase.channel('manager_assets_changes')
         .on(
           'postgres_changes',
           { 
             event: '*', 
             schema: 'public', 
             table: 'assets',
-            filter: `assigned_to=eq.${user.id}`
+            filter: `company_id=eq.${user.company_id}`
           },
           () => {
-            console.log('Employee Dashboard: Assets changed, refreshing data')
+            console.log('Manager Dashboard: Assets changed, refreshing data')
             fetchData()
           }
         )
         .subscribe(),
       
-      supabase.channel('employee_tickets_changes')
+      supabase.channel('manager_tickets_changes')
         .on(
           'postgres_changes',
           { 
             event: '*', 
             schema: 'public', 
             table: 'tickets',
-            filter: `created_by=eq.${user.id}`
+            filter: `company_id=eq.${user.company_id}`
           },
           () => {
-            console.log('Employee Dashboard: Tickets changed, refreshing data')
+            console.log('Manager Dashboard: Tickets changed, refreshing data')
             fetchData()
           }
         )
@@ -112,14 +134,14 @@ export default function EmployeeDashboard() {
     ]
 
     return () => {
-      console.log('Employee Dashboard: Cleaning up subscriptions')
+      console.log('Manager Dashboard: Cleaning up subscriptions')
       channels.forEach(channel => supabase.removeChannel(channel))
     }
   }, [user?.id, user?.company_id])
 
   const fetchData = async () => {
     if (!user?.company_id || !user?.id) {
-      console.error('Employee Dashboard: Cannot fetch data without user info')
+      console.error('Manager Dashboard: Cannot fetch data without user info')
       setError('User information is missing')
       setLoading(false)
       return
@@ -129,69 +151,138 @@ export default function EmployeeDashboard() {
     setError(null)
 
     try {
-      console.log('Employee Dashboard: Fetching data for user:', user.id)
+      console.log('Manager Dashboard: Fetching data for manager:', user.id)
 
-      const [assetsRes, ticketsRes] = await Promise.all([
-        supabase
-          .from('assets')
-          .select('*')
-          .eq('assigned_to', user.id)
-          .eq('company_id', user.company_id)
-          .order('created_at', { ascending: false }),
-        
-        supabase
+      // First, get the department this manager manages
+      const { data: departmentData, error: deptError } = await supabase
+        .from('departments')
+        .select('*')
+        .eq('manager_id', user.id)
+        .eq('company_id', user.company_id)
+        .single()
+
+      if (deptError && deptError.code !== 'PGRST116') {
+        console.error('Manager Dashboard: Error fetching department:', deptError)
+        throw new Error(`Failed to fetch department: ${deptError.message}`)
+      }
+
+      const department = departmentData
+
+      // If no department, manager can still see company-wide data
+      const departmentId = department?.id
+
+      // Fetch department members (users in the department)
+      let membersQuery = supabase
+        .from('users')
+        .select('*')
+        .eq('company_id', user.company_id)
+      
+      if (departmentId) {
+        membersQuery = membersQuery.eq('department_id', departmentId)
+      }
+
+      const { data: membersData, error: membersError } = await membersQuery
+
+      if (membersError) {
+        console.error('Manager Dashboard: Error fetching department members:', membersError)
+        throw new Error(`Failed to fetch department members: ${membersError.message}`)
+      }
+
+      const members = membersData || []
+      const memberIds = members.map(m => m.id)
+
+      // Fetch department assets (assets assigned to department members)
+      let assetsQuery = supabase
+        .from('assets')
+        .select('*')
+        .eq('company_id', user.company_id)
+      
+      if (memberIds.length > 0) {
+        assetsQuery = assetsQuery.in('assigned_to', memberIds)
+      } else {
+        assetsQuery = assetsQuery.is('assigned_to', null)
+      }
+
+      const { data: assetsData, error: assetsError } = await assetsQuery.order('created_at', { ascending: false })
+
+      if (assetsError) {
+        console.error('Manager Dashboard: Error fetching assets:', assetsError)
+        throw new Error(`Failed to fetch assets: ${assetsError.message}`)
+      }
+
+      // Fetch department tickets (tickets created by or assigned to department members)
+      let departmentTickets: any[] = []
+      
+      if (departmentId) {
+        // If manager has a department, fetch tickets by department
+        const { data: ticketsData, error: ticketsError } = await supabase
           .from('tickets')
           .select(`
             *,
             asset:asset_id(name, serial_number),
-            assignee:assigned_to(full_name)
+            assignee:assigned_to(full_name),
+            creator:created_by(full_name)
           `)
-          .eq('created_by', user.id)
           .eq('company_id', user.company_id)
+          .eq('department_id', departmentId)
           .order('created_at', { ascending: false })
-      ])
 
-      if (assetsRes.error) {
-        console.error('Employee Dashboard: Error fetching assets:', assetsRes.error)
-        throw new Error(`Failed to fetch assets: ${assetsRes.error.message}`)
+        if (ticketsError) {
+          console.error('Manager Dashboard: Error fetching tickets:', ticketsError)
+          throw new Error(`Failed to fetch tickets: ${ticketsError.message}`)
+        }
+        
+        departmentTickets = ticketsData || []
+      } else if (memberIds.length > 0) {
+        // Fetch tickets created by or assigned to department members
+        const [createdTickets, assignedTickets] = await Promise.all([
+          supabase
+            .from('tickets')
+            .select(`
+              *,
+              asset:asset_id(name, serial_number),
+              assignee:assigned_to(full_name),
+              creator:created_by(full_name)
+            `)
+            .eq('company_id', user.company_id)
+            .in('created_by', memberIds)
+            .order('created_at', { ascending: false }),
+          
+          supabase
+            .from('tickets')
+            .select(`
+              *,
+              asset:asset_id(name, serial_number),
+              assignee:assigned_to(full_name),
+              creator:created_by(full_name)
+            `)
+            .eq('company_id', user.company_id)
+            .in('assigned_to', memberIds)
+            .order('created_at', { ascending: false })
+        ])
+        
+        if (createdTickets.error) {
+          console.error('Manager Dashboard: Error fetching created tickets:', createdTickets.error)
+          throw new Error(`Failed to fetch tickets: ${createdTickets.error.message}`)
+        }
+        if (assignedTickets.error) {
+          console.error('Manager Dashboard: Error fetching assigned tickets:', assignedTickets.error)
+          throw new Error(`Failed to fetch tickets: ${assignedTickets.error.message}`)
+        }
+        
+        // Combine and deduplicate tickets
+        const allTickets = [...(createdTickets.data || []), ...(assignedTickets.data || [])]
+        departmentTickets = Array.from(new Map(allTickets.map(t => [t.id, t])).values())
       }
-      if (ticketsRes.error) {
-        console.error('Employee Dashboard: Error fetching tickets:', ticketsRes.error)
-        throw new Error(`Failed to fetch tickets: ${ticketsRes.error.message}`)
-      }
 
-      const myAssets = assetsRes.data || []
-      const myTickets = ticketsRes.data || []
-
-      const invalidAssets = myAssets.filter(a => 
-        a.company_id !== user.company_id || a.assigned_to !== user.id
-      )
-      const invalidTickets = myTickets.filter(t => 
-        t.company_id !== user.company_id || t.created_by !== user.id
-      )
-      
-      if (invalidAssets.length > 0 || invalidTickets.length > 0) {
-        console.error('Employee Dashboard: Data leak detected!', {
-          invalidAssets: invalidAssets.length,
-          invalidTickets: invalidTickets.length
-        })
-        throw new Error('Data integrity check failed')
-      }
-
-      console.log('Employee Dashboard: Data fetched successfully', {
-        assets: myAssets.length,
-        tickets: myTickets.length
-      })
-
-      setAssets(myAssets)
-      setTickets(myTickets)
+      const departmentAssets = assetsData || []
 
       const now = new Date()
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
       const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000)
       
-      const recentTickets = myTickets.filter(t => new Date(t.created_at) > thirtyDaysAgo).length
-      const previousTickets = myTickets.filter(t => {
+      const recentTickets = departmentTickets.filter(t => new Date(t.created_at) > thirtyDaysAgo).length
+      const previousTickets = departmentTickets.filter(t => {
         const createdAt = new Date(t.created_at)
         return createdAt > sixtyDaysAgo && createdAt <= thirtyDaysAgo
       }).length
@@ -200,22 +291,28 @@ export default function EmployeeDashboard() {
         ? Math.round(((recentTickets - previousTickets) / previousTickets) * 100)
         : recentTickets > 0 ? 100 : 0
 
-      const resolvedCount = myTickets.filter(t => t.status === 'resolved' || t.status === 'closed').length
-      const resolutionRate = myTickets.length > 0 
-        ? Math.round((resolvedCount / myTickets.length) * 100)
+      const resolvedCount = departmentTickets.filter(t => t.status === 'resolved' || t.status === 'closed').length
+      const resolutionRate = departmentTickets.length > 0 
+        ? Math.round((resolvedCount / departmentTickets.length) * 100)
         : 0
 
+      setDepartmentMembers(members)
+      setAssets(departmentAssets)
+      setTickets(departmentTickets)
+
       setStats({
-        totalAssets: myAssets.length,
-        totalTickets: myTickets.length,
-        openTickets: myTickets.filter(t => t.status === 'open').length,
+        departmentMembers: members.length,
+        departmentAssets: departmentAssets.length,
+        departmentTickets: departmentTickets.length,
+        openTickets: departmentTickets.filter(t => t.status === 'open').length,
         resolvedTickets: resolvedCount,
-        inProgressTickets: myTickets.filter(t => t.status === 'in_progress').length,
+        inProgressTickets: departmentTickets.filter(t => t.status === 'in_progress').length,
         ticketGrowthPercentage,
-        resolutionRate
+        resolutionRate,
+        departmentName: department?.name || 'No Department Assigned'
       })
     } catch (error: any) {
-      console.error('Employee Dashboard: Error fetching data:', error)
+      console.error('Manager Dashboard: Error fetching data:', error)
       setError(error.message || 'Failed to load dashboard data')
     } finally {
       setLoading(false)
@@ -239,6 +336,7 @@ export default function EmployeeDashboard() {
   const getPriorityBadgeColor = (priority: string) => {
     switch (priority) {
       case 'high':
+      case 'urgent':
         return 'bg-red-100 text-red-800 border-red-200'
       case 'medium':
         return 'bg-amber-100 text-amber-800 border-amber-200'
@@ -310,27 +408,32 @@ export default function EmployeeDashboard() {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1 lg:space-y-2">
           <div className="flex items-center gap-2 lg:gap-3 mb-1 lg:mb-2">
-            <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">My Dashboard</h1>
-            <Badge className="bg-blue-100 text-blue-800 border-0 px-2 lg:px-3 py-1 text-xs lg:text-sm">
-              Employee
+            <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Manager Dashboard</h1>
+            <Badge className="bg-purple-100 text-purple-800 border-0 px-2 lg:px-3 py-1 text-xs lg:text-sm">
+              <Briefcase className="h-3 w-3 mr-1" />
+              Manager
             </Badge>
           </div>
           <p className="text-sm lg:text-base text-slate-500">
             Welcome back, <span className="font-medium text-slate-700">{user?.full_name}</span>
           </p>
+          {stats.departmentName && (
+            <p className="text-xs lg:text-sm text-slate-500">
+              Managing: <span className="font-medium text-slate-700">{stats.departmentName}</span>
+            </p>
+          )}
         </div>
 
         {company && (
           <div className="text-right">
             <p className="text-sm font-medium text-slate-900">{company.name}</p>
             <p className="text-xs text-slate-500 mt-1">
-              {stats.totalAssets} assets • {stats.totalTickets} tickets
+              {stats.departmentMembers} department members • {stats.departmentAssets} assets • {stats.departmentTickets} tickets
             </p>
           </div>
         )}
       </div>
 
-     
       {/* Main Content Tabs */}
       <Tabs value={normalizedTab} onValueChange={setActiveTab} className="space-y-4 lg:space-y-6">
         <TabsList className="bg-slate-100 p-1 rounded-lg lg:rounded-xl w-full overflow-x-auto hidden">
@@ -338,13 +441,17 @@ export default function EmployeeDashboard() {
             <Activity className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
             <span className="truncate">Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="assets" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs lg:text-sm flex-1 min-w-0">
-            <Package className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-            <span className="truncate">My Assets</span>
-          </TabsTrigger>
           <TabsTrigger value="tickets" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs lg:text-sm flex-1 min-w-0">
             <Ticket className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-            <span className="truncate">My Tickets</span>
+            <span className="truncate">Department Tickets</span>
+          </TabsTrigger>
+          <TabsTrigger value="assets" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs lg:text-sm flex-1 min-w-0">
+            <Package className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
+            <span className="truncate">Department Assets</span>
+          </TabsTrigger>
+          <TabsTrigger value="members" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs lg:text-sm flex-1 min-w-0">
+            <Users className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
+            <span className="truncate">Department Members</span>
           </TabsTrigger>
         </TabsList>
 
@@ -357,7 +464,7 @@ export default function EmployeeDashboard() {
               <div className="relative p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
-                    <Ticket className="h-6 w-6" />
+                    <Users className="h-6 w-6" />
                   </div>
                   {stats.ticketGrowthPercentage >= 0 ? (
                     <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300">
@@ -372,9 +479,9 @@ export default function EmployeeDashboard() {
                   )}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-slate-300 font-medium">My Tickets</p>
-                  <h3 className="text-3xl font-bold">{stats.totalTickets}</h3>
-                  <p className="text-xs text-slate-400">All requests you've submitted</p>
+                  <p className="text-sm text-slate-300 font-medium">Department Members</p>
+                  <h3 className="text-3xl font-bold">{stats.departmentMembers}</h3>
+                  <p className="text-xs text-slate-400">{stats.departmentName}</p>
                 </div>
               </div>
             </Card>
@@ -388,13 +495,13 @@ export default function EmployeeDashboard() {
                   </div>
                   <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
                     <CheckCircle2 className="h-3 w-3" />
-                    <span className="text-xs font-semibold">{stats.totalAssets} assigned</span>
+                    <span className="text-xs font-semibold">{stats.departmentAssets} assigned</span>
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-blue-100 font-medium">My Assets</p>
-                  <h3 className="text-3xl font-bold">{stats.totalAssets}</h3>
-                  <p className="text-xs text-blue-100">Assets currently in your care</p>
+                  <p className="text-sm text-blue-100 font-medium">Department Assets</p>
+                  <h3 className="text-3xl font-bold">{stats.departmentAssets}</h3>
+                  <p className="text-xs text-blue-100">Assets managed across your department</p>
                 </div>
               </div>
             </Card>
@@ -404,24 +511,24 @@ export default function EmployeeDashboard() {
               <div className="relative p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <AlertCircle className="h-6 w-6" />
+                    <Ticket className="h-6 w-6" />
                   </div>
                   {stats.openTickets > 0 ? (
                     <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
                       <Clock className="h-3 w-3" />
-                      <span className="text-xs font-semibold">{stats.openTickets} pending</span>
+                      <span className="text-xs font-semibold">{stats.openTickets} open</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/30 text-white">
                       <CheckCircle2 className="h-3 w-3" />
-                      <span className="text-xs font-semibold">All handled</span>
+                      <span className="text-xs font-semibold">All resolved</span>
                     </div>
                   )}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-amber-100 font-medium">Active Tickets</p>
-                  <h3 className="text-3xl font-bold">{stats.openTickets + stats.inProgressTickets}</h3>
-                  <p className="text-xs text-amber-100">{stats.resolvedTickets} resolved overall</p>
+                  <p className="text-sm text-amber-100 font-medium">Active Department Tickets</p>
+                  <h3 className="text-3xl font-bold">{stats.departmentTickets}</h3>
+                  <p className="text-xs text-amber-100">{stats.inProgressTickets} in progress</p>
                 </div>
               </div>
             </Card>
@@ -453,7 +560,7 @@ export default function EmployeeDashboard() {
                 <div className="space-y-1">
                   <p className="text-sm text-emerald-100 font-medium">Resolution Rate</p>
                   <h3 className="text-3xl font-bold">{stats.resolutionRate}%</h3>
-                  <p className="text-xs text-emerald-100">How quickly your requests are closed</p>
+                  <p className="text-xs text-emerald-100">Department-wide ticket efficiency</p>
                 </div>
               </div>
             </Card>
@@ -468,11 +575,23 @@ export default function EmployeeDashboard() {
                     <Sparkles className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-900">Quick Actions</h3>
-                    <p className="text-xs text-slate-500">Stay productive from here</p>
+                    <h3 className="text-lg font-semibold text-slate-900">Manager Shortcuts</h3>
+                    <p className="text-xs text-slate-500">Lead faster with favorites</p>
                   </div>
                 </div>
                 <div className="space-y-3">
+                  <Button 
+                    onClick={() => navigate('/app/users')}
+                    className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    variant="ghost"
+                  >
+                    <Users className="h-4 w-4 mr-3 text-slate-600" />
+                    <div className="flex-1 text-left">
+                      <div className="font-medium text-slate-900 text-sm">Review Department</div>
+                      <div className="text-xs text-slate-500">See everyone in your department</div>
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-slate-400" />
+                  </Button>
                   <Button 
                     onClick={() => navigate('/app/assets')}
                     className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
@@ -480,20 +599,8 @@ export default function EmployeeDashboard() {
                   >
                     <Package className="h-4 w-4 mr-3 text-slate-600" />
                     <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-sm">Review My Assets</div>
-                      <div className="text-xs text-slate-500">Inspect assigned equipment</div>
-                    </div>
-                    <ArrowUpRight className="h-4 w-4 text-slate-400" />
-                  </Button>
-                  <Button 
-                    onClick={() => navigate('/app/tickets/new')}
-                    className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
-                    variant="ghost"
-                  >
-                    <Plus className="h-4 w-4 mr-3 text-slate-600" />
-                    <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-sm">Open Support Ticket</div>
-                      <div className="text-xs text-slate-500">Report an issue instantly</div>
+                      <div className="font-medium text-slate-900 text-sm">Assign Assets</div>
+                      <div className="text-xs text-slate-500">Track laptops & equipment</div>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
                   </Button>
@@ -504,20 +611,8 @@ export default function EmployeeDashboard() {
                   >
                     <Ticket className="h-4 w-4 mr-3 text-slate-600" />
                     <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-sm">Track Requests</div>
-                      <div className="text-xs text-slate-500">Follow every update</div>
-                    </div>
-                    <ArrowUpRight className="h-4 w-4 text-slate-400" />
-                  </Button>
-                  <Button 
-                    onClick={() => navigate('/app/profile')}
-                    className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
-                    variant="ghost"
-                  >
-                    <Activity className="h-4 w-4 mr-3 text-slate-600" />
-                    <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-sm">Attendance & Profile</div>
-                      <div className="text-xs text-slate-500">Clock-in guidance & details</div>
+                      <div className="font-medium text-slate-900 text-sm">Monitor Tickets</div>
+                      <div className="text-xs text-slate-500">Balance workloads & priorities</div>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
                   </Button>
@@ -533,50 +628,50 @@ export default function EmployeeDashboard() {
                       <LineChart className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">Performance Snapshot</h3>
-                      <p className="text-xs text-slate-500">How your workstreams look today</p>
+                      <h3 className="text-lg font-semibold text-slate-900">Department Performance</h3>
+                      <p className="text-xs text-slate-500">Key metrics at a glance</p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="rounded-lg" onClick={() => navigate('/app/tickets')}>
+                  <Button variant="outline" size="sm" className="rounded-lg">
                     <Download className="h-4 w-4 mr-2" />
-                    Export Summary
+                    Export
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
                     <div className="flex items-center gap-2 mb-2">
                       <PieChart className="h-4 w-4 text-blue-600" />
-                      <span className="text-xs font-medium text-slate-600">Ticket Trend</span>
+                      <span className="text-xs font-medium text-slate-600">Ticket Volume</span>
                     </div>
                     <div className="text-2xl font-bold text-slate-900 mb-1">
-                      {stats.ticketGrowthPercentage >= 0 ? '+' : ''}{stats.ticketGrowthPercentage}%
+                      {stats.departmentTickets}
                     </div>
                     <div className="text-xs text-slate-500">
-                      Compared to last 30 days
+                      {stats.openTickets} open • {stats.resolvedTickets} resolved
                     </div>
                   </div>
                   <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
                     <div className="flex items-center gap-2 mb-2">
                       <Activity className="h-4 w-4 text-emerald-600" />
-                      <span className="text-xs font-medium text-slate-600">Active Tickets</span>
+                      <span className="text-xs font-medium text-slate-600">In Progress</span>
                     </div>
                     <div className="text-2xl font-bold text-slate-900 mb-1">
-                      {stats.openTickets + stats.inProgressTickets}
+                      {stats.inProgressTickets}
                     </div>
                     <div className="text-xs text-slate-500">
-                      {stats.openTickets} waiting • {stats.inProgressTickets} in progress
+                      Tickets currently being worked on
                     </div>
                   </div>
                   <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
                     <div className="flex items-center gap-2 mb-2">
                       <Users className="h-4 w-4 text-purple-600" />
-                      <span className="text-xs font-medium text-slate-600">Asset Coverage</span>
+                      <span className="text-xs font-medium text-slate-600">Assets / Member</span>
                     </div>
                     <div className="text-2xl font-bold text-slate-900 mb-1">
-                      {stats.totalAssets > 0 ? `${stats.totalAssets} items` : 'No assets'}
+                      {stats.departmentMembers ? (stats.departmentAssets / stats.departmentMembers).toFixed(1) : '0'} 
                     </div>
                     <div className="text-xs text-slate-500">
-                      Equipment currently checked out
+                      Average assets issued per department member
                     </div>
                   </div>
                   <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
@@ -585,7 +680,7 @@ export default function EmployeeDashboard() {
                       <span className="text-xs font-medium text-slate-600">Resolution Rate</span>
                     </div>
                     <div className="text-2xl font-bold text-slate-900 mb-1">{stats.resolutionRate}%</div>
-                    <div className="text-xs text-slate-500">Percent of your tickets resolved</div>
+                    <div className="text-xs text-slate-500">Closed vs total tickets</div>
                   </div>
                 </div>
               </div>
@@ -599,76 +694,20 @@ export default function EmployeeDashboard() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center">
-                      <Package className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900">Recent Assets</h3>
-                      <p className="text-xs text-slate-500">Latest equipment assigned to you</p>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="rounded-lg"
-                    onClick={() => navigate('/app/assets')}
-                  >
-                    <ArrowUpRight className="h-4 w-4 mr-1" />
-                    View All
-                  </Button>
-                </div>
-              </div>
-              <div className="p-6">
-                {assets.length === 0 ? (
-                  <div className="text-center py-6 lg:py-8">
-                    <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-                      <Package className="h-6 w-6 text-slate-400" />
-                    </div>
-                    <p className="text-sm text-slate-500">No assets assigned yet</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {assets.slice(0, 4).map((asset) => (
-                      <div
-                        key={asset.id}
-                        className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group"
-                        onClick={() => navigate(`/app/assets/${asset.id}`)}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-slate-900 text-sm lg:text-base truncate">{asset.name}</div>
-                            <div className="text-xs text-slate-500 truncate">{asset.serial_number}</div>
-                          </div>
-                          <Badge className={`text-xs ${getAssetStatusColor(asset.status)}`}>
-                            {asset.status}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-slate-500 truncate">{asset.category || 'Uncategorized asset'}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            <Card className="border-slate-200 shadow-md">
-              <div className="p-6 border-b border-slate-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
                       <Ticket className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">Recent Tickets</h3>
-                      <p className="text-xs text-slate-500">Follow the latest updates</p>
+                      <h3 className="text-lg font-semibold text-slate-900">Recent Department Tickets</h3>
+                      <p className="text-xs text-slate-500">Latest requests from your department</p>
                     </div>
                   </div>
                   <Button 
                     className="bg-slate-900 hover:bg-slate-800 rounded-lg"
                     size="sm"
-                    onClick={() => navigate('/app/tickets/new')}
+                    onClick={() => navigate('/app/tickets')}
                   >
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Ticket
+                    <ArrowUpRight className="h-4 w-4 mr-2" />
+                    View All
                   </Button>
                 </div>
               </div>
@@ -678,15 +717,7 @@ export default function EmployeeDashboard() {
                     <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
                       <Ticket className="h-6 w-6 text-slate-400" />
                     </div>
-                    <p className="text-sm text-slate-500">No tickets submitted yet</p>
-                    <Button 
-                      size="sm"
-                      onClick={() => navigate('/app/tickets/new')}
-                      className="mt-3 bg-slate-900 hover:bg-slate-800"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Ticket
-                    </Button>
+                    <p className="text-sm text-slate-500">No department tickets yet</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -719,74 +750,63 @@ export default function EmployeeDashboard() {
                 )}
               </div>
             </Card>
-          </div>
-        </TabsContent>
 
-        {/* Assets Tab */}
-        <TabsContent value="assets">
-          <Card className="border-slate-200">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 lg:p-6 border-b border-slate-200">
-              <div className="space-y-1">
-                <h3 className="text-base lg:text-lg font-semibold text-slate-900">My Assets</h3>
-                <p className="text-xs lg:text-sm text-slate-500">
-                  {stats.totalAssets} assets assigned to you
-                </p>
-              </div>
-            </div>
-            <div className="p-4 lg:p-6">
-              {assets.length === 0 ? (
-                <div className="text-center py-8 lg:py-12">
-                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-slate-100 rounded-xl lg:rounded-2xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
-                    <Package className="h-6 w-6 lg:h-8 lg:w-8 text-slate-400" />
+            <Card className="border-slate-200 shadow-md">
+              <div className="p-6 border-b border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
+                      <Package className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">Department Assets</h3>
+                      <p className="text-xs text-slate-500">Most recent assignments</p>
+                    </div>
                   </div>
-                  <h3 className="text-base lg:text-lg font-semibold text-slate-900 mb-1 lg:mb-2">No assets assigned</h3>
-                  <p className="text-sm text-slate-500">You don't have any assets assigned yet</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="rounded-lg"
+                    onClick={() => navigate('/app/assets')}
+                  >
+                    <ArrowUpRight className="h-4 w-4 mr-1" />
+                    View All
+                  </Button>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-                  {assets.map((asset) => (
-                    <div
-                      key={asset.id}
-                      className="p-4 lg:p-5 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden"
-                      onClick={() => navigate(`/app/assets/${asset.id}`)}
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="relative">
-                        <div className="flex items-start justify-between mb-2 lg:mb-3">
+              </div>
+              <div className="p-6">
+                {assets.length === 0 ? (
+                  <div className="text-center py-6 lg:py-8">
+                    <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <Package className="h-6 w-6 text-slate-400" />
+                    </div>
+                    <p className="text-sm text-slate-500">No assets assigned to your department</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {assets.slice(0, 4).map((asset) => (
+                      <div
+                        key={asset.id}
+                        className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group"
+                        onClick={() => navigate(`/app/assets/${asset.id}`)}
+                      >
+                        <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-slate-900 text-sm lg:text-base mb-1 truncate">
-                              {asset.name}
-                            </div>
-                            <div className="text-xs text-slate-500 mb-1 lg:mb-2 truncate">
-                              {asset.serial_number}
-                            </div>
+                            <div className="font-medium text-slate-900 text-sm lg:text-base truncate">{asset.name}</div>
+                            <div className="text-xs text-slate-500 truncate">{asset.serial_number}</div>
                           </div>
-                          <Badge className={`text-xs ${getAssetStatusColor(asset.status)} flex-shrink-0 ml-2`}>
+                          <Badge className={`text-xs ${getAssetStatusColor(asset.status)}`}>
                             {asset.status}
                           </Badge>
                         </div>
-                        <div className="text-xs lg:text-sm text-slate-600 mb-2 lg:mb-3 truncate">
-                          {asset.category || 'Uncategorized'}
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="w-full rounded-lg hover:bg-slate-100 h-8 lg:h-9"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            navigate(`/app/assets/${asset.id}`)
-                          }}
-                        >
-                          <Eye className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-                          <span className="text-xs lg:text-sm">View Details</span>
-                        </Button>
+                        <p className="text-xs text-slate-500 truncate">{asset.category || 'Uncategorized asset'}</p>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Tickets Tab */}
@@ -794,17 +814,17 @@ export default function EmployeeDashboard() {
           <Card className="border-slate-200">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 lg:p-6 border-b border-slate-200">
               <div className="space-y-1">
-                <h3 className="text-base lg:text-lg font-semibold text-slate-900">My Tickets</h3>
+                <h3 className="text-base lg:text-lg font-semibold text-slate-900">Department Tickets</h3>
                 <p className="text-xs lg:text-sm text-slate-500">
-                  {stats.totalTickets} tickets • {stats.openTickets} open • {stats.resolvedTickets} resolved
+                  {stats.departmentTickets} tickets • {stats.openTickets} open • {stats.resolvedTickets} resolved
                 </p>
               </div>
               <Button 
-                onClick={() => navigate('/app/tickets/new')}
+                onClick={() => navigate('/app/tickets')}
                 className="bg-slate-900 hover:bg-slate-800 rounded-lg h-11 lg:h-10 w-full lg:w-auto"
               >
                 <Plus className="h-4 w-4 mr-1 lg:mr-2" />
-                <span className="text-sm">New Ticket</span>
+                <span className="text-sm">View All Tickets</span>
               </Button>
             </div>
             <div className="p-4 lg:p-6">
@@ -813,15 +833,8 @@ export default function EmployeeDashboard() {
                   <div className="w-12 h-12 lg:w-16 lg:h-16 bg-slate-100 rounded-xl lg:rounded-2xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
                     <Ticket className="h-6 w-6 lg:h-8 lg:w-8 text-slate-400" />
                   </div>
-                  <h3 className="text-base lg:text-lg font-semibold text-slate-900 mb-1 lg:mb-2">No tickets submitted yet</h3>
-                  <p className="text-sm text-slate-500 mb-4 lg:mb-6">Create your first support ticket to get started</p>
-                  <Button 
-                    onClick={() => navigate('/app/tickets/new')}
-                    className="bg-slate-900 hover:bg-slate-800 h-11 lg:h-10"
-                  >
-                    <Plus className="h-4 w-4 mr-1 lg:mr-2" />
-                    <span className="text-sm">Create Your First Ticket</span>
-                  </Button>
+                  <h3 className="text-base lg:text-lg font-semibold text-slate-900 mb-1 lg:mb-2">No department tickets</h3>
+                  <p className="text-sm text-slate-500">No tickets have been created by your department yet</p>
                 </div>
               ) : (
                 <div className="space-y-3 lg:space-y-4">
@@ -883,7 +896,126 @@ export default function EmployeeDashboard() {
             </div>
           </Card>
         </TabsContent>
+
+        {/* Assets Tab */}
+        <TabsContent value="assets">
+          <Card className="border-slate-200">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 lg:p-6 border-b border-slate-200">
+              <div className="space-y-1">
+                <h3 className="text-base lg:text-lg font-semibold text-slate-900">Department Assets</h3>
+                <p className="text-xs lg:text-sm text-slate-500">
+                  {stats.departmentAssets} assets assigned to your department
+                </p>
+              </div>
+            </div>
+            <div className="p-4 lg:p-6">
+              {assets.length === 0 ? (
+                <div className="text-center py-8 lg:py-12">
+                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-slate-100 rounded-xl lg:rounded-2xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                    <Package className="h-6 w-6 lg:h-8 lg:w-8 text-slate-400" />
+                  </div>
+                  <h3 className="text-base lg:text-lg font-semibold text-slate-900 mb-1 lg:mb-2">No department assets</h3>
+                  <p className="text-sm text-slate-500">No assets are assigned to your department members yet</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+                  {assets.map((asset) => (
+                    <div
+                      key={asset.id}
+                      className="p-4 lg:p-5 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden"
+                      onClick={() => navigate(`/app/assets/${asset.id}`)}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="relative">
+                        <div className="flex items-start justify-between mb-2 lg:mb-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-slate-900 text-sm lg:text-base mb-1 truncate">
+                              {asset.name}
+                            </div>
+                            <div className="text-xs text-slate-500 mb-1 lg:mb-2 truncate">
+                              {asset.serial_number}
+                            </div>
+                          </div>
+                          <Badge className={`text-xs ${getAssetStatusColor(asset.status)} flex-shrink-0 ml-2`}>
+                            {asset.status}
+                          </Badge>
+                        </div>
+                        <div className="text-xs lg:text-sm text-slate-600 mb-2 lg:mb-3 truncate">
+                          {asset.category || 'Uncategorized'}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="w-full rounded-lg hover:bg-slate-100 h-8 lg:h-9"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigate(`/app/assets/${asset.id}`)
+                          }}
+                        >
+                          <Eye className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
+                          <span className="text-xs lg:text-sm">View Details</span>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* Members Tab */}
+        <TabsContent value="members">
+          <Card className="border-slate-200">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 lg:p-6 border-b border-slate-200">
+              <div className="space-y-1">
+                <h3 className="text-base lg:text-lg font-semibold text-slate-900">Department Members</h3>
+                <p className="text-xs lg:text-sm text-slate-500">
+                  {stats.departmentMembers} members in your department
+                </p>
+              </div>
+            </div>
+            <div className="p-4 lg:p-6">
+              {departmentMembers.length === 0 ? (
+                <div className="text-center py-8 lg:py-12">
+                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-slate-100 rounded-xl lg:rounded-2xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                    <Users className="h-6 w-6 lg:h-8 lg:w-8 text-slate-400" />
+                  </div>
+                  <h3 className="text-base lg:text-lg font-semibold text-slate-900 mb-1 lg:mb-2">No department members</h3>
+                  <p className="text-sm text-slate-500">No members are assigned to your department yet</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+                  {departmentMembers.map((member) => (
+                    <div
+                      key={member.id}
+                      className="p-4 lg:p-5 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all"
+                    >
+                      <div className="flex items-center gap-3 mb-2 lg:mb-3">
+                        <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm lg:text-base">
+                          {member.full_name?.charAt(0) || 'U'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-slate-900 text-sm lg:text-base truncate">
+                            {member.full_name}
+                          </div>
+                          <div className="text-xs text-slate-500 truncate">{member.email}</div>
+                        </div>
+                      </div>
+                      {member.role && (
+                        <Badge className="text-xs bg-purple-100 text-purple-800 border-purple-200">
+                          {member.role}
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   )
 }
+

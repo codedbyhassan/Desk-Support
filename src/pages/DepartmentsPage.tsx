@@ -63,23 +63,33 @@ export default function DepartmentsPage() {
   })
 
   useEffect(() => {
+    if (!user) return
     fetchDepartments()
-  }, [])
+  }, [user?.id, user?.role])
 
   const fetchDepartments = async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('departments')
-        .select(`
-          *,
-          manager:manager_id(full_name, email)
-        `)
-        .order('created_at', { ascending: false })
+      // Admins can see all departments; managers should only see the department they belong to
+      let query = supabase.from('departments').select(`*`)
+
+      if (user?.role === 'manager') {
+        // Limit to the manager's own department
+        if (user.department_id) {
+          query = query.eq('id', user.department_id)
+        } else {
+          // Manager has no department assigned; return empty list
+          setDepartments([])
+          setLoading(false)
+          return
+        }
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false })
 
       if (error) throw error
 
-      // For each department, get counts
+      // For each department, get counts and derive manager from users table
       const departmentsWithCounts = await Promise.all(
         (data || []).map(async (dept) => {
           // Count members
@@ -101,8 +111,25 @@ export default function DepartmentsPage() {
             .eq('department_id', dept.id)
             .is('assigned_to', null)
 
+          // Find manager user in this department (role = 'manager')
+          let derivedManager: { full_name: string; email: string } | undefined
+          const { data: managerUser, error: managerError } = await supabase
+            .from('users')
+            .select('full_name, email, role')
+            .eq('department_id', dept.id)
+            .eq('role', 'manager')
+            .maybeSingle()
+
+          if (!managerError && managerUser) {
+            derivedManager = {
+              full_name: managerUser.full_name,
+              email: managerUser.email,
+            }
+          }
+
           return {
             ...dept,
+            manager: derivedManager,
             _count: {
               members: memberCount || 0,
               tickets: ticketCount || 0,
@@ -169,8 +196,10 @@ export default function DepartmentsPage() {
     dept.description?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  // Check if user is admin
+  // Check role
   const isAdmin = user?.role === 'admin'
+  const isManager = user?.role === 'manager'
+  const hasManagementView = isAdmin || isManager
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -181,9 +210,14 @@ export default function DepartmentsPage() {
             <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Departments</h1>
             <p className="text-gray-500 flex items-center gap-1 text-sm lg:text-base">
               <Building2 className="h-4 w-4" />
-              {isAdmin ? 'Manage departments and ticket routing' : 'Your department dashboard'}
+              {isAdmin
+                ? 'Manage departments and ticket routing'
+                : isManager
+                  ? 'Manage your department and its tickets'
+                  : 'Your department dashboard'}
             </p>
           </div>
+          {/* Only admins can create departments */}
           {isAdmin && (
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
@@ -237,22 +271,24 @@ export default function DepartmentsPage() {
           )}
         </div>
 
-        {/* Search */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-            <Input
-              placeholder="Search departments..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 rounded-lg text-sm"
-            />
+        {/* Search (useful for admins; harmless but optional for managers) */}
+        {hasManagementView && (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <Input
+                placeholder="Search departments..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 rounded-lg text-sm"
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Admin View: Department Cards */}
-      {isAdmin ? (
+      {/* Admin/Manager View: Department Cards */}
+      {hasManagementView ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-6">
           {loading ? (
             <div className="col-span-full text-center py-8 lg:py-12 text-gray-500 text-sm">

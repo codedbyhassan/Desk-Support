@@ -16,6 +16,9 @@ import {
   Package,
   Ticket as TicketIcon,
   UserCheck,
+  UserCog,
+  Mail,
+  Briefcase,
 } from 'lucide-react'
 import {
   Table,
@@ -79,7 +82,7 @@ export default function DepartmentDetailPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [acceptingTicketId, setAcceptingTicketId] = useState<string | null>(null)
+  const [assigningTicketId, setAssigningTicketId] = useState<string | null>(null)
 
   // Fetch department details
   const fetchDepartment = async () => {
@@ -185,60 +188,96 @@ export default function DepartmentDetailPage() {
     setFilteredTickets(filtered)
   }, [tickets, searchTerm, statusFilter])
 
-  // Accept ticket (employee action)
-  const handleAcceptTicket = async (ticketId: string) => {
-    if (!user) return
+  // Assign ticket to user (manager/admin action)
+  const handleAssignTicket = async (ticketId: string, userId: string) => {
+    if (!user || !canAssignTickets) return
 
-    setAcceptingTicketId(ticketId)
+    setAssigningTicketId(ticketId)
 
     try {
-      // First, check if ticket is still unassigned
-      const { data: currentTicket, error: checkError } = await supabase
-        .from('tickets')
-        .select('assigned_to')
-        .eq('id', ticketId)
-        .single()
-
-      if (checkError) throw checkError
-
-      if (currentTicket.assigned_to) {
-        toast({
-          title: 'Ticket Already Taken',
-          description: 'Someone else just accepted this ticket.',
-          variant: 'destructive',
-        })
-        await fetchTickets()
-        return
-      }
-
-      // Update ticket with assignment
       const { error: updateError } = await supabase
         .from('tickets')
         .update({
-          assigned_to: user.id,
+          assigned_to: userId,
           accepted_at: new Date().toISOString(),
           accepted_by: user.id,
           status: 'in_progress',
+          updated_at: new Date().toISOString(),
         })
         .eq('id', ticketId)
 
       if (updateError) throw updateError
 
+      // Log status change
+      await supabase.from('ticket_status_history').insert({
+        ticket_id: ticketId,
+        status: 'in_progress',
+        changed_by: user.id,
+        company_id: user.company_id,
+      })
+
+      const assignedUser = members.find(m => m.id === userId)
       toast({
-        title: 'Ticket Accepted',
-        description: 'The ticket has been assigned to you.',
+        title: 'Ticket Assigned',
+        description: `Ticket has been assigned to ${assignedUser?.full_name || 'user'}.`,
       })
 
       await fetchTickets()
     } catch (error) {
-      console.error('Error accepting ticket:', error)
+      console.error('Error assigning ticket:', error)
       toast({
         title: 'Error',
-        description: 'Failed to accept ticket. Please try again.',
+        description: 'Failed to assign ticket. Please try again.',
         variant: 'destructive',
       })
     } finally {
-      setAcceptingTicketId(null)
+      setAssigningTicketId(null)
+    }
+  }
+
+  // Unassign ticket (manager/admin action)
+  const handleUnassignTicket = async (ticketId: string) => {
+    if (!user || !canAssignTickets) return
+
+    setAssigningTicketId(ticketId)
+
+    try {
+      const { error: updateError } = await supabase
+        .from('tickets')
+        .update({
+          assigned_to: null,
+          accepted_at: null,
+          accepted_by: null,
+          status: 'open',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', ticketId)
+
+      if (updateError) throw updateError
+
+      // Log status change
+      await supabase.from('ticket_status_history').insert({
+        ticket_id: ticketId,
+        status: 'open',
+        changed_by: user.id,
+        company_id: user.company_id,
+      })
+
+      toast({
+        title: 'Ticket Unassigned',
+        description: 'Ticket has been unassigned and is now available.',
+      })
+
+      await fetchTickets()
+    } catch (error) {
+      console.error('Error unassigning ticket:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to unassign ticket. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setAssigningTicketId(null)
     }
   }
 
@@ -310,6 +349,13 @@ export default function DepartmentDetailPage() {
   }
 
   const isAdmin = user?.role === 'admin'
+  // Determine manager based on users in this department with role "manager"
+  const derivedManager = members.find((m) => m.role === 'manager')
+  const departmentManager = department.manager || derivedManager || null
+  const isManager =
+    user?.role === 'manager' &&
+    members.some((m) => m.id === user.id && m.role === 'manager')
+  const canAssignTickets = isAdmin || isManager
 
   return (
     <div className="space-y-6">
@@ -332,7 +378,7 @@ export default function DepartmentDetailPage() {
               <h1 className="text-3xl font-bold tracking-tight">{department.name}</h1>
               <p className="text-gray-500 flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                {department.manager?.full_name || 'No manager assigned'}
+                {departmentManager?.full_name || 'No manager assigned'}
               </p>
             </div>
           </div>
@@ -427,6 +473,100 @@ export default function DepartmentDetailPage() {
         </div>
       </div>
 
+      {/* Manager & Members Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Manager Card */}
+        <Card>
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                <UserCog className="h-5 w-5 text-white" />
+              </div>
+              <h2 className="text-xl font-semibold">Department Manager</h2>
+            </div>
+            {departmentManager ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white text-xl font-semibold">
+                    {departmentManager.full_name?.charAt(0) || 'M'}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {departmentManager.full_name}
+                    </h3>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      <Mail className="h-4 w-4" />
+                      {departmentManager.email}
+                    </div>
+                  </div>
+                </div>
+                <Badge className="bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300">
+                  <Briefcase className="h-3 w-3 mr-1" />
+                  Manager
+                </Badge>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <AlertCircle className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                <p className="text-gray-500 dark:text-gray-400">No manager assigned</p>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Department Members Card */}
+        <Card>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-white" />
+                </div>
+                <h2 className="text-xl font-semibold">Department Members</h2>
+              </div>
+              <Badge variant="outline" className="text-sm">
+                {members.length} {members.length === 1 ? 'member' : 'members'}
+              </Badge>
+            </div>
+            {members.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                <p className="text-gray-500 dark:text-gray-400">No members in this department</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                {members.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                  >
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
+                      {member.full_name?.charAt(0) || 'U'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                        {member.full_name}
+                      </h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        {member.email}
+                      </p>
+                    </div>
+                    {member.role && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs capitalize"
+                      >
+                        {member.role}
+                      </Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+
       {/* Tickets Table */}
       <Card>
         <div className="p-6">
@@ -459,7 +599,6 @@ export default function DepartmentDetailPage() {
               <TableBody>
                 {filteredTickets.map((ticket) => {
                   const isPending = !ticket.assigned_to
-                  const isMyTicket = ticket.assigned_to === user?.id
 
                   return (
                     <TableRow
@@ -483,8 +622,45 @@ export default function DepartmentDetailPage() {
                           {getStatusLabel(ticket)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-gray-600 dark:text-gray-400">
-                        {ticket.assignee?.full_name || (
+                      <TableCell className="text-gray-600 dark:text-gray-400" onClick={(e) => e.stopPropagation()}>
+                        {canAssignTickets ? (
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={ticket.assigned_to || 'unassigned'}
+                              onValueChange={(value) => {
+                                if (value === 'unassigned') {
+                                  // Unassign ticket
+                                  handleUnassignTicket(ticket.id)
+                                } else if (value !== ticket.assigned_to) {
+                                  handleAssignTicket(ticket.id, value)
+                                }
+                              }}
+                              disabled={assigningTicketId === ticket.id}
+                            >
+                              <SelectTrigger className="w-[180px] h-8 text-sm">
+                                <SelectValue placeholder="Assign to..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="unassigned">
+                                  <span className="text-orange-600">Unassigned</span>
+                                </SelectItem>
+                                {members.map((member) => (
+                                  <SelectItem key={member.id} value={member.id}>
+                                    {member.full_name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {assigningTicketId === ticket.id && (
+                              <div className="inline-flex items-center gap-1 text-xs text-gray-500">
+                                <div className="h-3 w-3 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                                Assigning...
+                              </div>
+                            )}
+                          </div>
+                        ) : ticket.assignee?.full_name ? (
+                          ticket.assignee.full_name
+                        ) : (
                           <span className="text-orange-600 font-medium">Unassigned</span>
                         )}
                       </TableCell>
@@ -495,29 +671,9 @@ export default function DepartmentDetailPage() {
                         {new Date(ticket.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        {isPending && !isAdmin && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleAcceptTicket(ticket.id)}
-                            disabled={acceptingTicketId === ticket.id}
-                            className="gap-2"
-                          >
-                            {acceptingTicketId === ticket.id ? (
-                              <>
-                                <div className="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                Accepting...
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck className="h-4 w-4" />
-                                Accept
-                              </>
-                            )}
-                          </Button>
-                        )}
-                        {isMyTicket && (
-                          <Badge variant="outline" className="border-blue-200 text-blue-700">
-                            Yours
+                        {canAssignTickets && ticket.assignee && (
+                          <Badge variant="outline" className="border-green-200 text-green-700">
+                            Assigned
                           </Badge>
                         )}
                       </TableCell>

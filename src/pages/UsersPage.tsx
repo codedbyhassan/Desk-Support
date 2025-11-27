@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
 import { Users, Clock, QrCode } from 'lucide-react'
 import {
   Tabs,
@@ -6,12 +6,21 @@ import {
   TabsTrigger,
   TabsContent,
 } from '@/components/ui/tabs'
+import { useDashboardTab } from '@/context/DashboardTabContext'
 import ManagementTab from '@/components/users/ManagementTab'
 import UserAttendanceTab from '@/components/users/UserAttendanceTab'
 import QRCodeGeneratorTab from '@/components/users/QRCodeGeneratorTab'
 
 export default function UsersPage() {
-  const [activeTab, setActiveTab] = useState<'management' | 'attendance' | 'qrcode'>('management')
+  const { activeTab, setActiveTab } = useDashboardTab()
+  const userTabs = ['management', 'attendance', 'qrcode'] as const
+  const normalizedTab = (userTabs as readonly string[]).includes(activeTab) ? activeTab : userTabs[0]
+
+  useEffect(() => {
+    if (activeTab !== normalizedTab) {
+      setActiveTab(normalizedTab)
+    }
+  }, [activeTab, normalizedTab, setActiveTab])
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -26,11 +35,11 @@ export default function UsersPage() {
 
       {/* Main Tabs */}
       <Tabs 
-        value={activeTab} 
-        onValueChange={(v) => setActiveTab(v as 'management' | 'attendance' | 'qrcode')} 
+        value={normalizedTab} 
+        onValueChange={setActiveTab} 
         className="space-y-4 lg:space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-3 lg:max-w-2xl bg-muted p-1 rounded-lg">
+        <TabsList className="grid w-full grid-cols-3 lg:max-w-2xl bg-muted p-1 rounded-lg hidden">
           <TabsTrigger 
             value="management" 
             className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground"

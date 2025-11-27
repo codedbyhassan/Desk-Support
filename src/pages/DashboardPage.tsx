@@ -3,6 +3,8 @@ import { useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import AdminDashboard from './dashboard/AdminDashboard'
 import EmployeeDashboard from './dashboard/EmployeeDashboard'
+import ManagerDashboard from './dashboard/ManagerDashboard'
+import HRDashboard from './dashboard/HRDashboard'
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth()
@@ -47,6 +49,14 @@ export default function DashboardPage() {
   // Route based on user role
   if (user.role === 'admin') {
     return <AdminDashboard activeTab={activeTab} />
+  }
+
+  if (user.role === 'manager') {
+    return <ManagerDashboard />
+  }
+
+  if (user.role === 'hr') {
+    return <HRDashboard />
   }
 
   return <EmployeeDashboard />

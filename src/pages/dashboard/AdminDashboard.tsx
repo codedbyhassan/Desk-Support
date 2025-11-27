@@ -541,18 +541,6 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
                   </Button>
                   <Button 
-                    onClick={() => navigate('/app/analytics')}
-                    className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
-                    variant="ghost"
-                  >
-                    <BarChart3 className="h-4 w-4 mr-3 text-slate-600" />
-                    <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-sm">View Analytics</div>
-                      <div className="text-xs text-slate-500">Detailed insights & reports</div>
-                    </div>
-                    <ArrowUpRight className="h-4 w-4 text-slate-400" />
-                  </Button>
-                  <Button 
                     onClick={async () => {
                       try {
                         // For clock in/out, we need a QR code. For now, we'll use a simple toggle

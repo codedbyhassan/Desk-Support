@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
   AlertCircle, 
@@ -25,8 +25,7 @@ import {
   Zap,
   Calendar,
   ArrowUpRight,
-  X,
-  BarChart3
+  X
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
@@ -60,6 +59,7 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [ticketToDelete, setTicketToDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [ticketViewTab, setTicketViewTab] = useState<'incoming' | 'outgoing'>('incoming')
 
   useEffect(() => {
     if (user?.company_id) {
@@ -140,7 +140,39 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
     }
   }
 
-  // Filter tickets
+  // Filter tickets for personal view (tickets created by user)
+  const personalTickets = tickets.filter(ticket => {
+    const matchesSearch = searchQuery.trim() === '' || 
+      ticket.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ticket.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ticket.id?.toLowerCase().includes(searchQuery.toLowerCase())
+
+    const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter
+    const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter
+    const isCreatedByUser = ticket.created_by === user?.id
+
+    return matchesSearch && matchesStatus && matchesPriority && isCreatedByUser
+  })
+
+  // Filter tickets for department view (tickets assigned to user)
+  const departmentTickets = tickets.filter(ticket => {
+    const matchesSearch = searchQuery.trim() === '' || 
+      ticket.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ticket.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ticket.id?.toLowerCase().includes(searchQuery.toLowerCase())
+
+    const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter
+    const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter
+    const isAssignedToUser = ticket.assigned_to === user?.id
+
+    return matchesSearch && matchesStatus && matchesPriority && isAssignedToUser
+  })
+
+  // Get the currently displayed tickets based on active tab
+  // Incoming = tickets assigned to me, Outgoing = tickets created by me
+  const displayedTickets = ticketViewTab === 'incoming' ? departmentTickets : personalTickets
+
+  // Old filtered tickets (for backwards compatibility if needed)
   const filteredTickets = tickets.filter(ticket => {
     const matchesSearch = searchQuery.trim() === '' || 
       ticket.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -153,7 +185,6 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
     return matchesSearch && matchesStatus && matchesPriority
   })
 
-  // Analytics
   const openTickets = tickets.filter(t => t.status === 'open')
   const inProgressTickets = tickets.filter(t => t.status === 'in_progress')
   const resolvedTickets = tickets.filter(t => t.status === 'resolved')
@@ -197,146 +228,28 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
         </div>
       </div>
 
-      {/* Stats Tabs */}
-      <Tabs defaultValue="open" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-slate-100 p-1 rounded-lg lg:rounded-xl h-auto">
+      {/* Ticket View Tabs - Incoming vs Outgoing */}
+      <Tabs
+        value={ticketViewTab}
+        onValueChange={(val) => setTicketViewTab(val as 'incoming' | 'outgoing')}
+        className="w-full"
+      >
+        <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1 rounded-lg lg:rounded-xl h-auto">
           <TabsTrigger 
-            value="open" 
-            className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
+            value="incoming" 
+            className="py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all text-sm lg:text-base font-medium"
           >
-            <AlertCircle className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-red-600" />
-            <span className="text-[10px] lg:text-xs font-medium">Open</span>
+            Incoming
+            <Badge variant="secondary" className="ml-2 text-xs">{departmentTickets.length}</Badge>
           </TabsTrigger>
           <TabsTrigger 
-            value="progress" 
-            className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
+            value="outgoing" 
+            className="py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all text-sm lg:text-base font-medium"
           >
-            <Activity className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-amber-600" />
-            <span className="text-[10px] lg:text-xs font-medium">Progress</span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="resolved" 
-            className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
-          >
-            <CheckCircle2 className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-emerald-600" />
-            <span className="text-[10px] lg:text-xs font-medium">Resolved</span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="rate" 
-            className="flex flex-col items-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all"
-          >
-            <Target className="h-4 w-4 lg:h-5 lg:w-5 text-slate-600 data-[state=active]:text-blue-600" />
-            <span className="text-[10px] lg:text-xs font-medium">Rate</span>
+            Outgoing
+            <Badge variant="secondary" className="ml-2 text-xs">{personalTickets.length}</Badge>
           </TabsTrigger>
         </TabsList>
-
-        {/* Open Tickets Tab */}
-        <TabsContent value="open" className="mt-4">
-          <Card className="border-slate-200">
-            <div className="p-4 lg:p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-red-500 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20 relative">
-                  <AlertCircle className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
-                  <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm lg:text-base font-medium text-slate-500">Open Tickets</p>
-                    <Badge className="bg-red-50 text-red-700 border-0 text-xs">
-                      Critical
-                    </Badge>
-                  </div>
-                  <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{openTickets.length}</h3>
-                  {highPriorityTickets.length > 0 && (
-                    <div className="flex items-center gap-1 text-red-600">
-                      <span className="text-xs lg:text-sm font-medium">
-                        {highPriorityTickets.length} high priority
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-
-        {/* In Progress Tab */}
-        <TabsContent value="progress" className="mt-4">
-          <Card className="border-slate-200">
-            <div className="p-4 lg:p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
-                  <Activity className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm lg:text-base font-medium text-slate-500">In Progress</p>
-                    <Badge className="bg-amber-50 text-amber-700 border-0 text-xs">
-                      Active
-                    </Badge>
-                  </div>
-                  <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{inProgressTickets.length}</h3>
-                  <div className="flex items-center gap-1 text-amber-600">
-                    <Clock className="h-4 w-4" />
-                    <span className="text-xs lg:text-sm font-medium">{avgResponseTime} avg response</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-
-        {/* Resolved Tab */}
-        <TabsContent value="resolved" className="mt-4">
-          <Card className="border-slate-200">
-            <div className="p-4 lg:p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                  <CheckCircle2 className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm lg:text-base font-medium text-slate-500">Resolved</p>
-                    <Badge className="bg-emerald-50 text-emerald-700 border-0 text-xs">
-                      Completed
-                    </Badge>
-                  </div>
-                  <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{resolvedTickets.length}</h3>
-                  <div className="flex items-center gap-1 text-emerald-600">
-                    <TrendingUp className="h-4 w-4" />
-                    <span className="text-xs lg:text-sm font-medium">+12% this month</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-
-        {/* Resolution Rate Tab */}
-        <TabsContent value="rate" className="mt-4">
-          <Card className="border-slate-200">
-            <div className="p-4 lg:p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <Target className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm lg:text-base font-medium text-slate-500">Resolution Rate</p>
-                    <Badge className="bg-blue-50 text-blue-700 border-0 text-xs">
-                      Performance
-                    </Badge>
-                  </div>
-                  <h3 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-2">{resolutionRate}%</h3>
-                  <div className="flex items-center gap-1 text-blue-600">
-                    <Zap className="h-4 w-4" />
-                    <span className="text-xs lg:text-sm font-medium">Excellent performance</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Premium Insights Banner */}
@@ -365,14 +278,6 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
                 </div>
               </div>
             </div>
-            <Button 
-              variant="outline" 
-              className="bg-white/10 hover:bg-white/20 border-white/20 text-white rounded-lg lg:rounded-xl backdrop-blur-sm h-10 lg:h-11 w-full lg:w-auto mt-2 lg:mt-0"
-              onClick={() => navigate('/app/analytics')}
-            >
-              <BarChart3 className="h-4 w-4 lg:mr-2" />
-              <span className="text-sm">Analytics</span>
-            </Button>
           </div>
         </div>
       </Card>
@@ -411,9 +316,13 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
           <div className="flex flex-col gap-3 lg:gap-4 mb-3 lg:mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="space-y-1">
-                <h2 className="text-lg font-semibold text-slate-900">All Tickets</h2>
+                <h2 className="text-lg font-semibold text-slate-900">
+                  {ticketViewTab === 'incoming'
+                    ? 'Incoming Tickets (Assigned to Me)'
+                    : 'Outgoing Tickets (My Tickets)'}
+                </h2>
                 <p className="text-sm text-slate-500">
-                  {filteredTickets.length} {filteredTickets.length === 1 ? 'ticket' : 'tickets'} found
+                  {displayedTickets.length} {displayedTickets.length === 1 ? 'ticket' : 'tickets'} found
                 </p>
               </div>
             </div>
@@ -511,19 +420,21 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
 
         <div className="overflow-x-auto">
           <TicketList
-            tickets={filteredTickets}
+            tickets={displayedTickets}
             loading={loading}
             onRowClick={(id) => navigate(`/app/tickets/${id}`)}
-            actions={user?.role === 'admin' ? (ticket) => (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => handleDeleteClick(ticket.id, e)}
-                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            ) : undefined}
+            actions={user && (user.role === 'admin' || user.role === 'manager')
+              ? (ticket) => (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => handleDeleteClick(ticket.id, e)}
+                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )
+              : undefined}
           />
         </div>
       </Card>

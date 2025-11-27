@@ -1,577 +1,538 @@
-import { ReactNode, useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '@/lib/auth'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useAuth } from '@/lib/auth'
+import type { Database } from '@/types/database'
+import { useToast } from '@/hooks/use-toast'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { NotificationBell } from '@/components/NotificationBell'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Separator } from '@/components/ui/separator'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet'
-import {
-  User,
-  LogOut,
-  BarChart3,
-  Sun,
-  Moon,
-  Search,
-  Ticket,
+  Activity,
+  AlertTriangle,
+  ArrowLeft,
+  Calendar,
+  CheckCircle2,
+  Download,
   Package,
-  LayoutDashboard,
-  Users,
-  Building2,
-  Settings,
-  Menu,
+  RefreshCcw,
+  Shield,
+  Sparkles,
+  Tag,
+  User,
+  Wrench,
 } from 'lucide-react'
-import { useTheme } from '@/context/ThemeContext'
 
-interface NavItem {
-  name: string
-  href: string
-  icon: React.ComponentType<any>
-  badge?: string
-  description?: string
-  id: string
-  adminOnly?: boolean
+type AssetRow = Database['public']['Tables']['assets']['Row']
+type UserRow = Database['public']['Tables']['users']['Row']
+type AssetHistoryRow = Database['public']['Tables']['asset_history']['Row']
+
+type AssetDetail = AssetRow & {
+  assigned_user?: Pick<UserRow, 'id' | 'full_name' | 'email' | 'avatar_url' | 'role'> | null
 }
 
-interface LayoutProps {
-  children: ReactNode
+type HistoryEntry = AssetHistoryRow & {
+  performer?: Pick<UserRow, 'id' | 'full_name' | 'avatar_url'> | null
+  assignee?: Pick<UserRow, 'id' | 'full_name'> | null
 }
 
-export default function Layout({ children }: LayoutProps) {
-  const { user, signOut } = useAuth()
-  const { theme, toggleTheme, customTheme } = useTheme()
+const statusTokens: Record<
+  AssetRow['status'],
+  {
+    label: string
+    badge: string
+    chip: string
+  }
+> = {
+  available: {
+    label: 'Available',
+    badge: 'bg-emerald-50 text-emerald-700 border-0',
+    chip: 'text-emerald-300 bg-emerald-500/10',
+  },
+  assigned: {
+    label: 'Assigned',
+    badge: 'bg-blue-50 text-blue-700 border-0',
+    chip: 'text-blue-200 bg-blue-500/10',
+  },
+  maintenance: {
+    label: 'In maintenance',
+    badge: 'bg-amber-50 text-amber-700 border-0',
+    chip: 'text-amber-200 bg-amber-500/10',
+  },
+  retired: {
+    label: 'Retired',
+    badge: 'bg-slate-100 text-slate-600 border-0',
+    chip: 'text-slate-200 bg-slate-500/10',
+  },
+}
+
+const statusOptions: { value: AssetRow['status']; label: string }[] = [
+  { value: 'available', label: 'Available' },
+  { value: 'assigned', label: 'Assigned' },
+  { value: 'maintenance', label: 'Maintenance' },
+  { value: 'retired', label: 'Retired' },
+]
+
+export default function AssetDetailPage() {
+  const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { pathname } = useLocation()
-  const [activeTicketCount, setActiveTicketCount] = useState<number>(0)
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { user } = useAuth()
+  const { toast } = useToast()
 
-  // Get theme colors with fallbacks
-  const primaryColor = customTheme?.primary || '#185ee0'
+  const [asset, setAsset] = useState<AssetDetail | null>(null)
+  const [timeline, setTimeline] = useState<HistoryEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [statusUpdating, setStatusUpdating] = useState(false)
 
   useEffect(() => {
-    if (user?.id && user?.company_id) {
-      fetchActiveTicketCount()
-      
-      const channel = supabase
-        .channel('active-tickets-count')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'tickets',
-          filter: `assigned_to=eq.${user.id}`
-        }, () => {
-          fetchActiveTicketCount()
-        })
-        .subscribe()
+    if (!id) return
+    loadAsset()
+  }, [id, user?.company_id])
 
-      return () => {
-        supabase.removeChannel(channel)
-      }
-    }
-  }, [user?.id, user?.company_id])
+  const loadAsset = async () => {
+    if (!id || !user?.company_id) return
 
-  const fetchActiveTicketCount = async () => {
-    if (!user?.id || !user?.company_id) return
+    setLoading(true)
     try {
-      const { count, error } = await supabase
-        .from('tickets')
-        .select('*', { count: 'exact', head: true })
-        .eq('assigned_to', user.id)
+      const { data, error } = await supabase
+        .from('assets')
+        .select(
+          `
+          *,
+          assigned_user:assigned_to(full_name, email, avatar_url, role)
+        `
+        )
+        .eq('id', id)
         .eq('company_id', user.company_id)
-        .in('status', ['open', 'in_progress'])
+        .single()
+
       if (error) throw error
-      setActiveTicketCount(count || 0)
-    } catch (error) {
-      console.error('Error fetching active ticket count:', error)
-      setActiveTicketCount(0)
+      setAsset(data as AssetDetail)
+
+      const { data: historyData, error: historyError } = await supabase
+        .from('asset_history')
+        .select(
+          `
+          *,
+          performer:users!asset_history_performed_by_fkey(id, full_name, avatar_url),
+          assignee:users!asset_history_assigned_to_fkey(id, full_name)
+        `
+        )
+        .eq('asset_id', id)
+        .order('created_at', { ascending: false })
+
+      if (historyError) throw historyError
+      setTimeline(historyData || [])
+    } catch (err) {
+      console.error('Failed to load asset detail', err)
+      toast({
+        variant: 'destructive',
+        title: 'Unable to load asset',
+        description: err instanceof Error ? err.message : 'An unexpected error occurred.',
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleSignOut = async () => {
+  const handleStatusChange = async (nextStatus: AssetRow['status']) => {
+    if (!asset || asset.status === nextStatus) return
+    setStatusUpdating(true)
     try {
-      await signOut()
-      navigate('/login', { replace: true })
-    } catch (error) {
-      console.error('Sign out error:', error)
+      const { error } = await supabase.from('assets').update({ status: nextStatus }).eq('id', asset.id)
+      if (error) throw error
+      setAsset({ ...asset, status: nextStatus })
+      toast({
+        title: 'Status updated',
+        description: `${asset.name} is now ${statusTokens[nextStatus].label.toLowerCase()}.`,
+      })
+      await loadAsset()
+    } catch (err) {
+      console.error('Failed to update status', err)
+      toast({
+        variant: 'destructive',
+        title: 'Update failed',
+        description: err instanceof Error ? err.message : 'Please try again.',
+      })
+    } finally {
+      setStatusUpdating(false)
     }
   }
 
-  const allNavItems: NavItem[] = [
-    { 
-      id: 'dashboard',
-      name: 'Dashboard', 
-      href: '/app/dashboard', 
-      icon: LayoutDashboard,
-      description: 'Overview and insights'
-    },
-    { 
-      id: 'tickets',
-      name: 'Tickets', 
-      href: '/app/tickets', 
-      icon: Ticket, 
-      badge: activeTicketCount > 0 ? activeTicketCount.toString() : undefined,
-      description: 'Manage support tickets'
-    },
-    { 
-      id: 'assets',
-      name: 'Assets', 
-      href: '/app/assets', 
-      icon: Package,
-      description: 'Hardware and software'
-    },
-    { 
-      id: 'departments',
-      name: 'Departments', 
-      href: '/app/departments', 
-      icon: Building2,
-      description: 'Company departments'
-    },
-    { 
-      id: 'teams',
-      name: 'Teams', 
-      href: '/app/teams', 
-      icon: Users,
-      description: 'Team management'
-    },
-    { 
-      id: 'analytics',
-      name: 'Analytics', 
-      href: '/app/analytics', 
-      icon: BarChart3,
-      description: 'Reports and metrics',
-      adminOnly: true
-    },
-    { 
-      id: 'users',
-      name: 'Users', 
-      href: '/app/users', 
-      icon: User,
-      description: 'User management',
-      adminOnly: true
-    },
-    { 
-      id: 'settings',
-      name: 'Settings', 
-      href: '/app/settings', 
-      icon: Settings,
-      description: 'Preferences and config'
-    }
-  ]
+  const heroMetrics = useMemo(() => {
+    if (!asset) return []
 
-  const navItems = allNavItems.filter(item => !item.adminOnly || user?.role === 'admin')
+    return [
+      {
+        label: 'Category',
+        value: asset.category || 'Uncategorized',
+        icon: Tag,
+      },
+      {
+        label: 'Serial',
+        value: asset.serial_number || '–',
+        icon: Package,
+      },
+      {
+        label: 'Purchased',
+        value: asset.purchase_date ? formatDate(asset.purchase_date) : 'Not recorded',
+        icon: Calendar,
+      },
+    ]
+  }, [asset])
 
-  const handleNavChange = (href: string) => {
-    navigate(href)
-    setMobileMenuOpen(false)
+  const assetAge = useMemo(() => {
+    if (!asset?.purchase_date) return null
+    const purchase = new Date(asset.purchase_date)
+    const diffYears = (Date.now() - purchase.getTime()) / (1000 * 60 * 60 * 24 * 365)
+    return diffYears < 1 ? 'Under 1 year old' : `${diffYears.toFixed(1)} yrs in service`
+  }, [asset?.purchase_date])
+
+  if (loading) {
+    return (
+      <div className="space-y-6 lg:space-y-8">
+        <Skeleton className="h-10 w-32 rounded-full" />
+        <Skeleton className="h-60 rounded-3xl" />
+        <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+          <Skeleton className="h-64 rounded-3xl" />
+          <Skeleton className="h-64 rounded-3xl" />
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Skeleton className="h-72 rounded-3xl" />
+          <Skeleton className="h-72 rounded-3xl" />
+        </div>
+      </div>
+    )
   }
 
-  // Helper function to lighten a color
-  const lightenColor = (color: string, percent: number): string => {
-    const num = parseInt(color.replace("#", ""), 16)
-    const amt = Math.round(2.55 * percent)
-    const R = (num >> 16) + amt
-    const G = (num >> 8 & 0x00FF) + amt
-    const B = (num & 0x0000FF) + amt
-    return "#" + (
-      0x1000000 +
-      (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
-      (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
-      (B < 255 ? (B < 1 ? 0 : B) : 255)
-    ).toString(16).slice(1)
+  if (!asset) {
+    return (
+      <div className="space-y-6 text-center py-20">
+        <p className="text-lg font-semibold text-slate-800">Asset not found</p>
+        <p className="text-sm text-slate-500">The requested asset could not be located.</p>
+        <Button onClick={() => navigate('/app/assets')} className="rounded-2xl">
+          Return to inventory
+        </Button>
+      </div>
+    )
   }
+
+  const assetImage = asset.photo_url || 'https://placehold.co/600x400/f1f5f9/94a3b8?text=Asset+Photo'
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      theme === 'dark' 
-        ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900' 
-        : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50'
-    }`}>
-      {/* Floating Vertical Sidebar - Desktop Only */}
-      <aside className="hidden lg:block fixed left-6 top-1/2 -translate-y-1/2 z-50">
-        <div className="relative">
-          {/* Floating Rounded Sidebar */}
-          <div 
-            className="relative w-20 rounded-[32px] shadow-2xl"
-            style={{
-              height: `${Math.min(navItems.length * 60 + 48, 500)}px`,
-              background: `linear-gradient(to bottom right, ${primaryColor}, ${lightenColor(primaryColor, -10)})`,
-              boxShadow: `0 20px 60px ${primaryColor}66, 0 0 0 1px rgba(255, 255, 255, 0.1)`
-            }}
-          >
-            {/* Subtle Glow Effect */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-black/20 rounded-[32px]" />
-            
-            {/* Navigation Icons */}
-            <div className="relative flex flex-col items-center justify-center h-full gap-2 py-6">
-              {navItems.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
+    <div className="space-y-6 lg:space-y-8">
+      <Button
+        variant="ghost"
+        className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900"
+        onClick={() => navigate('/app/assets')}
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to inventory
+      </Button>
+
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-lg shadow-slate-900/20">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent)]" />
+          <div className="absolute -top-20 -right-10 h-56 w-56 rounded-full bg-emerald-400/20 blur-3xl" />
+          <div className="absolute bottom-0 left-0 h-80 w-80 rounded-full bg-blue-500/20 blur-[140px]" />
+        </div>
+        <div className="relative px-6 py-8 lg:px-10 lg:py-12 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-5 w-full">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.2em] uppercase">
+              <Shield className="h-3.5 w-3.5" />
+              Asset Profile
+            </div>
+            <div className="w-full">
+              <div className="relative rounded-[28px] overflow-hidden border border-white/10 bg-white/5">
+                <img
+                  src={assetImage}
+                  alt={`${asset.name} photo`}
+                  className="h-56 w-full object-cover"
+                />
+                <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-slate-900/50 to-transparent" />
+              </div>
+            </div>
+            <div className="space-y-3">
+              <h1 className="text-3xl lg:text-4xl font-semibold tracking-tight">{asset.name}</h1>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-white/70">
+                <Badge className={`text-xs ${statusTokens[asset.status].badge} capitalize`}>
+                  {statusTokens[asset.status].label}
+                </Badge>
+                <span className="text-white/60">ID: {asset.id.slice(0, 8)}</span>
+                {assetAge && <span className="text-white/60">{assetAge}</span>}
+              </div>
+              {asset.description && <p className="text-sm text-white/80 max-w-2xl">{asset.description}</p>}
+            </div>
+            <div className="flex flex-wrap gap-4">
+              {heroMetrics.map((metric) => {
+                const Icon = metric.icon
                 return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleNavChange(item.href)}
-                    className={`relative w-12 h-12 rounded-2xl transition-all duration-300 flex items-center justify-center group ${
-                      isActive 
-                        ? 'bg-white shadow-xl scale-110' 
-                        : 'bg-white/10 hover:bg-white/20 hover:scale-105'
-                    }`}
-                    title={item.name}
+                  <div
+                    key={metric.label}
+                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 min-w-[150px] backdrop-blur"
                   >
-                    <Icon 
-                      size={20} 
-                      className={`transition-colors ${isActive ? 'text-slate-800' : 'text-white'}`}
-                      style={{ color: isActive ? primaryColor : undefined }}
-                    />
-                    {item.badge && (
-                      <span 
-                        className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full text-white"
-                        style={{ backgroundColor: isActive ? primaryColor : '#ef4444' }}
-                      >
-                        {item.badge}
-                      </span>
-                    )}
-                    {isActive && (
-                      <div 
-                        className="absolute -right-2 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full shadow-lg"
-                        style={{ backgroundColor: '#ffffff' }}
-                      />
-                    )}
-                  </button>
+                    <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-white/60">
+                      <Icon className="h-3.5 w-3.5" />
+                      {metric.label}
+                    </div>
+                    <p className="text-lg font-semibold mt-1">{metric.value}</p>
+                  </div>
                 )
               })}
             </div>
           </div>
+          <div className="flex flex-col gap-3 lg:items-end">
+            <Button variant="secondary" className="bg-white/10 text-white border border-white/20 rounded-2xl h-11 px-6">
+              <Download className="h-4 w-4 mr-2" />
+              Export dossier
+            </Button>
+            <Button className="bg-white text-slate-900 rounded-2xl shadow-lg shadow-slate-900/20 h-11 px-6">
+              <Sparkles className="h-4 w-4 mr-2 text-slate-600" />
+              New service action
+            </Button>
+          </div>
         </div>
-      </aside>
+      </section>
 
-      {/* Main Content Area */}
-      <div className="lg:ml-32">
-        {/* Top Header - Transparent */}
-        <header className="px-4 lg:px-8 py-4 lg:py-6">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            {/* Left - Logo & Mobile Menu */}
-            <div className="flex items-center gap-3">
-              {/* Mobile Menu Button */}
-              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                <SheetTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 lg:hidden rounded-xl"
-                  >
-                    <Menu className="h-5 w-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-[280px] p-0">
-                  <SheetHeader className="p-4 border-b">
-                    <div className="flex items-center gap-3">
-                      <div 
-                        className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg"
-                        style={{ backgroundColor: primaryColor }}
-                      >
-                        <BarChart3 className="h-5 w-5 text-white" />
-                      </div>
-                      <SheetTitle className="text-lg font-bold">Dashboard</SheetTitle>
-                    </div>
-                  </SheetHeader>
-                  
-                  <div className="py-4">
-                    {/* User Info */}
-                    <div className="px-4 pb-4 mb-4 border-b">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={user?.avatar_url || undefined} />
-                          <AvatarFallback 
-                            className="text-white"
-                            style={{ backgroundColor: primaryColor }}
-                          >
-                            {user?.full_name?.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm truncate">{user?.full_name}</p>
-                          <p className="text-xs text-slate-500 truncate">{user?.email}</p>
-                          <Badge variant="secondary" className="mt-1 text-xs">
-                            {user?.role}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Navigation Items */}
-                    <nav className="space-y-1 px-2">
-                      {navItems.map((item) => {
-                        const Icon = item.icon
-                        const isActive = pathname === item.href
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => handleNavChange(item.href)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
-                            style={{
-                              backgroundColor: isActive ? lightenColor(primaryColor, 45) : 'transparent',
-                              color: isActive ? primaryColor : undefined
-                            }}
-                          >
-                            <Icon className="h-5 w-5 shrink-0" />
-                            <span className="flex-1 text-left">{item.name}</span>
-                            {item.badge && (
-                              <Badge 
-                                className="text-xs font-bold"
-                                style={{
-                                  backgroundColor: isActive ? primaryColor : undefined,
-                                  color: isActive ? '#ffffff' : undefined
-                                }}
-                              >
-                                {item.badge}
-                              </Badge>
-                            )}
-                          </button>
-                        )
-                      })}
-                    </nav>
-
-                    {/* Bottom Actions */}
-                    <div className="mt-4 px-2 space-y-1">
-                      <button
-                        onClick={toggleTheme}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
-                      >
-                        {theme === 'dark' ? (
-                          <>
-                            <Sun className="h-5 w-5" />
-                            <span>Light Mode</span>
-                          </>
-                        ) : (
-                          <>
-                            <Moon className="h-5 w-5" />
-                            <span>Dark Mode</span>
-                          </>
-                        )}
-                      </button>
-                      
-                      <button
-                        onClick={handleSignOut}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-                      >
-                        <LogOut className="h-5 w-5" />
-                        <span>Sign Out</span>
-                      </button>
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
-
-              <div 
-                className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl flex items-center justify-center shadow-lg"
-                style={{ backgroundColor: primaryColor }}
-              >
-                <BarChart3 className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
-              </div>
+      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+        <Card className="rounded-3xl border-slate-200 shadow-sm">
+          <div className="p-6 space-y-6">
+            <div className="flex items-center justify-between">
               <div>
-                <h1 className={`text-2xl lg:text-3xl font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
-                  {navItems.find(item => item.href === pathname)?.name || 'Dashboard'}
-                </h1>
-                <p className={`text-xs lg:text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
-                  {navItems.find(item => item.href === pathname)?.description || 'Welcome back'}
+                <p className="text-xs uppercase tracking-wide text-slate-500">Asset insights</p>
+                <h2 className="text-lg font-semibold text-slate-900">Operational snapshot</h2>
+              </div>
+              <Badge variant="outline" className="rounded-full text-xs capitalize">
+                {asset.category || 'Uncategorized'}
+              </Badge>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-slate-100 p-4">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Serial Number</p>
+                <p className="text-base font-semibold text-slate-900 mt-1">{asset.serial_number || '—'}</p>
+                <p className="text-xs text-slate-500 mt-1">Tracked identifier for compliance.</p>
+              </div>
+              <div className="rounded-2xl border border-slate-100 p-4">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Lifecycle</p>
+                <p className="text-base font-semibold text-slate-900 mt-1">
+                  {asset.purchase_date ? formatDate(asset.purchase_date) : 'Not recorded'}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Warranty {asset.warranty_expiry ? `until ${formatDate(asset.warranty_expiry)}` : 'not configured'}
                 </p>
               </div>
-            </div>
-
-            {/* Right - Actions */}
-            <div className="flex items-center gap-2 lg:gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSearchOpen(!searchOpen)}
-                className="h-9 w-9 lg:hidden rounded-xl"
-              >
-                <Search className="h-4 w-4" />
-              </Button>
-
-              <div className="hidden lg:block relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  type="search"
-                  placeholder="Search everything..."
-                  className={`h-10 w-64 pl-10 rounded-xl focus:ring-2 backdrop-blur-md ${
-                    theme === 'dark' 
-                      ? 'bg-slate-800/70 border-slate-700 text-white' 
-                      : 'bg-white/70 border-slate-200/50 focus:bg-white/90'
-                  }`}
-                  style={{ 
-                    // @ts-ignore - Custom CSS property for focus ring color
-                    '--focus-ring-color': primaryColor 
-                  } as React.CSSProperties}
-                />
+              <div className="rounded-2xl border border-slate-100 p-4">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Current Status</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge className={`text-xs ${statusTokens[asset.status].badge}`}>{statusTokens[asset.status].label}</Badge>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${statusTokens[asset.status].chip}`}>
+                    Updated {formatDate(asset.updated_at)}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  {asset.status === 'available'
+                    ? 'Ready for immediate assignment.'
+                    : asset.status === 'assigned'
+                    ? 'Currently in the field.'
+                    : asset.status === 'maintenance'
+                    ? 'Service team engaged.'
+                    : 'Archived and no longer in rotation.'}
+                </p>
               </div>
-
-              <Separator orientation="vertical" className="h-6 hidden lg:block" />
-
-              <NotificationBell />
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleTheme}
-                className={`h-10 w-10 rounded-xl hidden lg:flex backdrop-blur-md ${
-                  theme === 'dark' 
-                    ? 'bg-slate-800/70 hover:bg-slate-800/90' 
-                    : 'bg-white/70 hover:bg-white/90'
-                }`}
-              >
-                {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </Button>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="relative hidden lg:block">
-                    <Avatar className={`h-10 w-10 ring-2 transition-all backdrop-blur-md ${
-                      theme === 'dark' 
-                        ? 'ring-slate-700 hover:ring-slate-600' 
-                        : 'ring-slate-200 hover:ring-slate-300'
-                    }`}>
-                      <AvatarImage src={user?.avatar_url || undefined} />
-                      <AvatarFallback 
-                        className="text-white text-sm font-semibold"
-                        style={{ backgroundColor: primaryColor }}
-                      >
-                        {user?.full_name?.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
-                  <div className="flex items-center gap-3 p-3">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={user?.avatar_url || undefined} />
-                      <AvatarFallback 
-                        className="text-white"
-                        style={{ backgroundColor: primaryColor }}
-                      >
-                        {user?.full_name?.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col space-y-1 flex-1">
-                      <p className="font-semibold text-sm">{user?.full_name}</p>
-                      <p className="text-xs text-slate-500">{user?.email}</p>
-                      <Badge variant="secondary" className="w-fit text-xs">
-                        {user?.role}
-                      </Badge>
-                    </div>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/app/profile')} className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    Profile Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600 cursor-pointer">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="rounded-2xl border border-slate-100 p-4">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Investment</p>
+                <p className="text-base font-semibold text-slate-900 mt-1">
+                  {asset.purchase_price ? `$${asset.purchase_price.toLocaleString()}` : 'Not provided'}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">Capex reference for finance teams.</p>
+              </div>
             </div>
           </div>
-        </header>
+        </Card>
 
-        {/* Mobile Search Bar */}
-        {searchOpen && (
-          <div 
-            className={`lg:hidden px-4 py-2 border-b shrink-0 backdrop-blur-md ${
-              theme === 'dark' 
-                ? 'bg-slate-900/70 border-slate-700/50' 
-                : 'bg-white/70 border-slate-200/50'
-            }`}
-          >
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                type="search"
-                placeholder="Search everything..."
-                className={`h-9 w-full pl-10 rounded-lg text-sm ${
-                  theme === 'dark' 
-                    ? 'bg-slate-800/70 border-slate-700 text-white' 
-                    : 'bg-white/70 border-slate-200 focus:bg-white/90'
-                }`}
-                autoFocus
-              />
+        <Card className="rounded-3xl border-slate-200 shadow-sm">
+          <div className="p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-500">Ownership</p>
+                <h2 className="text-lg font-semibold text-slate-900">Assignment</h2>
+              </div>
+              {user?.role === 'admin' && (
+                <Select
+                  value={asset.status}
+                  onValueChange={(value) => handleStatusChange(value as AssetRow['status'])}
+                  disabled={statusUpdating}
+                >
+                  <SelectTrigger className="w-36 rounded-2xl">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            {asset.assigned_user ? (
+              <div className="flex items-center gap-3 rounded-2xl border border-slate-100 p-4">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={asset.assigned_user.avatar_url || undefined} />
+                  <AvatarFallback className="bg-slate-900 text-white">
+                    {asset.assigned_user.full_name?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <p className="font-semibold text-slate-900 text-sm">{asset.assigned_user.full_name}</p>
+                  <p className="text-xs text-slate-500">{asset.assigned_user.email}</p>
+                  <Badge variant="secondary" className="mt-2 text-xs capitalize">
+                    {asset.assigned_user.role}
+                  </Badge>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-200 p-5 text-center">
+                <p className="text-sm font-medium text-slate-800">Unassigned asset</p>
+                <p className="text-xs text-slate-500">Perfect candidate for upcoming onboardings.</p>
+                <Button
+                  variant="outline"
+                  className="mt-3 rounded-2xl text-sm"
+                  onClick={() => navigate('/app/users')}
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Assign to user
+                </Button>
+              </div>
+            )}
+            <Separator />
+            <div className="space-y-3">
+              <p className="text-xs uppercase tracking-wide text-slate-500">Quick actions</p>
+              <div className="space-y-2">
+                <Button variant="outline" className="w-full rounded-2xl justify-between">
+                  Open service ticket
+                  <Wrench className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" className="w-full rounded-2xl justify-between">
+                  Refresh compliance
+                  <RefreshCcw className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
-        )}
-
-        {/* Main Content */}
-        <main className="px-4 lg:px-8 py-6 lg:py-8">
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
-        </main>
+        </Card>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-3 left-3 right-3 z-50">
-        <div 
-          className="relative flex shadow-2xl p-1.5 rounded-2xl"
-          style={{
-            background: `linear-gradient(to right, ${primaryColor}, ${lightenColor(primaryColor, -10)})`,
-            boxShadow: `0 0 1px 0 ${primaryColor}26, 0 6px 20px 0 ${primaryColor}33`
-          }}
-        >
-          {navItems.slice(0, 4).map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNavChange(item.href)}
-                className={`relative flex-1 flex flex-col items-center justify-center h-14 rounded-xl transition-all duration-300 ${
-                  isActive ? 'bg-white shadow-lg' : 'bg-white/10 hover:bg-white/20'
-                }`}
-              >
-                <div className="relative">
-                  <Icon 
-                    size={20} 
-                    className={`transition-colors ${isActive ? 'text-slate-800' : 'text-white'}`}
-                    style={{ color: isActive ? primaryColor : undefined }}
-                  />
-                  {item.badge && (
-                    <span 
-                      className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[16px] h-4 px-1 text-[9px] font-bold rounded-full text-white"
-                      style={{ backgroundColor: isActive ? primaryColor : '#ef4444' }}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="rounded-3xl border-slate-200 shadow-sm">
+          <div className="p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-500">Lifecycle</p>
+                <h2 className="text-lg font-semibold text-slate-900">Activity timeline</h2>
+              </div>
+              <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-700 border-0">
+                {timeline.length} events
+              </Badge>
+            </div>
+            {timeline.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center">
+                <Activity className="mx-auto h-6 w-6 text-slate-300" />
+                <p className="mt-3 text-sm text-slate-500">No recorded events yet.</p>
+              </div>
+            ) : (
+              <ol className="space-y-4">
+                {timeline.map((entry) => (
+                  <li key={entry.id} className="relative pl-6">
+                    <span className="absolute left-0 top-2 h-3 w-3 rounded-full bg-slate-300" />
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-sm font-semibold text-slate-900 capitalize">
+                        {entry.action.replace(/_/g, ' ')}
+                      </p>
+                      <span className="text-xs text-slate-400">{formatDate(entry.created_at, true)}</span>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      by {entry.performer?.full_name || 'System'}
+                      {entry.assignee?.full_name ? ` • assignee: ${entry.assignee.full_name}` : ''}
+                    </p>
+                    {entry.notes && <p className="text-sm text-slate-600 mt-1">{entry.notes}</p>}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        </Card>
+
+        <Card className="rounded-3xl border-slate-200 shadow-sm">
+          <div className="p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-500">Readiness</p>
+                <h2 className="text-lg font-semibold text-slate-900">Health & compliance</h2>
+              </div>
+              <Badge variant="outline" className="rounded-full text-xs">
+                Monitored
+              </Badge>
+            </div>
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-slate-100 p-4 flex items-center gap-4">
+                <div className="h-11 w-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5" />
                 </div>
-                <span 
-                  className={`text-[10px] font-medium mt-0.5 ${isActive ? 'text-slate-800' : 'text-white'}`}
-                  style={{ color: isActive ? primaryColor : undefined }}
-                >
-                  {item.name}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </nav>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Security posture</p>
+                  <p className="text-xs text-slate-500">
+                    {asset.status === 'retired'
+                      ? 'Archived from compliance scope.'
+                      : 'Asset meets baseline hardening controls.'}
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-slate-100 p-4 flex items-center gap-4">
+                <div className="h-11 w-11 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Wrench className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Maintenance cadence</p>
+                  <p className="text-xs text-slate-500">
+                    {asset.status === 'maintenance'
+                      ? 'Currently undergoing service.'
+                      : 'No open service orders.'}
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-slate-100 p-4 flex items-center gap-4">
+                <div className="h-11 w-11 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Warranty status</p>
+                  <p className="text-xs text-slate-500">
+                    {asset.warranty_expiry ? `Coverage until ${formatDate(asset.warranty_expiry)}` : 'Warranty not tracked'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
   )
 }
+
+function formatDate(value: string, withTime = false) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+  })
+}
+

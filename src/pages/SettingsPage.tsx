@@ -4,11 +4,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useDashboardTab } from '@/context/DashboardTabContext'
 import { Switch } from '@/components/ui/switch'
 import { Settings, Bell, User, Building2, Palette, Shield, Loader2, Sparkles } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useTheme } from '@/context/ThemeContext'
 
 // Predefined theme palettes
 interface ThemePalette {
@@ -262,14 +264,24 @@ const themePalettes: ThemePalettes = {
 
 export default function SettingsPage() {
   const { user, company, settings, loading, updateProfile, updateCompany, updateSettings } = useAuth()
+  const { activeTab, setActiveTab } = useDashboardTab()
+  const { updateCustomTheme, updateThemeSettings, setTheme: setThemeMode } = useTheme()
+  const settingsTabs = ['profile', 'company', 'appearance', 'notifications', 'security'] as const
+  const normalizedTab = (settingsTabs as readonly string[]).includes(activeTab) ? activeTab : settingsTabs[0]
   const isAdmin = user?.role === 'admin'
+
+  useEffect(() => {
+    if (activeTab !== normalizedTab) {
+      setActiveTab(normalizedTab)
+    }
+  }, [activeTab, normalizedTab, setActiveTab])
 
   const [companyName, setCompanyName] = useState('')
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [saving, setSaving] = useState(false)
   
-  const [theme, setTheme] = useState({
+  const [theme, setLocalTheme] = useState({
     // Colors in HSL format
     primary: '217 91% 60%',
     primaryForeground: '0 0% 100%',
@@ -317,8 +329,9 @@ export default function SettingsPage() {
     if (settings?.theme) {
       try {
         const savedTheme = JSON.parse(settings.theme)
-        setTheme(savedTheme)
+        setLocalTheme(savedTheme)
         applyThemeToDOM(savedTheme)
+        syncThemeContext(savedTheme)
       } catch (error) {
         console.error('Error loading theme:', error)
       }
@@ -351,6 +364,28 @@ export default function SettingsPage() {
     if (themeObj.radius) {
       root.style.setProperty('--radius', `${themeObj.radius}rem`)
     }
+  }
+
+  // Keep ThemeContext in sync so sidebar / global theming also update live
+  const syncThemeContext = (themeObj: typeof theme) => {
+    // Map core colors into ThemeContext's hex-based customTheme
+    updateCustomTheme({
+      primary: hslToHex(themeObj.primary),
+      secondary: hslToHex(themeObj.secondary),
+      accent: hslToHex(themeObj.accent || themeObj.primary),
+      background: hslToHex(themeObj.background),
+      foreground: hslToHex(themeObj.foreground),
+      muted: hslToHex(themeObj.muted),
+      border: hslToHex(themeObj.border),
+      destructive: hslToHex(themeObj.destructive),
+      warning: hslToHex(themeObj.destructive), // simple mapping; can be extended
+    })
+
+    // Map sizing into ThemeContext's themeSettings
+    updateThemeSettings({
+      fontSize: Number(themeObj.fontSize) || 16,
+      borderRadius: Number(themeObj.radius) * 16 || 8, // rem -> px
+    })
   }
 
   // Convert hex to HSL
@@ -419,8 +454,9 @@ export default function SettingsPage() {
 
   const handleThemeChange = (key: string, value: string) => {
     const newTheme = { ...theme, [key]: value }
-    setTheme(newTheme)
+    setLocalTheme(newTheme)
     applyThemeToDOM(newTheme)
+    syncThemeContext(newTheme)
   }
 
   const applyPredefinedPalette = (category: string, paletteName: string) => {
@@ -454,6 +490,73 @@ export default function SettingsPage() {
     applyThemeToDOM(newTheme)
     setSelectedCategory(category)
     setSelectedPalette(paletteName)
+    syncThemeContext(newTheme)
+  }
+
+  // Apply full base presets that mirror the existing index.css light & dark designs
+  const applyBasePreset = (mode: 'light' | 'dark') => {
+    if (mode === 'light') {
+      const lightTheme = {
+        primary: '217 91% 60%',
+        primaryForeground: '0 0% 100%',
+        secondary: '217 80% 94%',
+        secondaryForeground: '217 91% 60%',
+        background: '0 0% 100%',
+        foreground: '222 47% 11%',
+        card: '0 0% 100%',
+        cardForeground: '222 47% 11%',
+        popover: '0 0% 100%',
+        popoverForeground: '222 47% 11%',
+        muted: '220 14% 96%',
+        mutedForeground: '215 16% 47%',
+        accent: '24 95% 53%',
+        accentForeground: '0 0% 100%',
+        destructive: '0 84% 60%',
+        destructiveForeground: '0 0% 100%',
+        border: '220 13% 91%',
+        input: '220 13% 91%',
+        ring: '217 91% 60%',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontSize: '16',
+        fontWeight: '400',
+        radius: '0.5',
+      }
+      setLocalTheme(lightTheme)
+      applyThemeToDOM(lightTheme)
+      syncThemeContext(lightTheme)
+      setThemeMode('light')
+    } else {
+      // Dark mode values taken from index.css .dark block
+      const darkTheme = {
+        primary: '280 62% 22%',
+        primaryForeground: '15 75% 91%',
+        secondary: '285 35% 27%',
+        secondaryForeground: '6 40% 80%',
+        background: '300 100% 5%',
+        foreground: '6 40% 80%',
+        card: '280 62% 18%',
+        cardForeground: '6 40% 80%',
+        popover: '285 35% 27%',
+        popoverForeground: '6 40% 80%',
+        muted: '330 25% 42%',
+        mutedForeground: '15 75% 91%',
+        accent: '330 25% 42%',
+        accentForeground: '15 75% 91%',
+        destructive: '0 84% 60%',
+        destructiveForeground: '15 75% 91%',
+        border: '280 62% 25%',
+        input: '280 62% 25%',
+        ring: '280 62% 30%',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontSize: '16',
+        fontWeight: '400',
+        radius: '0.5',
+      }
+      setLocalTheme(darkTheme)
+      applyThemeToDOM(darkTheme)
+      syncThemeContext(darkTheme)
+      setThemeMode('dark')
+    }
   }
 
   const handleSaveTheme = async () => {
@@ -502,8 +605,9 @@ export default function SettingsPage() {
       fontWeight: '400',
       radius: '0.5',
     }
-    setTheme(defaultTheme)
+    setLocalTheme(defaultTheme)
     applyThemeToDOM(defaultTheme)
+    syncThemeContext(defaultTheme)
   }
 
   const handleUpdateCompany = async () => {
@@ -566,8 +670,8 @@ export default function SettingsPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="w-full justify-start overflow-x-auto bg-card rounded-lg p-1 shadow-sm">
+        <Tabs value={normalizedTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="w-full justify-start overflow-x-auto bg-card rounded-lg p-1 shadow-sm hidden">
             <TabsTrigger value="profile" className="gap-2">
               <User className="h-4 w-4" />
               Profile
@@ -723,6 +827,58 @@ export default function SettingsPage() {
 
           {/* Appearance Tab */}
           <TabsContent value="appearance" className="space-y-4 mt-6">
+            {/* Base Light/Dark Presets */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Palette className="h-5 w-5" />
+                  Base Theme Mode
+                </CardTitle>
+                <CardDescription>
+                  Start from the existing light or dark design, then tweak every detail below.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => applyBasePreset('light')}
+                    className="group flex flex-col items-stretch rounded-lg border border-border bg-background p-3 hover:border-primary hover:shadow-md transition-all text-left"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Light Design</span>
+                    </div>
+                    <div className="rounded-md border border-border bg-white p-2 space-y-2">
+                      <div className="h-1.5 w-16 rounded-full bg-[hsl(217_91%_60%)]" />
+                      <div className="h-6 rounded-md bg-[hsl(217_80%_94%)]" />
+                      <div className="flex gap-1">
+                        <div className="h-6 flex-1 rounded-md bg-[hsl(210_40%_96%)]" />
+                        <div className="h-6 w-8 rounded-md bg-[hsl(24_95%_53%)]" />
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => applyBasePreset('dark')}
+                    className="group flex flex-col items-stretch rounded-lg border border-border bg-background p-3 hover:border-primary hover:shadow-md transition-all text-left"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Dark Design</span>
+                    </div>
+                    <div className="rounded-md border border-border bg-[hsl(300_100%_5%)] p-2 space-y-2">
+                      <div className="h-1.5 w-16 rounded-full bg-[hsl(280_62%_22%)]" />
+                      <div className="h-6 rounded-md bg-[hsl(285_35%_27%)]" />
+                      <div className="flex gap-1">
+                        <div className="h-6 flex-1 rounded-md bg-[hsl(330_25%_42%)]" />
+                        <div className="h-6 w-8 rounded-md bg-[hsl(280_62%_22%)]" />
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Predefined Palettes Card */}
             <Card>
               <CardHeader>

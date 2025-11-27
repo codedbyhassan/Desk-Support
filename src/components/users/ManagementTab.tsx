@@ -36,7 +36,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { User, Shield, MoreVertical, Search, UserPlus, Users, UserCheck, Crown, AlertCircle, Mail, Phone, Calendar } from 'lucide-react'
+import { User, Shield, MoreVertical, Search, UserPlus, Users, UserCheck, Crown, AlertCircle, Mail, Phone, Calendar, Building2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/lib/auth'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -64,6 +64,7 @@ interface UserType {
   email: string
   full_name: string
   role: string
+  department_id?: string | null
   avatar_url?: string | null
   created_at: string
   last_sign_in?: string | null
@@ -76,6 +77,23 @@ interface CompanyInfo {
   name: string
   max_users: number
   current_user_count: number
+}
+
+interface Department {
+  id: string
+  name: string
+}
+
+interface Role {
+  value: string
+  label: string
+}
+
+interface EditUserDialogState {
+  open: boolean
+  user: UserType | null
+  selectedRole: string
+  selectedDepartment: string
 }
 
 const AVATAR_COLORS = [
@@ -93,6 +111,8 @@ export default function ManagementTab() {
   const { theme } = useTheme()
   const [users, setUsers] = useState<UserType[]>([])
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null)
+  const [departments, setDepartments] = useState<Department[]>([])
+  const [roles, setRoles] = useState<Role[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
   const [page, setPage] = useState(1)
@@ -101,11 +121,18 @@ export default function ManagementTab() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [filterTab, setFilterTab] = useState<'all' | 'admins' | 'employees'>('all')
   const [addUserDialogOpen, setAddUserDialogOpen] = useState(false)
+  const [editUserDialog, setEditUserDialog] = useState<EditUserDialogState>({
+    open: false,
+    user: null,
+    selectedRole: '',
+    selectedDepartment: ''
+  })
   const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     full_name: '',
-    role: 'employee',
+    role: '',
+    department_id: '',
     phone: '',
     password: '',
   })
@@ -116,6 +143,8 @@ export default function ManagementTab() {
     if (currentUser?.company_id) {
       fetchCompanyInfo()
       fetchUsers()
+      fetchDepartments()
+      fetchRoles()
     }
   }, [currentUser?.company_id])
 
@@ -158,6 +187,86 @@ export default function ManagementTab() {
         description: 'Failed to load company information',
         variant: 'destructive',
       })
+    }
+  }
+
+  const fetchDepartments = async () => {
+    if (!currentUser?.company_id) return
+
+    try {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('id, name')
+        .eq('company_id', currentUser.company_id)
+        .order('name', { ascending: true })
+
+      if (error) throw error
+      setDepartments(data || [])
+    } catch (error) {
+      console.error('Error fetching departments:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to load departments',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const fetchRoles = async () => {
+    try {
+      // Always include default roles
+      const defaultRoles = [
+        { value: 'admin', label: 'Admin' },
+        { value: 'hr', label: 'HR' },
+        { value: 'manager', label: 'Manager' },
+        { value: 'employee', label: 'Employee' }
+      ]
+
+      // Fetch distinct roles from the users table
+      const { data, error } = await supabase
+        .from('users')
+        .select('role')
+        .not('role', 'is', null)
+
+      if (error) throw error
+
+      // Get unique roles from database
+      const dbRoles = [...new Set(data.map(u => u.role))]
+        .filter(role => role) // Remove any null/undefined
+        .map(role => ({
+          value: role,
+          label: role.charAt(0).toUpperCase() + role.slice(1)
+        }))
+
+      // Combine default roles with database roles, removing duplicates
+      const allRoles = [...defaultRoles]
+      dbRoles.forEach(dbRole => {
+        if (!allRoles.find(r => r.value === dbRole.value)) {
+          allRoles.push(dbRole)
+        }
+      })
+
+      // Sort roles
+      allRoles.sort((a, b) => {
+        const order = ['admin', 'hr', 'manager', 'employee']
+        const aIndex = order.indexOf(a.value)
+        const bIndex = order.indexOf(b.value)
+        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex
+        if (aIndex !== -1) return -1
+        if (bIndex !== -1) return 1
+        return a.label.localeCompare(b.label)
+      })
+
+      setRoles(allRoles)
+    } catch (error) {
+      console.error('Error fetching roles:', error)
+      // Fallback to default roles if fetch fails
+      setRoles([
+        { value: 'admin', label: 'Admin' },
+        { value: 'hr', label: 'HR' },
+        { value: 'manager', label: 'Manager' },
+        { value: 'employee', label: 'Employee' }
+      ])
     }
   }
 
@@ -236,6 +345,7 @@ export default function ManagementTab() {
         p_role: formData.role,
         p_phone: (formData.phone || '') as string,
         p_company_id: currentUser.company_id,
+        p_department_id: formData.department_id || null,
       })
 
       if (rpcError) {
@@ -252,7 +362,8 @@ export default function ManagementTab() {
       setFormData({
         email: '',
         full_name: '',
-        role: 'employee',
+        role: '',
+        department_id: '',
         phone: '',
         password: '',
       })
@@ -272,30 +383,65 @@ export default function ManagementTab() {
     }
   }
 
-  const handleChangeRole = async (userId: string, newRole: string) => {
-    if (!currentUser?.company_id) return
+  const openEditUserDialog = (user: UserType) => {
+    setEditUserDialog({
+      open: true,
+      user: user,
+      selectedRole: user.role || 'employee',
+      selectedDepartment: user.department_id || 'none'
+    })
+  }
+
+  const handleUpdateUser = async () => {
+    if (!editUserDialog.user || !currentUser?.company_id) return
+
+    if (!editUserDialog.selectedRole) {
+      toast({
+        title: 'Error',
+        description: 'Please select a role',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setSubmitting(true)
 
     try {
+      const updateData: any = {
+        role: editUserDialog.selectedRole,
+        department_id: editUserDialog.selectedDepartment === 'none' || !editUserDialog.selectedDepartment ? null : editUserDialog.selectedDepartment
+      }
+
       const { error } = await supabase
         .from('users')
-        .update({ role: newRole })
-        .eq('id', userId)
+        .update(updateData)
+        .eq('id', editUserDialog.user.id)
         .eq('company_id', currentUser.company_id)
 
       if (error) throw error
 
       toast({
         title: 'Success',
-        description: 'User role updated successfully',
+        description: 'User updated successfully',
       })
+
+      setEditUserDialog({
+        open: false,
+        user: null,
+        selectedRole: '',
+        selectedDepartment: ''
+      })
+      
       fetchUsers()
-    } catch (error) {
-      console.error('Error updating role:', error)
+    } catch (error: any) {
+      console.error('Error updating user:', error)
       toast({
         title: 'Error',
-        description: 'Failed to update user role',
+        description: error.message || 'Failed to update user',
         variant: 'destructive',
       })
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -333,6 +479,12 @@ export default function ManagementTab() {
     setDeleteDialogOpen(true)
   }
 
+  const getDepartmentName = (departmentId: string | null | undefined) => {
+    if (!departmentId) return 'No Department'
+    const dept = departments.find(d => d.id === departmentId)
+    return dept?.name || 'Unknown Department'
+  }
+
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearchTerm(searchTerm), 250)
     return () => clearTimeout(id)
@@ -351,7 +503,7 @@ export default function ManagementTab() {
     const matchesTab = 
       filterTab === 'all' || 
       (filterTab === 'admins' && user.role === 'admin') ||
-      (filterTab === 'employees' && user.role === 'employee')
+      (filterTab === 'employees' && user.role !== 'admin')
 
     return matchesSearch && matchesTab
   })
@@ -366,7 +518,7 @@ export default function ManagementTab() {
   })
 
   const adminUsers = users.filter(u => u.role === 'admin')
-  const employeeUsers = users.filter(u => u.role === 'employee')
+  const employeeUsers = users.filter(u => u.role !== 'admin')
   const remainingSlots = companyInfo ? companyInfo.max_users - companyInfo.current_user_count : 0
   const totalPages = Math.max(1, Math.ceil(sortedUsers.length / pageSize))
   const currentPage = Math.min(page, totalPages)
@@ -399,7 +551,7 @@ export default function ManagementTab() {
             className="pl-9 rounded-lg text-sm bg-background text-foreground border-border"
           />
         </div>
-        {currentUser?.role === 'admin' && (
+        {(currentUser?.role === 'admin' || currentUser?.role === 'hr') && (
           <Dialog open={addUserDialogOpen} onOpenChange={setAddUserDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2 h-11 lg:h-10" disabled={remainingSlots <= 0}>
@@ -483,20 +635,46 @@ export default function ManagementTab() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="role" className="text-sm">Role</Label>
-                  <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                  <Label htmlFor="role" className="text-sm">Role *</Label>
+                  <Select 
+                    value={formData.role} 
+                    onValueChange={(value) => setFormData({ ...formData, role: value })}
+                    required
+                  >
                     <SelectTrigger id="role" className="rounded-lg text-sm">
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="employee">Employee</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
+                      {roles.map(role => (
+                        <SelectItem key={role.value} value={role.value}>
+                          {role.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="department" className="text-sm">Department</Label>
+                  <Select 
+                    value={formData.department_id || "none"} 
+                    onValueChange={(value) => setFormData({ ...formData, department_id: value === "none" ? "" : value })}
+                  >
+                    <SelectTrigger id="department" className="rounded-lg text-sm">
+                      <SelectValue placeholder="Select department (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Department</SelectItem>
+                      {departments.map(dept => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <Button
                   type="submit"
-                  disabled={submitting || remainingSlots <= 0}
+                  disabled={submitting || remainingSlots <= 0 || !formData.role}
                   className="w-full h-11 lg:h-10"
                 >
                   {submitting ? 'Adding...' : 'Add User'}
@@ -520,7 +698,7 @@ export default function ManagementTab() {
           </TabsTrigger>
           <TabsTrigger value="employees" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground">
             <UserCheck className="h-4 w-4 mr-2" />
-            Employees ({employeeUsers.length})
+            Others ({employeeUsers.length})
           </TabsTrigger>
         </TabsList>
 
@@ -547,7 +725,7 @@ export default function ManagementTab() {
                   <UserCheck className="h-4 w-4 lg:h-5 lg:w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-xs lg:text-sm text-muted-foreground">Employees</p>
+                  <p className="text-xs lg:text-sm text-muted-foreground">Others</p>
                   <p className="text-xl lg:text-2xl font-semibold text-foreground">{employeeUsers.length}</p>
                 </div>
               </div>
@@ -635,6 +813,12 @@ export default function ManagementTab() {
                           </div>
                         )}
 
+                        {/* Department */}
+                        <div className="flex items-center gap-1.5 mb-3 text-sm text-muted-foreground">
+                          <Building2 className="h-3.5 w-3.5 flex-shrink-0" />
+                          <span className="truncate">{getDepartmentName(user.department_id)}</span>
+                        </div>
+
                         {/* Role Badge */}
                         <Badge 
                           variant={user.role === 'admin' ? 'default' : 'secondary'}
@@ -652,7 +836,7 @@ export default function ManagementTab() {
                           ) : (
                             <>
                               <User className="h-3 w-3 mr-1" />
-                              Employee
+                              {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                             </>
                           )}
                         </Badge>
@@ -664,7 +848,7 @@ export default function ManagementTab() {
                         </div>
 
                         {/* Actions Menu */}
-                        {currentUser?.role === 'admin' && currentUser?.id !== user.id && (
+                        {(currentUser?.role === 'admin' || currentUser?.role === 'hr') && currentUser?.id !== user.id && (
                           <div className="mt-auto pt-4 border-t border-border w-full">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -678,14 +862,14 @@ export default function ManagementTab() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="bg-card border-border text-foreground">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuLabel>Manage User</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() => handleChangeRole(user.id, user.role === 'admin' ? 'employee' : 'admin')}
+                                  onClick={() => openEditUserDialog(user)}
                                   className="cursor-pointer"
                                 >
                                   <Shield className="mr-2 h-4 w-4" />
-                                  {user.role === 'admin' ? 'Make Employee' : 'Make Admin'}
+                                  Edit Role & Department
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   className="text-destructive cursor-pointer"
@@ -747,6 +931,77 @@ export default function ManagementTab() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Edit User Dialog */}
+      <Dialog open={editUserDialog.open} onOpenChange={(open) => setEditUserDialog({ ...editUserDialog, open })}>
+        <DialogContent className="max-w-[90vw] lg:max-w-lg rounded-2xl bg-card border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle className="text-lg lg:text-xl text-foreground">Edit User</DialogTitle>
+            <DialogDescription className="text-sm lg:text-base text-muted-foreground">
+              Update role and department for {editUserDialog.user?.full_name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-role" className="text-sm">Role *</Label>
+              <Select 
+                value={editUserDialog.selectedRole} 
+                onValueChange={(value) => setEditUserDialog({ ...editUserDialog, selectedRole: value })}
+              >
+                <SelectTrigger id="edit-role" className="rounded-lg text-sm">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map(role => (
+                    <SelectItem key={role.value} value={role.value}>
+                      {role.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-department" className="text-sm">Department</Label>
+              <Select 
+                value={editUserDialog.selectedDepartment || "none"} 
+                onValueChange={(value) => setEditUserDialog({ ...editUserDialog, selectedDepartment: value === "none" ? "" : value })}
+              >
+                <SelectTrigger id="edit-department" className="rounded-lg text-sm">
+                  <SelectValue placeholder="Select department (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Department</SelectItem>
+                  {departments.map(dept => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setEditUserDialog({ open: false, user: null, selectedRole: '', selectedDepartment: '' })}
+                className="flex-1"
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUpdateUser}
+                disabled={submitting || !editUserDialog.selectedRole}
+                className="flex-1"
+              >
+                {submitting ? 'Updating...' : 'Update User'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {/* Delete confirmation dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

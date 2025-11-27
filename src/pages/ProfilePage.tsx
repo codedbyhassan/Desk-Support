@@ -36,6 +36,7 @@ import {
   MapPin,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { useDashboardTab } from '../context/DashboardTabContext'
 
 interface Department {
   id: string
@@ -44,7 +45,7 @@ interface Department {
 }
 
 export default function ProfilePage() {
-  const { user } = useAuth()
+  const { user, updateProfile } = useAuth()
   const { toast } = useToast()
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -68,6 +69,7 @@ export default function ProfilePage() {
           description: `Successfully clocked ${action}! Timer started.`,
         })
         await fetchAttendanceStatus()
+        await fetchAttendanceHistory() // Refresh attendance history
       } catch (error) {
         console.error('Error registering attendance:', error)
       }
@@ -82,7 +84,15 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false)
   const [departments, setDepartments] = useState<Department[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [activeTab, setActiveTab] = useState('profile')
+  const { activeTab, setActiveTab } = useDashboardTab()
+  const profileTabs = ['profile', 'attendance'] as const
+  const normalizedTab = (profileTabs as readonly string[]).includes(activeTab) ? activeTab : profileTabs[0]
+
+  useEffect(() => {
+    if (activeTab !== normalizedTab) {
+      setActiveTab(normalizedTab)
+    }
+  }, [activeTab, normalizedTab, setActiveTab])
 
   // Form state
   const [fullName, setFullName] = useState('')
@@ -92,6 +102,20 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState('')
+  
+  // Attendance history state
+  const [attendanceHistory, setAttendanceHistory] = useState<{
+    today: { present: number; hours: number }
+    week: { present: number; total: number; hours: number }
+    month: { present: number; total: number; hours: number }
+    year: { present: number; total: number; hours: number }
+  }>({
+    today: { present: 0, hours: 0 },
+    week: { present: 0, total: 7, hours: 0 },
+    month: { present: 0, total: 0, hours: 0 },
+    year: { present: 0, total: 365, hours: 0 },
+  })
+  const [attendanceLoadingHistory, setAttendanceLoadingHistory] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -100,6 +124,7 @@ export default function ProfilePage() {
       setDepartmentId(user.department_id || '')
       setAvatarPreview(user.avatar_url || '')
       fetchAttendanceStatus()
+      fetchAttendanceHistory()
     }
     fetchDepartments()
   }, [user, fetchAttendanceStatus])
@@ -114,6 +139,127 @@ export default function ProfilePage() {
       setDepartments(data || [])
     } catch (error) {
       console.error('Error fetching departments:', error)
+    }
+  }
+
+  const fetchAttendanceHistory = async () => {
+    if (!user?.id) return
+    
+    setAttendanceLoadingHistory(true)
+    try {
+      const now = new Date()
+      
+      // Today
+      const todayStart = new Date(now)
+      todayStart.setHours(0, 0, 0, 0)
+      const todayEnd = new Date(now)
+      todayEnd.setHours(23, 59, 59, 999)
+      
+      // Week (last 7 days)
+      const weekStart = new Date(now)
+      weekStart.setDate(now.getDate() - 6)
+      weekStart.setHours(0, 0, 0, 0)
+      
+      // Month (current month)
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+      
+      // Year (current year)
+      const yearStart = new Date(now.getFullYear(), 0, 1)
+      const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
+      
+      // Fetch all attendance records
+      const { data: allRecords, error } = await supabase
+        .from('attendance')
+        .select('date, check_in, check_out, status')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+      
+      if (error) throw error
+      
+      // Calculate statistics
+      const todayRecords = (allRecords || []).filter(record => {
+        const recordDate = new Date(record.date)
+        return recordDate >= todayStart && recordDate <= todayEnd
+      })
+      
+      const weekRecords = (allRecords || []).filter(record => {
+        const recordDate = new Date(record.date)
+        return recordDate >= weekStart && recordDate <= todayEnd
+      })
+      
+      const monthRecords = (allRecords || []).filter(record => {
+        const recordDate = new Date(record.date)
+        return recordDate >= monthStart && recordDate <= monthEnd
+      })
+      
+      const yearRecords = (allRecords || []).filter(record => {
+        const recordDate = new Date(record.date)
+        return recordDate >= yearStart && recordDate <= yearEnd
+      })
+      
+      // Helper function to calculate hours
+      const calculateHours = (records: any[]) => {
+        return records.reduce((total, record) => {
+          if (record.check_in && record.check_out) {
+            const checkIn = new Date(record.check_in)
+            const checkOut = new Date(record.check_out)
+            const hours = (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60)
+            return total + hours
+          }
+          return total
+        }, 0)
+      }
+      
+      // Calculate working days in month
+      const workingDaysInMonth = (() => {
+        let count = 0
+        const current = new Date(monthStart)
+        while (current <= monthEnd) {
+          const dayOfWeek = current.getDay()
+          if (dayOfWeek !== 0 && dayOfWeek !== 6) count++ // Exclude weekends
+          current.setDate(current.getDate() + 1)
+        }
+        return count
+      })()
+      
+      // Calculate working days in year
+      const workingDaysInYear = (() => {
+        let count = 0
+        const current = new Date(yearStart)
+        while (current <= yearEnd) {
+          const dayOfWeek = current.getDay()
+          if (dayOfWeek !== 0 && dayOfWeek !== 6) count++ // Exclude weekends
+          current.setDate(current.getDate() + 1)
+        }
+        return count
+      })()
+      
+      setAttendanceHistory({
+        today: {
+          present: todayRecords.filter(r => r.status === 'clocked_in' || r.status === 'clocked_out').length,
+          hours: calculateHours(todayRecords),
+        },
+        week: {
+          present: weekRecords.filter(r => r.status === 'clocked_in' || r.status === 'clocked_out').length,
+          total: 7,
+          hours: calculateHours(weekRecords),
+        },
+        month: {
+          present: monthRecords.filter(r => r.status === 'clocked_in' || r.status === 'clocked_out').length,
+          total: workingDaysInMonth,
+          hours: calculateHours(monthRecords),
+        },
+        year: {
+          present: yearRecords.filter(r => r.status === 'clocked_in' || r.status === 'clocked_out').length,
+          total: workingDaysInYear,
+          hours: calculateHours(yearRecords),
+        },
+      })
+    } catch (error) {
+      console.error('Error fetching attendance history:', error)
+    } finally {
+      setAttendanceLoadingHistory(false)
     }
   }
 
@@ -157,6 +303,7 @@ export default function ProfilePage() {
     try {
       let avatarUrl = user.avatar_url
 
+      // Upload avatar if a new file is selected
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop()
         const fileName = `${user.id}-${Date.now()}.${fileExt}`
@@ -164,7 +311,9 @@ export default function ProfilePage() {
 
         const { error: uploadError } = await supabase.storage
           .from('photos')
-          .upload(filePath, avatarFile)
+          .upload(filePath, avatarFile, {
+            upsert: true
+          })
 
         if (uploadError) throw uploadError
 
@@ -172,18 +321,15 @@ export default function ProfilePage() {
         avatarUrl = data.publicUrl
       }
 
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({
-          full_name: fullName.trim(),
-          phone: phone.trim() || null,
-          department_id: departmentId || null,
-          avatar_url: avatarUrl,
-        })
-        .eq('id', user.id)
+      // Update profile using auth context method
+      await updateProfile({
+        full_name: fullName.trim(),
+        phone: phone.trim() || null,
+        department_id: departmentId || null,
+        avatar_url: avatarUrl,
+      })
 
-      if (updateError) throw updateError
-
+      // Update password separately if provided
       if (newPassword) {
         const { error: passwordError } = await supabase.auth.updateUser({
           password: newPassword,
@@ -200,8 +346,6 @@ export default function ProfilePage() {
       setNewPassword('')
       setConfirmPassword('')
       setAvatarFile(null)
-
-      window.location.reload()
     } catch (error: any) {
       console.error('Profile update error:', error)
       toast({
@@ -328,8 +472,8 @@ export default function ProfilePage() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-slate-100 p-1 rounded-xl w-full lg:w-auto">
+      <Tabs value={normalizedTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="bg-slate-100 p-1 rounded-xl w-full lg:w-auto hidden">
           <TabsTrigger value="profile" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6">
             <User className="h-4 w-4 mr-2" />
             Profile
@@ -668,6 +812,109 @@ export default function ProfilePage() {
 
         {/* Attendance Tab */}
         <TabsContent value="attendance" className="space-y-6">
+          {/* Attendance History Summary */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+            {/* Today */}
+            <Card className="border-slate-200 shadow-lg">
+              <div className="p-4 lg:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                    <Calendar className="h-5 w-5 text-white" />
+                  </div>
+                  {attendanceLoadingHistory && (
+                    <div className="h-4 w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-1">Today</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {attendanceHistory.today.present > 0 ? 'Present' : 'Absent'}
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {attendanceHistory.today.hours > 0 
+                      ? `${attendanceHistory.today.hours.toFixed(1)}h worked`
+                      : 'No hours logged'}
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* This Week */}
+            <Card className="border-slate-200 shadow-lg">
+              <div className="p-4 lg:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                    <Clock className="h-5 w-5 text-white" />
+                  </div>
+                  {attendanceLoadingHistory && (
+                    <div className="h-4 w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-1">This Week</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {attendanceHistory.week.present}/{attendanceHistory.week.total}
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {attendanceHistory.week.hours > 0 
+                      ? `${attendanceHistory.week.hours.toFixed(1)}h total`
+                      : 'No hours logged'}
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* This Month */}
+            <Card className="border-slate-200 shadow-lg">
+              <div className="p-4 lg:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                    <Award className="h-5 w-5 text-white" />
+                  </div>
+                  {attendanceLoadingHistory && (
+                    <div className="h-4 w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-1">This Month</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {attendanceHistory.month.present}/{attendanceHistory.month.total}
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {attendanceHistory.month.hours > 0 
+                      ? `${attendanceHistory.month.hours.toFixed(1)}h total`
+                      : 'No hours logged'}
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* This Year */}
+            <Card className="border-slate-200 shadow-lg">
+              <div className="p-4 lg:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <Sparkles className="h-5 w-5 text-white" />
+                  </div>
+                  {attendanceLoadingHistory && (
+                    <div className="h-4 w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-1">This Year</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {attendanceHistory.year.present}/{attendanceHistory.year.total}
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {attendanceHistory.year.hours > 0 
+                      ? `${attendanceHistory.year.hours.toFixed(1)}h total`
+                      : 'No hours logged'}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Status Card */}
             <Card className="lg:col-span-2 border-slate-200 shadow-lg">

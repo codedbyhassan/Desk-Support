@@ -19,7 +19,6 @@ import AssetsPage from './pages/AssetsPage'
 import AssetDetailPage from '@/pages/assets/[id]'
 import ProfilePage from './pages/ProfilePage'
 import UsersPage from './pages/UsersPage'
-import AnalyticsDashboard from '@/pages/dashboard/AnalyticsDashboard'
 
 // ✅ Newly Added Pages
 import DepartmentsPage from './pages/DepartmentsPage'
@@ -70,6 +69,28 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user || user.role !== 'admin') {
+    return <Navigate to="/app/dashboard" replace />
+  }
+
+  return <Layout>{children}</Layout>
+}
+
+// 🔑 Restrict access to admins and HR
+function AdminOrHRRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 border-3 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
+          <p className="text-sm text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user || (user.role !== 'admin' && user.role !== 'hr')) {
     return <Navigate to="/app/dashboard" replace />
   }
 
@@ -170,6 +191,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/app/assets/new"
+        element={
+          <ProtectedRoute>
+            <AssetsPage newAsset />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/app/assets/:id"
         element={
           <ProtectedRoute>
@@ -216,23 +245,13 @@ function AppRoutes() {
         }
       />
 
-      {/* 📊 Analytics (Admin only) */}
-      <Route
-        path="/app/analytics"
-        element={
-          <AdminRoute>
-            <AnalyticsDashboard />
-          </AdminRoute>
-        }
-      />
-
-      {/* 👨‍💼 Users (Admin only) */}
+      {/* 👨‍💼 Users (Admin and HR) */}
       <Route
         path="/app/users"
         element={
-          <AdminRoute>
+          <AdminOrHRRoute>
             <UsersPage />
-          </AdminRoute>
+          </AdminOrHRRoute>
         }
       />
 
