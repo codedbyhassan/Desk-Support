@@ -18,7 +18,7 @@ const app = express()
 const server = createServer(app)
 const wss = new WebSocketServer({ server, path: '/ws' })
 
-const port = process.env.PORT || 5173
+const port = process.env.PORT || 4000
 const rooms = new Map() // { roomId: Set(client) }
 
 // Middleware

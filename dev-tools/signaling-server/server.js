@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid')
 // Simple in-memory room registry: { roomId: Set(client) }
 const rooms = new Map()
 
-const port = process.env.PORT || 4001
+const port = process.env.PORT || 4000
 const wss = new WebSocket.Server({ port })
 
 console.log(`Signaling server running on ws://localhost:${port}`)

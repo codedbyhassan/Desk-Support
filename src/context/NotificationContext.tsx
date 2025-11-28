@@ -442,41 +442,41 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
           try {
             console.log('🔍 Checking team membership for team:', message.team_id, 'userId:', userId)
-            // Get team members to check if user is in the team
-            const { data: teamMembers, error: membersError } = await supabase
-              .from('team_members')
-              .select('user_id, team:teams(id, name)')
-              .eq('team_id', message.team_id)
-              .eq('user_id', userId)
-              .single()
-
-            // User is not a member of this team, skip
-            if (membersError || !teamMembers) {
-              console.log('⏭️ User is not a team member or error:', {
-                error: membersError?.message,
-                code: membersError?.code,
-                details: membersError?.details,
-                hint: membersError?.hint
-              })
+            
+            // Skip if no team_id (safety check)
+            if (!message.team_id) {
+              console.log('⏭️ No team_id in message')
               return
             }
 
-            console.log('✅ User is team member, getting sender info')
-            // Get sender info
-            const { data: senderData, error: senderError } = await supabase
-              .from('users')
-              .select('full_name, email')
-              .eq('id', message.sender_id)
-              .single()
+            // Get sender and team info in parallel (no RLS issues)
+            const [{ data: senderData }, { data: teamData }] = await Promise.all([
+              supabase
+                .from('users')
+                .select('full_name, email')
+                .eq('id', message.sender_id)
+                .single()
+                .catch(() => ({ data: null })),
+              supabase
+                .from('teams')
+                .select('id, name')
+                .eq('id', message.team_id)
+                .single()
+                .catch(() => ({ data: null })),
+            ])
 
-            if (senderError) {
-              console.error('Error fetching sender:', senderError)
+            // Only proceed if we have team data (means user can see it via RLS on teams table)
+            if (!teamData) {
+              console.log('⏭️ User cannot access this team')
+              return
             }
+
+            console.log('✅ User can access team, creating notification')
 
             // Create notification immediately (don't wait for database trigger)
             const notification: Notification = {
               id: `temp-${message.id}-${Date.now()}`,
-              title: `New message in ${teamMembers.team?.name || 'team'}`,
+              title: `New message in ${teamData.name || 'team'}`,
               message: `${senderData?.full_name || 'Someone'}: ${message.content?.substring(0, 50) || 'Sent a message'}`,
               type: 'team_message',
               read: false,
