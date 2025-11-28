@@ -5,5 +5,6 @@ export const routes = {
   tickets: '/tickets',
   assets: '/assets',
   teams: '/teams',
+  call: '/teams/call/:roomId',
   settings: '/settings',
 } as const;

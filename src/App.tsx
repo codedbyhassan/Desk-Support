@@ -24,7 +24,9 @@ import UsersPage from './pages/UsersPage'
 import DepartmentsPage from './pages/DepartmentsPage'
 import DepartmentDetailPage from './pages/departments/[id]'
 import TeamsPage from './pages/TeamsPage'
+import CallPage from './pages/CallPage'
 import SettingsPage from './pages/SettingsPage'
+import QRScannerPage from './pages/QRScannerPage'
 
 import Layout from './app/layout'
 
@@ -235,6 +237,16 @@ function AppRoutes() {
         }
       />
 
+      {/* 📞 Team call */}
+      <Route
+        path="/app/teams/call/:roomId"
+        element={
+          <ProtectedRoute>
+            <CallPage />
+          </ProtectedRoute>
+        }
+      />
+
       {/* ⚙️ Settings */}
       <Route
         path="/app/settings"
@@ -261,6 +273,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 📱 QR Scanner */}
+      <Route
+        path="/app/qr-scanner"
+        element={
+          <ProtectedRoute>
+            <QRScannerPage />
           </ProtectedRoute>
         }
       />

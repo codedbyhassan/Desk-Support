@@ -469,3 +469,32 @@
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
+
+/*
+  GLOBAL: Hide native scrollbars across the app while preserving scroll behavior.
+  This makes the UI feel cleaner for production UIs. Scroll still works (wheel, touch, keys).
+  Note: Hiding scrollbars can affect accessibility — consider adding visible focus outlines
+  or an option to enable visible scrollbars for users who need them.
+*/
+
+/* WebKit browsers (Chrome, Safari, Edge Chromium) */
+*::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  background: transparent;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: none; /* hide scrollbar */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Keep scrollbars visible for elements explicitly opting in with `show-scrollbar` class */
+.show-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.show-scrollbar {
+  scrollbar-width: thin;
+}

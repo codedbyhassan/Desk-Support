@@ -112,13 +112,14 @@ interface TeamChatViewProps {
   teamId: string | null
   userRole?: string
   onClose?: () => void
+  onStartCall?: (mode: 'lecture' | 'video') => void
 }
 
 const REACTIONS = ['👍', '❤️', '😂', '🎉', '😮', '😢', '🔥', '🎊']
 const MESSAGE_LOAD_COUNT = 50
-const AUTO_SCROLL_THRESHOLD = 100
+const AUTO_SCROLL_THRESHOLD = 80
 
-export default function TeamChatView({ teamId, userRole, onClose }: TeamChatViewProps) {
+export default function TeamChatView({ teamId, userRole, onClose, onStartCall }: TeamChatViewProps) {
   const { user } = useAuth()
   const { toast } = useToast()
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -137,6 +138,7 @@ export default function TeamChatView({ teamId, userRole, onClose }: TeamChatView
   const [sending, setSending] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [userScrolled, setUserScrolled] = useState(false)
+  const [callTypeDialogOpen, setCallTypeDialogOpen] = useState(false)
   const [showGroupInfo, setShowGroupInfo] = useState(false)
   const [hoveredMessage, setHoveredMessage] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -1094,7 +1096,7 @@ export default function TeamChatView({ teamId, userRole, onClose }: TeamChatView
               <Button variant="ghost" size="sm" className="hidden md:flex h-9 w-9 p-0 rounded-lg hover:bg-muted">
                 <Phone className="h-4 w-4 text-foreground" />
               </Button>
-              <Button variant="ghost" size="sm" className="hidden md:flex h-9 w-9 p-0 rounded-lg hover:bg-muted">
+              <Button variant="ghost" size="sm" onClick={() => setCallTypeDialogOpen(true)} className="hidden md:flex h-9 w-9 p-0 rounded-lg hover:bg-muted">
                 <Video className="h-4 w-4 text-foreground" />
               </Button>
               <Button
@@ -1336,18 +1338,18 @@ export default function TeamChatView({ teamId, userRole, onClose }: TeamChatView
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => setReplyToMessage(message)}
-                                    className="h-7 px-2 text-foreground hover:bg-muted rounded-lg text-xs"
+                                    className="h-8 md:h-7 px-2.5 md:px-2 text-foreground hover:bg-muted rounded-lg text-xs transition-colors"
                                   >
-                                    <Reply className="h-3 w-3" />
+                                    <Reply className="h-4 md:h-3 w-4 md:w-3" />
                                   </Button>
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button
                                         size="sm"
                                         variant="ghost"
-                                        className="h-7 px-2 text-foreground hover:bg-muted rounded-lg"
+                                        className="h-8 md:h-7 px-2.5 md:px-2 text-foreground hover:bg-muted rounded-lg transition-colors"
                                       >
-                                        <Smile className="h-3 w-3" />
+                                        <Smile className="h-4 md:h-3 w-4 md:w-3" />
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="p-2">
@@ -1373,17 +1375,17 @@ export default function TeamChatView({ teamId, userRole, onClose }: TeamChatView
                                           setEditingMessageId(message.id)
                                           setEditingContent(message.content)
                                         }}
-                                        className="h-7 px-2 text-foreground hover:bg-muted rounded-lg"
+                                          className="h-8 md:h-7 px-2.5 md:px-2 text-foreground hover:bg-muted rounded-lg transition-colors"
                                       >
-                                        <Edit className="h-3 w-3" />
+                                        <Edit className="h-4 md:h-3 w-4 md:w-3" />
                                       </Button>
                                       <Button
                                         size="sm"
                                         variant="ghost"
                                         onClick={() => handleDeleteMessage(message.id)}
-                                        className="h-7 px-2 text-red-600 hover:bg-red-100 rounded-lg"
+                                        className="h-8 md:h-7 px-2.5 md:px-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
                                       >
-                                        <Trash2 className="h-3 w-3" />
+                                        <Trash2 className="h-4 md:h-3 w-4 md:w-3" />
                                       </Button>
                                     </>
                                   )}
@@ -1391,9 +1393,9 @@ export default function TeamChatView({ teamId, userRole, onClose }: TeamChatView
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => setShowReadReceipts(showReadReceipts === message.id ? null : message.id)}
-                                    className="h-7 px-2 text-slate-600 hover:bg-slate-200 rounded-lg"
+                                    className="h-8 md:h-7 px-2.5 md:px-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
                                   >
-                                    <Eye className="h-3 w-3" />
+                                    <Eye className="h-4 md:h-3 w-4 md:w-3" />
                                   </Button>
                                 </div>
                               )}
@@ -1551,7 +1553,7 @@ export default function TeamChatView({ teamId, userRole, onClose }: TeamChatView
           </div>
         )}
 
-        <div className="p-3 md:p-4 bg-card border-t border-border shadow-lg">
+        <div className="p-3 md:p-4 bg-card border-t border-border shadow-lg flex-shrink-0">
           {error && (
             <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
@@ -1578,7 +1580,7 @@ export default function TeamChatView({ teamId, userRole, onClose }: TeamChatView
               <Paperclip className="h-5 w-5 text-foreground" />
             </Button>
 
-            <div className="flex-1 relative">
+            <div className="flex-1 relative min-h-[44px]">
               {editingMessageId ? (
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-muted-foreground">Editing message</p>
@@ -1607,7 +1609,8 @@ export default function TeamChatView({ teamId, userRole, onClose }: TeamChatView
                       editingMessageId ? handleEditMessage(editingMessageId) : handleSendMessage()
                     }
                   }}
-                  className="min-h-[44px] max-h-32 resize-none rounded-xl border-border bg-muted placeholder:text-muted-foreground text-sm focus:bg-card"
+                  autoFocus
+                  className="min-h-[44px] max-h-32 resize-none rounded-xl border border-border bg-muted placeholder:text-muted-foreground text-sm focus:bg-card focus:ring-1 focus:ring-primary transition-all duration-200 w-full"
                   rows={1}
                   disabled={sending}
                 />
@@ -2010,6 +2013,41 @@ export default function TeamChatView({ teamId, userRole, onClose }: TeamChatView
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Call Type Selector Modal */}
+      {onStartCall && (
+        <Dialog open={callTypeDialogOpen} onOpenChange={setCallTypeDialogOpen}>
+          <DialogContent className="max-w-sm rounded-2xl p-4">
+            <DialogHeader>
+              <DialogTitle className="text-lg">Start a Video Call</DialogTitle>
+            </DialogHeader>
+
+            <div className="mt-3 grid gap-3">
+              <div className="p-3 rounded-lg border border-border bg-card">
+                <h4 className="font-semibold">Lecture (Listeners)</h4>
+                <p className="text-sm text-muted-foreground">Participants join as listeners. Only hosts/speakers publish video/audio.</p>
+                <div className="mt-3">
+                  <Button onClick={() => {
+                    setCallTypeDialogOpen(false)
+                    onStartCall('lecture')
+                  }} className="w-full">Start Lecture</Button>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg border border-border bg-card">
+                <h4 className="font-semibold">Video Chat</h4>
+                <p className="text-sm text-muted-foreground">All participants can share their video and audio live.</p>
+                <div className="mt-3">
+                  <Button onClick={() => {
+                    setCallTypeDialogOpen(false)
+                    onStartCall('video')
+                  }} className="w-full">Start Video Chat</Button>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

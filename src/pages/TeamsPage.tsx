@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -75,6 +76,7 @@ const AVATAR_COLORS = [
 ]
 
 export default function TeamsPage() {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const { toast } = useToast()
   const [teams, setTeams] = useState<Team[]>([])
@@ -815,6 +817,9 @@ export default function TeamsPage() {
               setSelectedTeamId(null)
               setSelectedTeamRole(undefined)
               setShowSidebar(true)
+            }}
+            onStartCall={(mode) => {
+              navigate(`/app/teams/call/${selectedTeamId}?mode=${mode}&initiator=1`)
             }}
           />
         ) : (

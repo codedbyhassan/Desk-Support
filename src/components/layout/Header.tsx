@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useTheme } from '@/context/ThemeContext'
 import { useDashboardTab } from '@/context/DashboardTabContext'
 import { useAuth } from '@/lib/auth'
@@ -115,6 +115,7 @@ export function Header({
   const { user } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const { activeTab, setActiveTab } = useDashboardTab()
 
   const currentPage = navItems.find(item => item.href === pathname)
@@ -189,8 +190,8 @@ export function Header({
               </div>
 
               {/* Right - Actions */}
-              <div className="flex items-center gap-2">
-                {/* Navigation Tabs - Show on dashboard and other pages with tabs */}
+              <div className="flex items-center gap-1 sm:gap-2">
+                {/* Navigation Tabs - Show on desktop and other pages with tabs */}
                 {shouldRenderTabs && (
                   <Tabs value={activeTab} onValueChange={setActiveTab} className="hidden lg:block mr-2">
                     <TabsList className="bg-slate-100 p-1 rounded-lg h-auto">
@@ -211,20 +212,32 @@ export function Header({
                   </Tabs>
                 )}
 
+                {/* QR Code Scanner - Mobile */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/app/qr-scanner')}
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg lg:hidden hover:bg-muted active:scale-95 transition-transform"
+                  title="QR Code Attendance"
+                >
+                  <QrCode className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600 dark:text-slate-400" />
+                </Button>
+
                 {/* Notifications */}
                 <NotificationBell />
 
-                {/* Theme Toggle */}
+                {/* Theme Toggle - Mobile & Desktop */}
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={toggleTheme}
-                  className="h-8 w-8 rounded-lg hidden lg:flex hover:bg-muted"
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg hover:bg-muted active:scale-95 transition-transform"
+                  title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
                 >
                   {theme === 'dark' ? (
-                    <Sun className="h-4 w-4 text-amber-500" />
+                    <Sun className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500 transition-transform" />
                   ) : (
-                    <Moon className="h-4 w-4 text-muted-foreground" />
+                    <Moon className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600 transition-transform" />
                   )}
                 </Button>
 
