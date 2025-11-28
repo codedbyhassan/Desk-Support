@@ -16,6 +16,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
@@ -601,23 +611,29 @@ export default function TeamChatView({ teamId, userRole, onClose }: TeamChatView
     }
   }, [editingContent, user?.company_id, toast, fetchMessages, messagesLoaded])
 
-  const handleDeleteMessage = useCallback(async (messageId: string) => {
-    if (!user?.company_id) return
+  const [deleteMessageDialogOpen, setDeleteMessageDialogOpen] = useState(false)
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null)
 
-    if (!confirm('Delete this message? This action cannot be undone.')) return
+  const handleDeleteMessage = useCallback((messageId: string) => {
+    setMessageToDelete(messageId)
+    setDeleteMessageDialogOpen(true)
+  }, [])
+
+  const handleDeleteMessageConfirm = useCallback(async () => {
+    if (!user?.company_id || !messageToDelete) return
 
     try {
       // Permanently delete the message
       const { error } = await supabase
         .from('team_messages')
         .delete()
-        .eq('id', messageId)
+        .eq('id', messageToDelete)
         .eq('company_id', user.company_id)
 
       if (error) throw error
 
       // Remove the message from the local state immediately
-      setMessages(prev => prev.filter(msg => msg.id !== messageId))
+      setMessages(prev => prev.filter(msg => msg.id !== messageToDelete))
 
       toast({
         title: 'Success',
@@ -630,8 +646,11 @@ export default function TeamChatView({ teamId, userRole, onClose }: TeamChatView
         description: 'Failed to delete message',
         variant: 'destructive'
       })
+    } finally {
+      setDeleteMessageDialogOpen(false)
+      setMessageToDelete(null)
     }
-  }, [user?.company_id, toast])
+  }, [user?.company_id, messageToDelete, toast])
 
   const handleReaction = useCallback(async (messageId: string, emoji: string) => {
     if (!user?.id) return
@@ -1172,7 +1191,7 @@ export default function TeamChatView({ teamId, userRole, onClose }: TeamChatView
                                 <span className="text-xs font-medium text-muted-foreground mb-1 px-1">
                                   {message.sender?.full_name || 
                                    members.find(m => m.user.id === message.sender_id)?.user.full_name || 
-                                   'Unknown'}
+                                   'User'}
                                 </span>
                               )}
 
@@ -1187,7 +1206,7 @@ export default function TeamChatView({ teamId, userRole, onClose }: TeamChatView
                                       ? 'You' 
                                       : (message.reply_to_message.sender?.full_name || 
                                          members.find(m => m.user.id === message.reply_to_message.sender_id)?.user.full_name || 
-                                         'Unknown')}
+                                         'User')}
                                   </p>
                                   <p className="truncate opacity-70">
                                     {message.reply_to_message.content}
@@ -1385,7 +1404,7 @@ export default function TeamChatView({ teamId, userRole, onClose }: TeamChatView
                                   {message.read_by.length > 0 ? (
                                     message.read_by.map((receipt, idx) => (
                                       <p key={idx} className="text-foreground">
-                                        {members.find(m => m.user.id === receipt.user_id)?.user.full_name || 'Unknown'} - {formatTime(receipt.read_at)}
+                                        {members.find(m => m.user.id === receipt.user_id)?.user.full_name || 'User'} - {formatTime(receipt.read_at)}
                                       </p>
                                     ))
                                   ) : (
@@ -1459,7 +1478,7 @@ export default function TeamChatView({ teamId, userRole, onClose }: TeamChatView
                 <p className="text-xs font-medium text-foreground">
                   Replying to {replyToMessage.sender?.full_name || 
                                members.find(m => m.user.id === replyToMessage.sender_id)?.user.full_name || 
-                               'Unknown'}
+                               'User'}
                 </p>
                 <p className="text-sm text-muted-foreground truncate">
                   {replyToMessage.content}

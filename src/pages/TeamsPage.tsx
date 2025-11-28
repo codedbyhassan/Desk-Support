@@ -14,6 +14,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -26,6 +36,7 @@ import {
   Trash2,
   ArrowLeft,
   Menu,
+  Edit2,
 } from 'lucide-react'
 import TeamChatView from '@/components/teams/TeamChatView'
 
@@ -74,8 +85,15 @@ export default function TeamsPage() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
   const [selectedTeamRole, setSelectedTeamRole] = useState<string | undefined>(undefined)
   const [deletingTeamId, setDeletingTeamId] = useState<string | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [teamToDelete, setTeamToDelete] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showSidebar, setShowSidebar] = useState(true)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [teamToEdit, setTeamToEdit] = useState<Team | null>(null)
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false)
+  const [teamToLeave, setTeamToLeave] = useState<string | null>(null)
+  const [leavingTeamId, setLeavingTeamId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -278,6 +296,13 @@ export default function TeamsPage() {
 
       if (memberError) throw memberError
 
+      // Check for duplicate team names
+      const nameExists = teams.some(t => t.name.toLowerCase() === formData.name.toLowerCase())
+      if (nameExists) {
+        setError('A team with this name already exists')
+        return
+      }
+
       setFormData({ name: '', description: '' })
       setCreateDialogOpen(false)
       await fetchTeams()
@@ -315,10 +340,12 @@ export default function TeamsPage() {
       return
     }
 
-    if (!confirm('Are you sure you want to delete this team? This action cannot be undone.')) {
-      return
-    }
+    setTeamToDelete(teamId)
+    setDeleteDialogOpen(true)
+  }
 
+  const confirmDeleteTeam = async (teamId: string) => {
+    setDeleteDialogOpen(false)
     setDeletingTeamId(teamId)
 
     try {
@@ -366,6 +393,100 @@ export default function TeamsPage() {
       })
     } finally {
       setDeletingTeamId(null)
+      setTeamToDelete(null)
+    }
+  }
+
+  const handleLeaveTeam = async (teamId: string) => {
+    setTeamToLeave(teamId)
+    setLeaveDialogOpen(true)
+  }
+
+  const confirmLeaveTeam = async (teamId: string) => {
+    setLeaveDialogOpen(false)
+    setLeavingTeamId(teamId)
+
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('team_id', teamId)
+        .eq('user_id', user?.id)
+
+      if (error) throw error
+
+      if (selectedTeamId === teamId) {
+        setSelectedTeamId(null)
+        setSelectedTeamRole(undefined)
+        setShowSidebar(true)
+      }
+
+      await fetchTeams()
+
+      toast({
+        title: 'Success',
+        description: 'You have left the team'
+      })
+    } catch (error) {
+      console.error('Error leaving team:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to leave team',
+        variant: 'destructive'
+      })
+    } finally {
+      setLeavingTeamId(null)
+      setTeamToLeave(null)
+    }
+  }
+
+  const handleEditTeam = async () => {
+    if (!teamToEdit) return
+    if (!teamToEdit.name.trim() || !teamToEdit.description.trim()) {
+      setError('Team name and description are required')
+      return
+    }
+
+    // Check for duplicate names
+    const nameExists = teams.some(t => t.name.toLowerCase() === teamToEdit.name.toLowerCase() && t.id !== teamToEdit.id)
+    if (nameExists) {
+      setError('A team with this name already exists')
+      return
+    }
+
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      const { error: updateError } = await supabase
+        .from('teams')
+        .update({
+          name: teamToEdit.name.trim(),
+          description: teamToEdit.description.trim(),
+        })
+        .eq('id', teamToEdit.id)
+        .eq('company_id', user?.company_id)
+
+      if (updateError) throw updateError
+
+      setEditDialogOpen(false)
+      setTeamToEdit(null)
+      await fetchTeams()
+
+      toast({
+        title: 'Success',
+        description: 'Team updated successfully'
+      })
+    } catch (error) {
+      console.error('Error updating team:', error)
+      setError('Failed to update team')
+      toast({
+        title: 'Error',
+        description: 'Failed to update team',
+        variant: 'destructive'
+      })
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -467,22 +588,22 @@ export default function TeamsPage() {
                   <Plus className="h-4 w-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg rounded-2xl mx-4">
+              <DialogContent className="max-w-[90vw] sm:max-w-[500px] lg:max-w-lg rounded-2xl lg:rounded-3xl mx-4">
                 <DialogHeader>
-                  <DialogTitle>Create New Team</DialogTitle>
-                  <DialogDescription>
+                  <DialogTitle className="text-lg lg:text-xl">Create New Team</DialogTitle>
+                  <DialogDescription className="text-xs sm:text-sm lg:text-base">
                     Create a team chat group for collaboration
                   </DialogDescription>
                 </DialogHeader>
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex gap-2">
                     <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-700">{error}</p>
+                    <p className="text-xs sm:text-sm text-red-700">{error}</p>
                   </div>
                 )}
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Team Name *</Label>
+                    <Label htmlFor="name" className="text-xs sm:text-sm">Team Name *</Label>
                     <Input
                       id="name"
                       value={formData.name}
@@ -491,13 +612,13 @@ export default function TeamsPage() {
                         setError(null)
                       }}
                       placeholder="e.g., Engineering Team"
-                      className="rounded-lg"
+                      className="rounded-lg text-xs sm:text-sm h-10 sm:h-11"
                       maxLength={100}
                     />
-                    <p className="text-xs text-muted-foreground">{formData.name.length}/100</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">{formData.name.length}/100</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="description">Description *</Label>
+                    <Label htmlFor="description" className="text-xs sm:text-sm">Description *</Label>
                     <Textarea
                       id="description"
                       value={formData.description}
@@ -507,15 +628,15 @@ export default function TeamsPage() {
                       }}
                       placeholder="What is this team for?"
                       rows={3}
-                      className="rounded-lg"
+                      className="rounded-lg text-xs sm:text-sm"
                       maxLength={500}
                     />
-                    <p className="text-xs text-muted-foreground">{formData.description.length}/500</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">{formData.description.length}/500</p>
                   </div>
                   <Button
                     onClick={handleCreateTeam}
                     disabled={submitting || !formData.name.trim() || !formData.description.trim()}
-                    className="w-full bg-primary hover:bg-primary/90 rounded-lg"
+                    className="w-full bg-primary hover:bg-primary/90 rounded-lg h-10 sm:h-11 text-xs sm:text-sm"
                   >
                     {submitting ? (
                       <>
@@ -641,24 +762,41 @@ export default function TeamsPage() {
                       </div>
                     </button>
 
-                    {/* Delete button on hover (admin only) */}
-                    {isAdmin && (
+                    {/* Action buttons on hover */}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-4 top-1/2 -translate-y-1/2 flex gap-1 z-10">
+                      {isAdmin && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setTeamToEdit(team)
+                            setEditDialogOpen(true)
+                          }}
+                          className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition-colors"
+                          title="Edit team"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleDeleteTeam(team.id)
+                          if (isAdmin) {
+                            handleDeleteTeam(team.id)
+                          } else {
+                            handleLeaveTeam(team.id)
+                          }
                         }}
-                        disabled={deletingTeamId === team.id}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-red-50 rounded-lg text-red-600 z-10"
-                        title="Delete team"
+                        disabled={deletingTeamId === team.id || leavingTeamId === team.id}
+                        className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition-colors"
+                        title={isAdmin ? 'Delete team' : 'Leave team'}
                       >
-                        {deletingTeamId === team.id ? (
+                        {deletingTeamId === team.id || leavingTeamId === team.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <Trash2 className="h-4 w-4" />
                         )}
                       </button>
-                    )}
+                    </div>
                   </div>
                 )
               })}
@@ -693,6 +831,115 @@ export default function TeamsPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-[500px] lg:max-w-sm rounded-2xl lg:rounded-3xl mx-4">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg lg:text-xl">Delete Team</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs sm:text-sm lg:text-base">
+              Are you sure you want to delete "{teamToDelete && teams.find(t => t.id === teamToDelete)?.name}"? This will also delete all messages and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel className="rounded-lg lg:rounded-xl h-10 sm:h-11">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => teamToDelete && confirmDeleteTeam(teamToDelete)}
+              className="bg-red-600 hover:bg-red-700 rounded-lg lg:rounded-xl h-10 sm:h-11"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Leave Team Confirmation Dialog */}
+      <AlertDialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-[500px] lg:max-w-sm rounded-2xl lg:rounded-3xl mx-4">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg lg:text-xl">Leave Team</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs sm:text-sm lg:text-base">
+              Are you sure you want to leave "{teamToLeave && teams.find(t => t.id === teamToLeave)?.name}"? You can rejoin if invited again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel className="rounded-lg lg:rounded-xl h-10 sm:h-11">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => teamToLeave && confirmLeaveTeam(teamToLeave)}
+              className="bg-amber-600 hover:bg-amber-700 rounded-lg lg:rounded-xl h-10 sm:h-11"
+            >
+              Leave
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Team Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-[90vw] sm:max-w-[500px] lg:max-w-lg rounded-2xl lg:rounded-3xl mx-4">
+          <DialogHeader>
+            <DialogTitle className="text-lg lg:text-xl">Edit Team</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm lg:text-base">
+              Update team details
+            </DialogDescription>
+          </DialogHeader>
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex gap-2">
+              <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-xs sm:text-sm text-red-700">{error}</p>
+            </div>
+          )}
+          {teamToEdit && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name" className="text-xs sm:text-sm">Team Name *</Label>
+                <Input
+                  id="edit-name"
+                  value={teamToEdit.name}
+                  onChange={(e) => {
+                    setTeamToEdit({ ...teamToEdit, name: e.target.value.slice(0, 100) })
+                    setError(null)
+                  }}
+                  placeholder="e.g., Engineering Team"
+                  className="rounded-lg text-xs sm:text-sm h-10 sm:h-11"
+                  maxLength={100}
+                />
+                <p className="text-[10px] sm:text-xs text-muted-foreground">{teamToEdit.name.length}/100</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-description" className="text-xs sm:text-sm">Description *</Label>
+                <Textarea
+                  id="edit-description"
+                  value={teamToEdit.description}
+                  onChange={(e) => {
+                    setTeamToEdit({ ...teamToEdit, description: e.target.value.slice(0, 500) })
+                    setError(null)
+                  }}
+                  placeholder="What is this team for?"
+                  rows={3}
+                  className="rounded-lg text-xs sm:text-sm"
+                  maxLength={500}
+                />
+                <p className="text-[10px] sm:text-xs text-muted-foreground">{teamToEdit.description.length}/500</p>
+              </div>
+              <Button
+                onClick={handleEditTeam}
+                disabled={submitting}
+                className="w-full bg-primary hover:bg-primary/90 rounded-lg h-10 sm:h-11 text-xs sm:text-sm"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Team'
+                )}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Overlay for mobile when sidebar is open */}
       {showSidebar && selectedTeamId && (

@@ -11,6 +11,7 @@ import { useAuth } from '@/lib/auth'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useTheme } from '@/context/ThemeContext'
+import { useToast } from '@/hooks/use-toast'
 
 // Predefined theme palettes
 interface ThemePalette {
@@ -263,6 +264,7 @@ const themePalettes: ThemePalettes = {
 }
 
 export default function SettingsPage() {
+  const { toast } = useToast()
   const { user, company, settings, loading, updateProfile, updateCompany, updateSettings } = useAuth()
   const { activeTab, setActiveTab } = useDashboardTab()
   const { updateCustomTheme, updateThemeSettings, setTheme: setThemeMode } = useTheme()
@@ -561,7 +563,11 @@ export default function SettingsPage() {
 
   const handleSaveTheme = async () => {
     if (!isAdmin) {
-      alert('Only admins can update theme settings')
+      toast({
+        title: 'Access Denied',
+        description: 'Only admins can update theme settings',
+        variant: 'destructive'
+      })
       return
     }
 
@@ -570,10 +576,17 @@ export default function SettingsPage() {
       await updateSettings({
         theme: JSON.stringify(theme)
       })
-      alert('Theme saved successfully!')
+      toast({
+        title: 'Success',
+        description: 'Theme saved successfully'
+      })
     } catch (error) {
       console.error('Error saving theme:', error)
-      alert('Failed to save theme')
+      toast({
+        title: 'Error',
+        description: 'Failed to save theme',
+        variant: 'destructive'
+      })
     } finally {
       setSaving(false)
     }
@@ -612,17 +625,28 @@ export default function SettingsPage() {
 
   const handleUpdateCompany = async () => {
     if (!isAdmin) {
-      alert('Only admins can update company information')
+      toast({
+        title: 'Access Denied',
+        description: 'Only admins can update company information',
+        variant: 'destructive'
+      })
       return
     }
 
     setSaving(true)
     try {
       await updateCompany({ name: companyName })
-      alert('Company name updated successfully!')
+      toast({
+        title: 'Success',
+        description: 'Company name updated successfully'
+      })
     } catch (error) {
       console.error('Error updating company:', error)
-      alert('Failed to update company')
+      toast({
+        title: 'Error',
+        description: 'Failed to update company',
+        variant: 'destructive'
+      })
     } finally {
       setSaving(false)
     }
@@ -635,10 +659,17 @@ export default function SettingsPage() {
         full_name: fullName,
         phone: phone 
       })
-      alert('Profile updated successfully!')
+      toast({
+        title: 'Success',
+        description: 'Profile updated successfully'
+      })
     } catch (error) {
       console.error('Error updating profile:', error)
-      alert('Failed to update profile')
+      toast({
+        title: 'Error',
+        description: 'Failed to update profile',
+        variant: 'destructive'
+      })
     } finally {
       setSaving(false)
     }
@@ -656,15 +687,15 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 lg:p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-2 sm:p-4 lg:p-8">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-foreground md:text-3xl flex items-center gap-2">
-            <Settings className="h-7 w-7" />
-            Settings
+        <div className="px-2 sm:px-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground md:text-3xl flex items-center gap-2">
+            <Settings className="h-6 w-6 sm:h-7 sm:w-7" />
+            <span className="truncate">Settings</span>
           </h1>
-          <p className="text-sm text-muted-foreground md:text-base mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground md:text-base mt-1">
             Manage your account settings and preferences
           </p>
         </div>
@@ -672,76 +703,78 @@ export default function SettingsPage() {
         {/* Tabs */}
         <Tabs value={normalizedTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full justify-start overflow-x-auto bg-card rounded-lg p-1 shadow-sm hidden">
-            <TabsTrigger value="profile" className="gap-2">
+            <TabsTrigger value="profile" className="gap-2 text-xs sm:text-sm">
               <User className="h-4 w-4" />
               Profile
             </TabsTrigger>
-            <TabsTrigger value="company" className="gap-2">
+            <TabsTrigger value="company" className="gap-2 text-xs sm:text-sm">
               <Building2 className="h-4 w-4" />
               Company
             </TabsTrigger>
-            <TabsTrigger value="appearance" className="gap-2">
+            <TabsTrigger value="appearance" className="gap-2 text-xs sm:text-sm">
               <Palette className="h-4 w-4" />
               Appearance
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="gap-2">
+            <TabsTrigger value="notifications" className="gap-2 text-xs sm:text-sm">
               <Bell className="h-4 w-4" />
               Notifications
             </TabsTrigger>
-            <TabsTrigger value="security" className="gap-2">
+            <TabsTrigger value="security" className="gap-2 text-xs sm:text-sm">
               <Shield className="h-4 w-4" />
               Security
             </TabsTrigger>
           </TabsList>
 
           {/* Profile Tab */}
-          <TabsContent value="profile" className="space-y-4 mt-6">
+          <TabsContent value="profile" className="space-y-3 sm:space-y-4 mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg sm:text-xl">Profile Information</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   Update your account profile information
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 sm:space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email" className="text-xs sm:text-sm">Email</Label>
                   <Input
                     id="email"
                     type="email"
                     value={user?.email || ''}
                     disabled
-                    className="bg-muted"
+                    className="bg-muted h-10 sm:h-11 text-xs sm:text-sm"
                   />
-                  <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Email cannot be changed</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
+                  <Label htmlFor="name" className="text-xs sm:text-sm">Full Name</Label>
                   <Input 
                     id="name" 
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Enter your name" 
+                    placeholder="Enter your name"
+                    className="h-10 sm:h-11 text-xs sm:text-sm"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone" className="text-xs sm:text-sm">Phone</Label>
                   <Input 
                     id="phone" 
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Enter your phone number" 
+                    placeholder="Enter your phone number"
+                    className="h-10 sm:h-11 text-xs sm:text-sm"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Role</Label>
+                  <Label className="text-xs sm:text-sm">Role</Label>
                   <Input
                     value={user?.role || ''}
                     disabled
-                    className="bg-muted capitalize"
+                    className="bg-muted h-10 sm:h-11 text-xs sm:text-sm capitalize"
                   />
                 </div>
-                <Button onClick={handleUpdateProfile} disabled={saving}>
+                <Button onClick={handleUpdateProfile} disabled={saving} className="h-10 sm:h-11 text-xs sm:text-sm w-full sm:w-auto">
                   {saving ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -756,61 +789,61 @@ export default function SettingsPage() {
           </TabsContent>
 
           {/* Company Tab */}
-          <TabsContent value="company" className="space-y-4 mt-6">
+          <TabsContent value="company" className="space-y-3 sm:space-y-4 mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Company Information</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg sm:text-xl">Company Information</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   View and manage your company details
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 sm:space-y-4">
                 {!isAdmin && (
                   <Alert>
-                    <AlertDescription>
+                    <AlertDescription className="text-xs sm:text-sm">
                       Only admins can update company information
                     </AlertDescription>
                   </Alert>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="company-name">Company Name</Label>
+                  <Label htmlFor="company-name" className="text-xs sm:text-sm">Company Name</Label>
                   <Input
                     id="company-name"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                     disabled={!isAdmin}
-                    className={!isAdmin ? 'bg-muted' : ''}
+                    className={`h-10 sm:h-11 text-xs sm:text-sm ${!isAdmin ? 'bg-muted' : ''}`}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Company ID</Label>
+                  <Label className="text-xs sm:text-sm">Company ID</Label>
                   <Input
                     value={company?.id || 'Loading...'}
                     disabled
-                    className="font-mono text-xs bg-muted"
+                    className="font-mono text-[10px] sm:text-xs bg-muted h-10 sm:h-11"
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
                     This ID is used to isolate your company data
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label>Subscription Plan</Label>
+                  <Label className="text-xs sm:text-sm">Subscription Plan</Label>
                   <Input
                     value={company?.subscription_plan || 'Free'}
                     disabled
-                    className="bg-muted"
+                    className="bg-muted h-10 sm:h-11 text-xs sm:text-sm"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Created</Label>
+                  <Label className="text-xs sm:text-sm">Created</Label>
                   <Input
                     value={company ? new Date(company.created_at).toLocaleDateString() : 'Loading...'}
                     disabled
-                    className="bg-muted"
+                    className="bg-muted h-10 sm:h-11 text-xs sm:text-sm"
                   />
                 </div>
                 {isAdmin && (
-                  <Button onClick={handleUpdateCompany} disabled={saving}>
+                  <Button onClick={handleUpdateCompany} disabled={saving} className="h-10 sm:h-11 text-xs sm:text-sm w-full sm:w-auto">
                     {saving ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -839,21 +872,21 @@ export default function SettingsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-2 sm:gap-3 lg:gap-4 grid-cols-1 sm:grid-cols-2">
                   <button
                     type="button"
                     onClick={() => applyBasePreset('light')}
-                    className="group flex flex-col items-stretch rounded-lg border border-border bg-background p-3 hover:border-primary hover:shadow-md transition-all text-left"
+                    className="group flex flex-col items-stretch rounded-lg sm:rounded-xl border border-border bg-background p-2 sm:p-3 lg:p-4 hover:border-primary hover:shadow-md transition-all text-left touch-target"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">Light Design</span>
+                      <span className="text-xs sm:text-sm font-medium">Light Design</span>
                     </div>
-                    <div className="rounded-md border border-border bg-white p-2 space-y-2">
-                      <div className="h-1.5 w-16 rounded-full bg-[hsl(217_91%_60%)]" />
-                      <div className="h-6 rounded-md bg-[hsl(217_80%_94%)]" />
+                    <div className="rounded-md border border-border bg-white p-2 space-y-1.5 sm:space-y-2">
+                      <div className="h-1 sm:h-1.5 w-12 sm:w-16 rounded-full bg-[hsl(217_91%_60%)]" />
+                      <div className="h-5 sm:h-6 rounded-md bg-[hsl(217_80%_94%)]" />
                       <div className="flex gap-1">
-                        <div className="h-6 flex-1 rounded-md bg-[hsl(210_40%_96%)]" />
-                        <div className="h-6 w-8 rounded-md bg-[hsl(24_95%_53%)]" />
+                        <div className="h-5 sm:h-6 flex-1 rounded-md bg-[hsl(210_40%_96%)]" />
+                        <div className="h-5 sm:h-6 w-6 sm:w-8 rounded-md bg-[hsl(24_95%_53%)]" />
                       </div>
                     </div>
                   </button>
@@ -861,17 +894,17 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => applyBasePreset('dark')}
-                    className="group flex flex-col items-stretch rounded-lg border border-border bg-background p-3 hover:border-primary hover:shadow-md transition-all text-left"
+                    className="group flex flex-col items-stretch rounded-lg sm:rounded-xl border border-border bg-background p-2 sm:p-3 lg:p-4 hover:border-primary hover:shadow-md transition-all text-left touch-target"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">Dark Design</span>
+                      <span className="text-xs sm:text-sm font-medium">Dark Design</span>
                     </div>
-                    <div className="rounded-md border border-border bg-[hsl(300_100%_5%)] p-2 space-y-2">
-                      <div className="h-1.5 w-16 rounded-full bg-[hsl(280_62%_22%)]" />
-                      <div className="h-6 rounded-md bg-[hsl(285_35%_27%)]" />
+                    <div className="rounded-md border border-border bg-[hsl(300_100%_5%)] p-2 space-y-1.5 sm:space-y-2">
+                      <div className="h-1 sm:h-1.5 w-12 sm:w-16 rounded-full bg-[hsl(280_62%_22%)]" />
+                      <div className="h-5 sm:h-6 rounded-md bg-[hsl(285_35%_27%)]" />
                       <div className="flex gap-1">
-                        <div className="h-6 flex-1 rounded-md bg-[hsl(330_25%_42%)]" />
-                        <div className="h-6 w-8 rounded-md bg-[hsl(280_62%_22%)]" />
+                        <div className="h-5 sm:h-6 flex-1 rounded-md bg-[hsl(330_25%_42%)]" />
+                        <div className="h-5 sm:h-6 w-6 sm:w-8 rounded-md bg-[hsl(280_62%_22%)]" />
                       </div>
                     </div>
                   </button>
@@ -900,37 +933,37 @@ export default function SettingsPage() {
                 )}
 
                 {/* Palette Categories */}
-                <div className="grid gap-6">
+                <div className="grid gap-4 sm:gap-6">
                   {Object.entries(themePalettes).map(([category, palettes]) => (
-                    <div key={category} className="space-y-3">
-                      <h3 className="text-sm font-semibold capitalize flex items-center gap-2">
+                    <div key={category} className="space-y-2 sm:space-y-3">
+                      <h3 className="text-xs sm:text-sm font-semibold capitalize flex items-center gap-2">
                         {category}
-                        <span className="text-xs text-muted-foreground font-normal">
+                        <span className="text-[10px] sm:text-xs text-muted-foreground font-normal">
                           ({Object.keys(palettes).length} palettes)
                         </span>
                       </h3>
-                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      <div className="grid gap-2 sm:gap-3 lg:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
                         {Object.entries(palettes).map(([paletteName, colors]) => (
                           <button
                             key={paletteName}
                             onClick={() => applyPredefinedPalette(category, paletteName)}
                             className={`
-                              relative rounded-lg border-2 p-4 text-left transition-all hover:shadow-md
+                              relative rounded-lg sm:rounded-xl border-2 p-2 sm:p-3 lg:p-4 text-left transition-all hover:shadow-md touch-target h-24 sm:h-28 lg:h-32
                               ${selectedCategory === category && selectedPalette === paletteName
                                 ? 'border-primary shadow-md'
                                 : 'border-border hover:border-primary/50'
                               }
                             `}
                           >
-                            <div className="space-y-2">
-                              <p className="font-medium text-sm">{paletteName}</p>
-                              <div className="flex gap-1.5">
+                            <div className="space-y-1.5 sm:space-y-2 h-full flex flex-col">
+                              <p className="font-medium text-[10px] sm:text-xs lg:text-sm truncate">{paletteName}</p>
+                              <div className="flex gap-1 flex-1">
                                 {['primary', 'secondary', 'background', 'foreground'].map((key) => {
                                   const hsl = colors[key]
                                   return (
                                     <div
                                       key={key}
-                                      className="h-8 flex-1 rounded border border-gray-200"
+                                      className="flex-1 rounded border border-gray-200"
                                       style={{ background: `hsl(${hsl})` }}
                                       title={key}
                                     />
@@ -939,8 +972,8 @@ export default function SettingsPage() {
                               </div>
                             </div>
                             {selectedCategory === category && selectedPalette === paletteName && (
-                              <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                                <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <div className="absolute top-1 right-1 sm:top-2 sm:right-2 h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-primary flex items-center justify-center">
+                                <svg className="h-2 w-2 sm:h-3 sm:w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                 </svg>
                               </div>
@@ -978,16 +1011,16 @@ export default function SettingsPage() {
                 )}
 
                 {/* Typography Section */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Typography</h3>
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-3 sm:space-y-4">
+                  <h3 className="text-base sm:text-lg font-semibold">Typography</h3>
+                  <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                     <div className="space-y-2">
-                      <Label htmlFor="fontFamily">Font Family</Label>
+                      <Label htmlFor="fontFamily" className="text-xs sm:text-sm">Font Family</Label>
                       <Select 
                         value={theme.fontFamily} 
                         onValueChange={(value) => handleThemeChange('fontFamily', value)}
                       >
-                        <SelectTrigger id="fontFamily">
+                        <SelectTrigger id="fontFamily" className="h-10 sm:h-11 text-xs sm:text-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1004,7 +1037,7 @@ export default function SettingsPage() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="fontSize">Base Font Size (px)</Label>
+                      <Label htmlFor="fontSize" className="text-xs sm:text-sm">Base Font Size (px)</Label>
                       <Input
                         id="fontSize"
                         type="number"
@@ -1012,10 +1045,11 @@ export default function SettingsPage() {
                         max="24"
                         value={theme.fontSize}
                         onChange={(e) => handleThemeChange('fontSize', e.target.value)}
+                        className="h-10 sm:h-11 text-xs sm:text-sm"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="radius">Border Radius (rem)</Label>
+                      <Label htmlFor="radius" className="text-xs sm:text-sm">Border Radius (rem)</Label>
                       <Input
                         id="radius"
                         type="number"
@@ -1024,147 +1058,148 @@ export default function SettingsPage() {
                         step="0.1"
                         value={theme.radius}
                         onChange={(e) => handleThemeChange('radius', e.target.value)}
+                        className="h-10 sm:h-11 text-xs sm:text-sm"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Primary Colors */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Primary Colors</h3>
-                  <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-3 sm:space-y-4">
+                  <h3 className="text-base sm:text-lg font-semibold">Primary Colors</h3>
+                  <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="primary">Primary</Label>
+                      <Label htmlFor="primary" className="text-xs sm:text-sm">Primary</Label>
                       <div className="flex gap-2">
                         <Input
                           type="color"
                           value={hslToHex(theme.primary)}
                           onChange={(e) => handleThemeChange('primary', hexToHsl(e.target.value))}
-                          className="w-16 h-10 cursor-pointer"
+                          className="w-12 sm:w-14 h-10 sm:h-11 cursor-pointer flex-shrink-0"
                         />
                         <Input
                           id="primary"
                           value={theme.primary}
                           onChange={(e) => handleThemeChange('primary', e.target.value)}
                           placeholder="217 91% 60%"
-                          className="flex-1"
+                          className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground">Main brand color, buttons, links</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Main brand color, buttons, links</p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="secondary">Secondary</Label>
+                      <Label htmlFor="secondary" className="text-xs sm:text-sm">Secondary</Label>
                       <div className="flex gap-2">
                         <Input
                           type="color"
                           value={hslToHex(theme.secondary)}
                           onChange={(e) => handleThemeChange('secondary', hexToHsl(e.target.value))}
-                          className="w-16 h-10 cursor-pointer"
+                          className="w-12 sm:w-14 h-10 sm:h-11 cursor-pointer flex-shrink-0"
                         />
                         <Input
                           id="secondary"
                           value={theme.secondary}
                           onChange={(e) => handleThemeChange('secondary', e.target.value)}
                           placeholder="162 73% 46%"
-                          className="flex-1"
+                          className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground">Secondary actions and accents</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Secondary actions and accents</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Background & Text Colors */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Background & Text</h3>
-                  <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-3 sm:space-y-4">
+                  <h3 className="text-base sm:text-lg font-semibold">Background & Text</h3>
+                  <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                     <div className="space-y-2">
-                      <Label htmlFor="background">Background</Label>
+                      <Label htmlFor="background" className="text-xs sm:text-sm">Background</Label>
                       <div className="flex gap-2">
                         <Input
                           type="color"
                           value={hslToHex(theme.background)}
                           onChange={(e) => handleThemeChange('background', hexToHsl(e.target.value))}
-                          className="w-16 h-10 cursor-pointer"
+                          className="w-12 sm:w-14 h-10 sm:h-11 cursor-pointer flex-shrink-0"
                         />
                         <Input
                           id="background"
                           value={theme.background}
                           onChange={(e) => handleThemeChange('background', e.target.value)}
-                          className="flex-1"
+                          className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="foreground">Text Color</Label>
+                      <Label htmlFor="foreground" className="text-xs sm:text-sm">Text Color</Label>
                       <div className="flex gap-2">
                         <Input
                           type="color"
                           value={hslToHex(theme.foreground)}
                           onChange={(e) => handleThemeChange('foreground', hexToHsl(e.target.value))}
-                          className="w-16 h-10 cursor-pointer"
+                          className="w-12 sm:w-14 h-10 sm:h-11 cursor-pointer flex-shrink-0"
                         />
                         <Input
                           id="foreground"
                           value={theme.foreground}
                           onChange={(e) => handleThemeChange('foreground', e.target.value)}
-                          className="flex-1"
+                          className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="card">Card Background</Label>
+                      <Label htmlFor="card" className="text-xs sm:text-sm">Card Background</Label>
                       <div className="flex gap-2">
                         <Input
                           type="color"
                           value={hslToHex(theme.card)}
                           onChange={(e) => handleThemeChange('card', hexToHsl(e.target.value))}
-                          className="w-16 h-10 cursor-pointer"
+                          className="w-12 sm:w-14 h-10 sm:h-11 cursor-pointer flex-shrink-0"
                         />
                         <Input
                           id="card"
                           value={theme.card}
                           onChange={(e) => handleThemeChange('card', e.target.value)}
-                          className="flex-1"
+                          className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="muted">Muted Background</Label>
+                      <Label htmlFor="muted" className="text-xs sm:text-sm">Muted Background</Label>
                       <div className="flex gap-2">
                         <Input
                           type="color"
                           value={hslToHex(theme.muted)}
                           onChange={(e) => handleThemeChange('muted', hexToHsl(e.target.value))}
-                          className="w-16 h-10 cursor-pointer"
+                          className="w-12 sm:w-14 h-10 sm:h-11 cursor-pointer flex-shrink-0"
                         />
                         <Input
                           id="muted"
                           value={theme.muted}
                           onChange={(e) => handleThemeChange('muted', e.target.value)}
-                          className="flex-1"
+                          className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="mutedForeground">Muted Text</Label>
+                      <Label htmlFor="mutedForeground" className="text-xs sm:text-sm">Muted Text</Label>
                       <div className="flex gap-2">
                         <Input
                           type="color"
                           value={hslToHex(theme.mutedForeground)}
                           onChange={(e) => handleThemeChange('mutedForeground', hexToHsl(e.target.value))}
-                          className="w-16 h-10 cursor-pointer"
+                          className="w-12 sm:w-14 h-10 sm:h-11 cursor-pointer flex-shrink-0"
                         />
                         <Input
                           id="mutedForeground"
                           value={theme.mutedForeground}
                           onChange={(e) => handleThemeChange('mutedForeground', e.target.value)}
-                          className="flex-1"
+                          className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
                         />
                       </div>
                     </div>
@@ -1172,85 +1207,85 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Accent & Hover Colors */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Accent & Hover</h3>
-                  <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-3 sm:space-y-4">
+                  <h3 className="text-base sm:text-lg font-semibold">Accent & Hover</h3>
+                  <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="accent">Accent/Hover Background</Label>
+                      <Label htmlFor="accent" className="text-xs sm:text-sm">Accent/Hover Background</Label>
                       <div className="flex gap-2">
                         <Input
                           type="color"
                           value={hslToHex(theme.accent)}
                           onChange={(e) => handleThemeChange('accent', hexToHsl(e.target.value))}
-                          className="w-16 h-10 cursor-pointer"
+                          className="w-12 sm:w-14 h-10 sm:h-11 cursor-pointer flex-shrink-0"
                         />
                         <Input
                           id="accent"
                           value={theme.accent}
                           onChange={(e) => handleThemeChange('accent', e.target.value)}
-                          className="flex-1"
+                          className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground">Hover states on buttons and items</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Hover states on buttons and items</p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="ring">Focus Ring</Label>
+                      <Label htmlFor="ring" className="text-xs sm:text-sm">Focus Ring</Label>
                       <div className="flex gap-2">
                         <Input
                           type="color"
                           value={hslToHex(theme.ring)}
                           onChange={(e) => handleThemeChange('ring', hexToHsl(e.target.value))}
-                          className="w-16 h-10 cursor-pointer"
+                          className="w-12 sm:w-14 h-10 sm:h-11 cursor-pointer flex-shrink-0"
                         />
                         <Input
                           id="ring"
                           value={theme.ring}
                           onChange={(e) => handleThemeChange('ring', e.target.value)}
-                          className="flex-1"
+                          className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground">Outline color for focused elements</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Outline color for focused elements</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Borders & Inputs */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Borders & Inputs</h3>
-                  <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-3 sm:space-y-4">
+                  <h3 className="text-base sm:text-lg font-semibold">Borders & Inputs</h3>
+                  <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="border">Border Color</Label>
+                      <Label htmlFor="border" className="text-xs sm:text-sm">Border Color</Label>
                       <div className="flex gap-2">
                         <Input
                           type="color"
                           value={hslToHex(theme.border)}
                           onChange={(e) => handleThemeChange('border', hexToHsl(e.target.value))}
-                          className="w-16 h-10 cursor-pointer"
+                          className="w-12 sm:w-14 h-10 sm:h-11 cursor-pointer flex-shrink-0"
                         />
                         <Input
                           id="border"
                           value={theme.border}
                           onChange={(e) => handleThemeChange('border', e.target.value)}
-                          className="flex-1"
+                          className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="input">Input Border</Label>
+                      <Label htmlFor="input" className="text-xs sm:text-sm">Input Border</Label>
                       <div className="flex gap-2">
                         <Input
                           type="color"
                           value={hslToHex(theme.input)}
                           onChange={(e) => handleThemeChange('input', hexToHsl(e.target.value))}
-                          className="w-16 h-10 cursor-pointer"
+                          className="w-12 sm:w-14 h-10 sm:h-11 cursor-pointer flex-shrink-0"
                         />
                         <Input
                           id="input"
                           value={theme.input}
                           onChange={(e) => handleThemeChange('input', e.target.value)}
-                          className="flex-1"
+                          className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
                         />
                       </div>
                     </div>
@@ -1258,26 +1293,26 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Destructive Colors */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Destructive Actions</h3>
-                  <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-3 sm:space-y-4">
+                  <h3 className="text-base sm:text-lg font-semibold">Destructive Actions</h3>
+                  <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="destructive">Destructive Color</Label>
+                      <Label htmlFor="destructive" className="text-xs sm:text-sm">Destructive Color</Label>
                       <div className="flex gap-2">
                         <Input
                           type="color"
                           value={hslToHex(theme.destructive)}
                           onChange={(e) => handleThemeChange('destructive', hexToHsl(e.target.value))}
-                          className="w-16 h-10 cursor-pointer"
+                          className="w-12 sm:w-14 h-10 sm:h-11 cursor-pointer flex-shrink-0"
                         />
                         <Input
                           id="destructive"
                           value={theme.destructive}
                           onChange={(e) => handleThemeChange('destructive', e.target.value)}
-                          className="flex-1"
+                          className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground">Delete buttons, error states</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Delete buttons, error states</p>
                     </div>
                   </div>
                 </div>
@@ -1307,8 +1342,11 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-wrap gap-2 pt-4">
-                  <Button onClick={handleSaveTheme} disabled={!isAdmin || saving} size="lg">
+                <div className="flex flex-col-reverse sm:flex-row gap-2 pt-4">
+                  <Button variant="outline" onClick={resetTheme} size="lg" className="h-10 sm:h-11 text-xs sm:text-sm">
+                    Reset to Default
+                  </Button>
+                  <Button onClick={handleSaveTheme} disabled={!isAdmin || saving} size="lg" className="h-10 sm:h-11 text-xs sm:text-sm">
                     {saving ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -1317,9 +1355,6 @@ export default function SettingsPage() {
                     ) : (
                       'Save Theme'
                     )}
-                  </Button>
-                  <Button variant="outline" onClick={resetTheme} size="lg">
-                    Reset to Default
                   </Button>
                 </div>
 
@@ -1333,108 +1368,108 @@ export default function SettingsPage() {
           </TabsContent>
 
           {/* Notifications Tab */}
-          <TabsContent value="notifications" className="space-y-4 mt-6">
+          <TabsContent value="notifications" className="space-y-3 sm:space-y-4 mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg sm:text-xl">Notification Preferences</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   Manage how you receive notifications
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Email Notifications</Label>
-                    <p className="text-sm text-muted-foreground">
+              <CardContent className="space-y-3 sm:space-y-4">
+                <div className="flex items-center justify-between gap-3 py-2 sm:py-3">
+                  <div className="space-y-0.5 min-w-0">
+                    <Label className="text-xs sm:text-sm">Email Notifications</Label>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
                       Receive email updates about your tickets
                     </p>
                   </div>
-                  <Switch />
+                  <Switch className="flex-shrink-0" />
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Push Notifications</Label>
-                    <p className="text-sm text-muted-foreground">
+                <div className="flex items-center justify-between gap-3 py-2 sm:py-3">
+                  <div className="space-y-0.5 min-w-0">
+                    <Label className="text-xs sm:text-sm">Push Notifications</Label>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
                       Receive push notifications in your browser
                     </p>
                   </div>
-                  <Switch />
+                  <Switch className="flex-shrink-0" />
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Ticket Updates</Label>
-                    <p className="text-sm text-muted-foreground">
+                <div className="flex items-center justify-between gap-3 py-2 sm:py-3">
+                  <div className="space-y-0.5 min-w-0">
+                    <Label className="text-xs sm:text-sm">Ticket Updates</Label>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
                       Get notified when tickets are updated
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch defaultChecked className="flex-shrink-0" />
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>New Comments</Label>
-                    <p className="text-sm text-muted-foreground">
+                <div className="flex items-center justify-between gap-3 py-2 sm:py-3">
+                  <div className="space-y-0.5 min-w-0">
+                    <Label className="text-xs sm:text-sm">New Comments</Label>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
                       Notifications for new ticket comments
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch defaultChecked className="flex-shrink-0" />
                 </div>
-                <Button>Save Preferences</Button>
+                <Button className="h-10 sm:h-11 text-xs sm:text-sm w-full sm:w-auto mt-4">Save Preferences</Button>
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Security Tab */}
-          <TabsContent value="security" className="space-y-4 mt-6">
+          <TabsContent value="security" className="space-y-3 sm:space-y-4 mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Security Settings</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg sm:text-xl">Security Settings</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   Manage your account security
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 sm:space-y-4">
                 <Alert>
-                  <AlertDescription>
+                  <AlertDescription className="text-xs sm:text-sm">
                     Password changes are handled through Supabase authentication. Contact your administrator for password reset.
                   </AlertDescription>
                 </Alert>
                 <div className="space-y-2">
-                  <Label htmlFor="current-password">Current Password</Label>
-                  <Input id="current-password" type="password" placeholder="Enter current password" />
+                  <Label htmlFor="current-password" className="text-xs sm:text-sm">Current Password</Label>
+                  <Input id="current-password" type="password" placeholder="Enter current password" className="h-10 sm:h-11 text-xs sm:text-sm" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
-                  <Input id="new-password" type="password" placeholder="Enter new password" />
+                  <Label htmlFor="new-password" className="text-xs sm:text-sm">New Password</Label>
+                  <Input id="new-password" type="password" placeholder="Enter new password" className="h-10 sm:h-11 text-xs sm:text-sm" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm Password</Label>
-                  <Input id="confirm-password" type="password" placeholder="Confirm new password" />
+                  <Label htmlFor="confirm-password" className="text-xs sm:text-sm">Confirm Password</Label>
+                  <Input id="confirm-password" type="password" placeholder="Confirm new password" className="h-10 sm:h-11 text-xs sm:text-sm" />
                 </div>
-                <Button>Update Password</Button>
+                <Button className="h-10 sm:h-11 text-xs sm:text-sm w-full sm:w-auto">Update Password</Button>
                 
-                <div className="pt-6 space-y-4">
-                  <h3 className="text-sm font-semibold">Two-Factor Authentication</h3>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Enable 2FA</Label>
-                      <p className="text-sm text-muted-foreground">
+                <div className="pt-4 sm:pt-6 space-y-3 sm:space-y-4 border-t">
+                  <h3 className="text-sm sm:text-base font-semibold">Two-Factor Authentication</h3>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="space-y-0.5 min-w-0">
+                      <Label className="text-xs sm:text-sm">Enable 2FA</Label>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">
                         Add an extra layer of security to your account
                       </p>
                     </div>
-                    <Switch />
+                    <Switch className="flex-shrink-0" />
                   </div>
                 </div>
 
-                <div className="pt-6 space-y-4">
-                  <h3 className="text-sm font-semibold">Active Sessions</h3>
-                  <div className="rounded-lg border p-4 space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium text-sm">Current Session</p>
-                        <p className="text-xs text-muted-foreground">Accra, Ghana • Chrome on Mac</p>
-                        <p className="text-xs text-muted-foreground">Last active: Now</p>
+                <div className="pt-4 sm:pt-6 space-y-3 sm:space-y-4 border-t">
+                  <h3 className="text-sm sm:text-base font-semibold">Active Sessions</h3>
+                  <div className="rounded-lg border p-2 sm:p-4 space-y-2">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium text-xs sm:text-sm">Current Session</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">Accra, Ghana • Chrome on Mac</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">Last active: Now</p>
                       </div>
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">Active</span>
+                      <span className="text-[10px] sm:text-xs bg-primary/10 text-primary px-2 py-1 rounded whitespace-nowrap flex-shrink-0">Active</span>
                     </div>
                   </div>
                 </div>

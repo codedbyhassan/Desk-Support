@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Search, Trash2 } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +26,7 @@ import {
 } from '@/components/ui/select'
 
 export default function UsersTable() {
+  const { toast } = useToast()
   const [users, setUsers] = useState<User[]>([])
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -106,7 +108,11 @@ export default function UsersTable() {
 
     if (error) {
       console.error('Error deleting user:', error)
-      alert('Failed to delete user. They may have associated records.')
+      toast({
+        title: 'Error',
+        description: 'Failed to delete user. They may have associated records.',
+        variant: 'destructive'
+      })
     } else {
       setUsers(users.filter(u => u.id !== userToDelete.id))
       console.log('User deleted:', userToDelete.full_name)

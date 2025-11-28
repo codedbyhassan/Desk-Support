@@ -200,28 +200,29 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
   const avgResponseTime = '2.4h'
 
   return (
-    <div className="space-y-4 lg:space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6 px-0 sm:px-0">
       {/* Header with Breadcrumb */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-1 lg:space-y-2">
-          <div className="flex items-center gap-2 text-xs lg:text-sm text-slate-500">
-            <span>Support</span>
-            <span>/</span>
-            <span className="text-slate-900 font-medium">Tickets</span>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between px-4 sm:px-0">
+        <div className="space-y-1 lg:space-y-2 flex-1 min-w-0">
+          <div className="flex items-center gap-2 text-xs lg:text-sm text-slate-500 overflow-x-auto">
+            <span className="whitespace-nowrap">Support</span>
+            <span className="flex-shrink-0">/</span>
+            <span className="text-slate-900 font-medium whitespace-nowrap">Tickets</span>
           </div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Support Tickets</h1>
-          <p className="text-sm lg:text-base text-slate-500">Track, manage, and resolve customer support requests</p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 break-words">Support Tickets</h1>
+          <p className="text-xs sm:text-sm lg:text-base text-slate-500">Track, manage, and resolve customer support requests</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="rounded-lg lg:rounded-xl border-slate-200 h-11 lg:h-10">
-            <Download className="h-4 w-4 lg:mr-2" />
-            <span className="hidden lg:inline">Export</span>
+        <div className="flex gap-2 flex-shrink-0 w-full sm:w-auto">
+          <Button variant="outline" className="rounded-lg lg:rounded-xl border-slate-200 h-10 sm:h-11 lg:h-10 flex-1 sm:flex-none text-xs sm:text-sm">
+            <Download className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="hidden sm:inline">Export</span>
+            <span className="sm:hidden">Export</span>
           </Button>
           <Button
             onClick={toggleForm}
-            className="bg-slate-900 hover:bg-slate-800 rounded-lg lg:rounded-xl shadow-lg shadow-slate-900/20 h-11 lg:h-10"
+            className="bg-slate-900 hover:bg-slate-800 rounded-lg lg:rounded-xl shadow-lg shadow-slate-900/20 h-10 sm:h-11 lg:h-10 flex-1 sm:flex-none text-xs sm:text-sm"
           >
-            <Plus className="h-4 w-4 lg:mr-2" />
+            <Plus className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
             <span className="hidden sm:inline">New Ticket</span>
             <span className="sm:hidden">New</span>
           </Button>
@@ -232,22 +233,22 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
       <Tabs
         value={ticketViewTab}
         onValueChange={(val) => setTicketViewTab(val as 'incoming' | 'outgoing')}
-        className="w-full"
+        className="w-full px-4 sm:px-0"
       >
-        <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1 rounded-lg lg:rounded-xl h-auto">
+        <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1 rounded-lg lg:rounded-xl h-auto gap-1">
           <TabsTrigger 
             value="incoming" 
-            className="py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all text-sm lg:text-base font-medium"
+            className="py-2 sm:py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md lg:rounded-lg transition-all text-xs sm:text-sm lg:text-base font-medium"
           >
             Incoming
-            <Badge variant="secondary" className="ml-2 text-xs">{departmentTickets.length}</Badge>
+            <Badge variant="secondary" className="ml-1 sm:ml-2 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">{departmentTickets.length}</Badge>
           </TabsTrigger>
           <TabsTrigger 
             value="outgoing" 
-            className="py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all text-sm lg:text-base font-medium"
+            className="py-2 sm:py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md lg:rounded-lg transition-all text-xs sm:text-sm lg:text-base font-medium"
           >
             Outgoing
-            <Badge variant="secondary" className="ml-2 text-xs">{personalTickets.length}</Badge>
+            <Badge variant="secondary" className="ml-1 sm:ml-2 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">{personalTickets.length}</Badge>
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -284,27 +285,27 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
 
       {/* Create Ticket Form */}
       {showForm && (
-        <Card className="border-slate-200 shadow-xl">
-          <div className="p-4 lg:p-6 border-b border-slate-200 bg-slate-50">
+        <Card className="border-slate-200 shadow-xl rounded-2xl lg:rounded-3xl mx-4 sm:mx-0">
+          <div className="p-3 sm:p-4 lg:p-6 border-b border-slate-200 bg-slate-50">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 lg:w-10 lg:h-10 bg-slate-900 rounded-lg lg:rounded-xl flex items-center justify-center shadow-lg shadow-slate-900/20 flex-shrink-0">
                 <Plus className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-lg lg:text-xl font-semibold text-slate-900">Create New Ticket</h2>
-                <p className="text-sm text-slate-500 truncate">Submit a new support request</p>
+                <h2 className="text-base sm:text-lg lg:text-xl font-semibold text-slate-900 truncate">Create New Ticket</h2>
+                <p className="text-xs sm:text-sm text-slate-500 truncate">Submit a new support request</p>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={toggleForm}
-                className="h-8 w-8 p-0 flex-shrink-0"
+                className="h-8 w-8 p-0 flex-shrink-0 rounded-lg"
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
           </div>
-          <div className="p-4 lg:p-6">
+          <div className="p-3 sm:p-4 lg:p-6 overflow-y-auto max-h-[70vh]">
             <TicketForm onSubmit={handleTicketCreated} />
           </div>
         </Card>
@@ -316,31 +317,31 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
           <div className="flex flex-col gap-3 lg:gap-4 mb-3 lg:mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="space-y-1">
-                <h2 className="text-lg font-semibold text-slate-900">
+                <h2 className="text-base sm:text-lg font-semibold text-slate-900">
                   {ticketViewTab === 'incoming'
                     ? 'Incoming Tickets (Assigned to Me)'
                     : 'Outgoing Tickets (My Tickets)'}
                 </h2>
-                <p className="text-sm text-slate-500">
+                <p className="text-xs sm:text-sm text-slate-500">
                   {displayedTickets.length} {displayedTickets.length === 1 ? 'ticket' : 'tickets'} found
                 </p>
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative flex-1 min-w-0">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 flex-shrink-0" />
                 <Input
                   placeholder="Search tickets..."
-                  className="pl-9 rounded-lg border-slate-200 text-sm"
+                  className="pl-9 rounded-lg border-slate-200 text-xs sm:text-sm h-10 sm:h-11"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-shrink-0">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="flex-1 rounded-lg border-slate-200 text-sm min-w-0">
-                    <Filter className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <SelectTrigger className="rounded-lg border-slate-200 text-xs sm:text-sm h-10 sm:h-11 flex-1 sm:flex-none min-w-fit">
+                    <Filter className="h-4 w-4 mr-1 flex-shrink-0" />
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -352,8 +353,8 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
                   </SelectContent>
                 </Select>
                 <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                  <SelectTrigger className="flex-1 rounded-lg border-slate-200 text-sm min-w-0">
-                    <Filter className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <SelectTrigger className="rounded-lg border-slate-200 text-xs sm:text-sm h-10 sm:h-11 flex-1 sm:flex-none min-w-fit">
+                    <Filter className="h-4 w-4 mr-1 flex-shrink-0" />
                     <SelectValue placeholder="Priority" />
                   </SelectTrigger>
                   <SelectContent>
@@ -441,22 +442,22 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="max-w-[90vw] lg:max-w-lg rounded-2xl">
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-[500px] lg:max-w-lg rounded-2xl lg:rounded-3xl mx-4">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg lg:text-xl">Delete Ticket</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm lg:text-base">
+            <AlertDialogTitle className="text-lg lg:text-xl text-slate-900">Delete Ticket</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs sm:text-sm lg:text-base text-slate-600">
               Are you sure you want to delete this ticket? This action cannot be undone.
               All comments and history associated with this ticket will also be deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting} className="rounded-lg lg:rounded-xl h-11 lg:h-10">
+          <AlertDialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel disabled={deleting} className="rounded-lg lg:rounded-xl h-10 sm:h-11">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               disabled={deleting}
-              className="bg-red-600 hover:bg-red-700 rounded-lg lg:rounded-xl h-11 lg:h-10"
+              className="bg-red-600 hover:bg-red-700 rounded-lg lg:rounded-xl h-10 sm:h-11"
             >
               {deleting ? (
                 <>

@@ -411,31 +411,31 @@ export default function ProfilePage() {
   const StatusIcon = status.icon
 
   return (
-    <div className="space-y-6 lg:space-y-8">
+    <div className="space-y-4 sm:space-y-6 lg:space-y-8 px-0">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-2xl lg:rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-xl">
+      <div className="relative overflow-hidden rounded-2xl lg:rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-xl mx-4 sm:mx-0">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0YzAtMS4xLS45LTItMi0ySDI2Yy0xLjEgMC0yIC45LTIgMnYyNGMwIDEuMS45IDIgMiAyaDhjMS4xIDAgMi0uOSAyLTJWMzR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-10" />
-        <div className="relative p-6 lg:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Avatar className="h-20 w-20 lg:h-24 lg:w-24 ring-4 ring-white/20 shadow-2xl">
+        <div className="relative p-4 sm:p-6 lg:p-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+              <div className="relative flex-shrink-0">
+                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24 ring-4 ring-white/20 shadow-2xl">
                   <AvatarImage src={user.avatar_url} />
-                  <AvatarFallback className="text-2xl lg:text-3xl bg-gradient-to-br from-blue-400 to-cyan-400 text-white font-bold">
+                  <AvatarFallback className="text-lg sm:text-xl lg:text-3xl bg-gradient-to-br from-blue-400 to-cyan-400 text-white font-bold">
                     {user.full_name.substring(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 {!editing && (
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 lg:w-7 lg:h-7 bg-emerald-500 rounded-full border-4 border-slate-900 flex items-center justify-center">
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 bg-emerald-500 rounded-full border-3 sm:border-4 border-slate-900 flex items-center justify-center flex-shrink-0">
                     <div className="w-2 h-2 lg:w-2.5 lg:h-2.5 bg-white rounded-full animate-pulse" />
                   </div>
                 )}
               </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-2xl lg:text-3xl font-bold">{user.full_name}</h1>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
+                  <h1 className="text-lg sm:text-xl lg:text-3xl font-bold break-words">{user.full_name}</h1>
                   <Badge
-                    className={`${
+                    className={`text-[10px] sm:text-xs lg:text-sm px-2 sm:px-3 py-0.5 sm:py-1 flex-shrink-0 ${
                       user.role === 'admin'
                         ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-lg'
                         : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-lg'
@@ -445,14 +445,14 @@ export default function ProfilePage() {
                     {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                   </Badge>
                 </div>
-                <p className="text-slate-300 text-sm lg:text-base flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  {user.email}
+                <p className="text-slate-300 text-xs sm:text-sm lg:text-base flex items-center gap-2 truncate">
+                  <Mail className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <span className="truncate">{user.email}</span>
                 </p>
                 {userDepartment && (
-                  <p className="text-slate-400 text-xs lg:text-sm mt-1 flex items-center gap-2">
-                    <Building2 className="h-3 w-3 lg:h-4 lg:w-4" />
-                    {userDepartment.name}
+                  <p className="text-slate-400 text-[11px] sm:text-xs lg:text-sm mt-1 flex items-center gap-2 truncate">
+                    <Building2 className="h-3 w-3 lg:h-4 lg:w-4 flex-shrink-0" />
+                    <span className="truncate">{userDepartment.name}</span>
                   </p>
                 )}
               </div>
@@ -460,10 +460,9 @@ export default function ProfilePage() {
             {!editing && (
               <Button
                 onClick={() => setEditing(true)}
-                className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-lg"
-                size="lg"
+                className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-lg rounded-lg lg:rounded-xl h-10 sm:h-11 lg:h-12 text-xs sm:text-sm w-full sm:w-auto flex-shrink-0"
               >
-                <Edit3 className="h-4 w-4 mr-2" />
+                <Edit3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
                 Edit Profile
               </Button>
             )}
@@ -472,37 +471,39 @@ export default function ProfilePage() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={normalizedTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-slate-100 p-1 rounded-xl w-full lg:w-auto hidden">
-          <TabsTrigger value="profile" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6">
-            <User className="h-4 w-4 mr-2" />
-            Profile
+      <Tabs value={normalizedTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6 px-0">
+        <TabsList className="bg-slate-100 p-1 rounded-lg sm:rounded-xl w-full lg:w-auto h-auto gap-1 mx-4 sm:mx-0">
+          <TabsTrigger value="profile" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm">
+            <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="hidden sm:inline">Profile</span>
+            <span className="sm:hidden">Info</span>
           </TabsTrigger>
-          <TabsTrigger value="attendance" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6">
-            <QrCode className="h-4 w-4 mr-2" />
-            Attendance
+          <TabsTrigger value="attendance" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm">
+            <QrCode className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="hidden sm:inline">Attendance</span>
+            <span className="sm:hidden">Check</span>
           </TabsTrigger>
         </TabsList>
 
         {/* Profile Tab */}
-        <TabsContent value="profile" className="space-y-6">
+        <TabsContent value="profile" className="space-y-4 sm:space-y-6 px-4 sm:px-0">
           {editing ? (
-            <Card className="border-slate-200 shadow-lg">
-              <form onSubmit={handleUpdateProfile} className="p-6 lg:p-8 space-y-8">
+            <Card className="border-slate-200 shadow-lg rounded-2xl lg:rounded-3xl">
+              <form onSubmit={handleUpdateProfile} className="p-3 sm:p-4 lg:p-8 space-y-6 sm:space-y-8">
                 {/* Avatar Section */}
-                <div className="flex flex-col items-center gap-6 pb-8 border-b border-slate-200">
+                <div className="flex flex-col items-center gap-4 sm:gap-6 pb-6 sm:pb-8 border-b border-slate-200">
                   <div className="relative group">
-                    <Avatar className="h-32 w-32 lg:h-36 lg:w-36 ring-4 ring-slate-200 shadow-xl">
+                    <Avatar className="h-24 w-24 sm:h-32 sm:w-32 lg:h-36 lg:w-36 ring-4 ring-slate-200 shadow-xl">
                       <AvatarImage src={avatarPreview} />
-                      <AvatarFallback className="text-4xl lg:text-5xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white font-bold">
+                      <AvatarFallback className="text-3xl sm:text-4xl lg:text-5xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white font-bold">
                         {fullName.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <label
                       htmlFor="avatar-upload"
-                      className="absolute bottom-0 right-0 p-3 bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-full cursor-pointer hover:from-blue-600 hover:to-cyan-600 transition-all shadow-xl hover:scale-110 group-hover:scale-110"
+                      className="absolute bottom-0 right-0 p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-full cursor-pointer hover:from-blue-600 hover:to-cyan-600 transition-all shadow-xl hover:scale-110 group-hover:scale-110"
                     >
-                      <Upload className="h-5 w-5" />
+                      <Upload className="h-4 w-4 sm:h-5 sm:w-5" />
                       <input
                         id="avatar-upload"
                         type="file"
@@ -514,8 +515,8 @@ export default function ProfilePage() {
                     </label>
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-slate-600">Upload Profile Photo</p>
-                    <p className="text-xs text-slate-500 mt-1">JPG, PNG or GIF (max 5MB)</p>
+                    <p className="text-xs sm:text-sm font-medium text-slate-600">Upload Profile Photo</p>
+                    <p className="text-[10px] sm:text-xs text-slate-500 mt-1">JPG, PNG or GIF (max 5MB)</p>
                   </div>
                 </div>
 
@@ -531,9 +532,9 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="fullName" className="text-sm font-medium text-slate-700">
+                      <Label htmlFor="fullName" className="text-xs sm:text-sm font-medium text-slate-700">
                         Full Name <span className="text-red-500">*</span>
                       </Label>
                       <Input
@@ -544,20 +545,20 @@ export default function ProfilePage() {
                           if (errors.fullName) setErrors({ ...errors, fullName: '' })
                         }}
                         disabled={loading}
-                        className={`h-11 ${errors.fullName ? 'border-red-500 focus:border-red-500' : ''}`}
+                        className={`h-10 sm:h-11 text-xs sm:text-sm ${errors.fullName ? 'border-red-500 focus:border-red-500' : ''}`}
                         placeholder="John Doe"
                       />
-                      {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
+                      {errors.fullName && <p className="text-[10px] sm:text-xs text-red-500 mt-1">{errors.fullName}</p>}
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-slate-700">Email</Label>
-                      <Input value={user.email} disabled className="h-11 bg-slate-50" />
-                      <p className="text-xs text-slate-500 mt-1">Email cannot be changed</p>
+                      <Label className="text-xs sm:text-sm font-medium text-slate-700">Email</Label>
+                      <Input value={user.email} disabled className="h-10 sm:h-11 text-xs sm:text-sm bg-slate-50" />
+                      <p className="text-[10px] sm:text-xs text-slate-500 mt-1">Email cannot be changed</p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-sm font-medium text-slate-700">Phone Number</Label>
+                      <Label htmlFor="phone" className="text-xs sm:text-sm font-medium text-slate-700">Phone Number</Label>
                       <Input
                         id="phone"
                         type="tel"
@@ -568,15 +569,15 @@ export default function ProfilePage() {
                         }}
                         placeholder="+1 (555) 000-0000"
                         disabled={loading}
-                        className={`h-11 ${errors.phone ? 'border-red-500 focus:border-red-500' : ''}`}
+                        className={`h-10 sm:h-11 text-xs sm:text-sm ${errors.phone ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
-                      {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
+                      {errors.phone && <p className="text-[10px] sm:text-xs text-red-500 mt-1">{errors.phone}</p>}
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-slate-700">Department</Label>
+                      <Label className="text-xs sm:text-sm font-medium text-slate-700">Department</Label>\
                       <Select value={departmentId} onValueChange={setDepartmentId} disabled={loading}>
-                        <SelectTrigger className="h-11">
+                        <SelectTrigger className="h-10 sm:h-11 text-xs sm:text-sm">
                           <SelectValue placeholder="Select department" />
                         </SelectTrigger>
                         <SelectContent>
@@ -604,9 +605,9 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="password" className="text-sm font-medium text-slate-700">New Password</Label>
+                      <Label htmlFor="password" className="text-xs sm:text-sm font-medium text-slate-700">New Password</Label>
                       <Input
                         id="password"
                         type="password"
@@ -617,13 +618,13 @@ export default function ProfilePage() {
                         }}
                         placeholder="••••••••"
                         disabled={loading}
-                        className={`h-11 ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
+                        className={`h-10 sm:h-11 text-xs sm:text-sm ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
-                      {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
+                      {errors.password && <p className="text-[10px] sm:text-xs text-red-500 mt-1">{errors.password}</p>}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-700">Confirm Password</Label>
+                      <Label htmlFor="confirmPassword" className="text-xs sm:text-sm font-medium text-slate-700">Confirm Password</Label>
                       <Input
                         id="confirmPassword"
                         type="password"
@@ -634,19 +635,30 @@ export default function ProfilePage() {
                         }}
                         placeholder="••••••••"
                         disabled={loading}
-                        className={`h-11 ${errors.confirmPassword ? 'border-red-500 focus:border-red-500' : ''}`}
+                        className={`h-10 sm:h-11 text-xs sm:text-sm ${errors.confirmPassword ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
-                      {errors.confirmPassword && <p className="text-xs text-red-500 mt-1">{errors.confirmPassword}</p>}
+                      {errors.confirmPassword && <p className="text-[10px] sm:text-xs text-red-500 mt-1">{errors.confirmPassword}</p>}
                     </div>
                   </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-slate-200">
+                <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-6 border-t border-slate-200">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCancel}
+                    disabled={loading}
+                    className="h-10 sm:h-11 text-xs sm:text-sm border-slate-300 hover:bg-slate-50"
+                    size="lg"
+                  >
+                    <X className="h-4 w-4 mr-1 sm:mr-2" />
+                    Cancel
+                  </Button>
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 h-11 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white shadow-lg"
+                    className="h-10 sm:h-11 text-xs sm:text-sm bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white shadow-lg"
                     size="lg"
                   >
                     {loading ? (
@@ -656,21 +668,10 @@ export default function ProfilePage() {
                       </>
                     ) : (
                       <>
-                        <Save className="h-4 w-4 mr-2" />
+                        <Save className="h-4 w-4 mr-1 sm:mr-2" />
                         Save Changes
                       </>
                     )}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleCancel}
-                    disabled={loading}
-                    className="flex-1 h-11 border-slate-300 hover:bg-slate-50"
-                    size="lg"
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Cancel
                   </Button>
                 </div>
               </form>

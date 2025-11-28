@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Database } from '@/types/database'
 import { Card } from '@/components/ui/card'
@@ -38,8 +38,7 @@ import {
   MoreVertical,
   Upload,
   Image as ImageIcon,
-  Sparkles,
-  Shield,
+  // Sparkles and Shield removed (hero section removed)
   Activity,
   Tag,
   Calendar,
@@ -77,6 +76,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
+import { useToast } from '@/hooks/use-toast'
+import * as XLSX from 'xlsx'
 
 interface AssetsPageProps {
   newAsset?: boolean
@@ -89,23 +90,26 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
   
   const PAGE_SIZE = 10
 
+  const { toast } = useToast()
+
   const getInitialFormState = () => ({
     name: '',
     description: '',
     serial_number: '',
-    category: '',
+    category: '__none',
     purchase_date: '',
     purchase_price: '',
     warranty_expiry: '',
     warranty_months: '',
     status: 'available',
-    assigned_to: '',
+    assigned_to: '__none',
   })
 
   const [assets, setAssets] = useState<Asset[]>([])
   const [filteredAssets, setFilteredAssets] = useState<Asset[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -116,6 +120,8 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const nameInputRef = useRef<HTMLInputElement | null>(null)
 
   const fetchAssets = async () => {
     setLoading(true)
@@ -166,12 +172,17 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
   const filterAssets = () => {
     let filtered = assets
 
+    // Non-admin users only see assets assigned to them
+    if (user?.role !== 'admin') {
+      filtered = filtered.filter(asset => asset.assigned_to === user?.id)
+    }
+
     if (statusFilter !== 'all') {
       filtered = filtered.filter(asset => asset.status === statusFilter)
     }
 
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase()
+    if (debouncedSearchTerm) {
+      const term = debouncedSearchTerm.toLowerCase()
       filtered = filtered.filter(asset => 
         asset.name?.toLowerCase().includes(term) ||
         asset.serial_number?.toLowerCase().includes(term) ||
@@ -192,11 +203,17 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
 
   useEffect(() => {
     filterAssets()
-  }, [assets, searchTerm, statusFilter])
+  }, [assets, debouncedSearchTerm, statusFilter])
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, statusFilter])
+  }, [debouncedSearchTerm, statusFilter])
+
+  // debounce searchTerm to reduce re-filters while typing
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearchTerm(searchTerm), 300)
+    return () => clearTimeout(t)
+  }, [searchTerm])
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(Math.max(filteredAssets.length, 1) / PAGE_SIZE))
@@ -209,12 +226,12 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
     const file = e.target.files?.[0]
     if (file) {
       if (!file.type.startsWith('image/')) {
-        alert('Please select an image file')
+        toast({ title: 'Invalid file', description: 'Please select an image file.' })
         return
       }
 
       if (file.size > 5 * 1024 * 1024) {
-        alert('Image size must be less than 5MB')
+        toast({ title: 'Image too large', description: 'Image size must be less than 5MB.' })
         return
       }
 
@@ -233,7 +250,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
 
     if (!user?.company_id) {
       console.error('Cannot upload photo: company_id is missing')
-      alert('Unable to upload photo. Company information is missing.')
+      toast({ title: 'Upload failed', description: 'Unable to upload photo. Company information is missing.' })
       return null
     }
 
@@ -261,7 +278,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
 
       if (uploadError) {
         console.error('Upload error:', uploadError)
-        alert(`Upload failed: ${uploadError.message}`)
+        toast({ title: 'Upload failed', description: uploadError.message })
         throw uploadError
       }
 
@@ -272,6 +289,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
       return data.publicUrl
     } catch (error) {
       console.error('Error uploading photo:', error)
+      toast({ title: 'Upload failed', description: 'An unexpected error occurred during upload.' })
       return null
     }
   }
@@ -281,19 +299,22 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
     setSubmitting(true)
 
     try {
+      const categoryValue = formData.category === '__none' ? null : (formData.category || null)
+      const assignedToValue = formData.assigned_to === '__none' ? null : (formData.assigned_to || null)
+
       const insertData: any = {
         name: formData.name,
         description: formData.description,
         serial_number: formData.serial_number || null,
-        category: formData.category || null,
+        category: categoryValue,
         photo_url: 'https://placehold.co/400x300/e2e8f0/64748b?text=No+Image',
         status: (formData.status || 'available') as Asset['status'],
         purchase_date: formData.purchase_date || null,
         purchase_price: formData.purchase_price ? Number(formData.purchase_price) : null,
         warranty_expiry: formData.warranty_expiry || null,
         warranty_months: formData.warranty_months ? Number(formData.warranty_months) : null,
-        assigned_to: formData.assigned_to || null,
-        assigned_at: formData.assigned_to ? new Date().toISOString() : null,
+        assigned_to: assignedToValue,
+        assigned_at: assignedToValue ? new Date().toISOString() : null,
       }
 
       if (user?.company_id) {
@@ -337,15 +358,17 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
       
       await fetchAssets()
       
+      // show success toast and navigate to created asset
       if (data?.id) {
+        toast({ title: 'Asset created', description: `${data.name} created successfully.` })
         navigate(`/app/assets/${data.id}`)
       }
     } catch (error: any) {
       console.error('Error creating asset:', error)
       if (error.message?.includes('company_id')) {
-        alert('Failed to create asset. Please ensure you are logged in correctly.')
+        toast({ title: 'Create failed', description: 'Failed to create asset. Please ensure you are logged in correctly.' })
       } else {
-        alert('Failed to create asset. Please check your permissions.')
+        toast({ title: 'Create failed', description: 'Failed to create asset. Please check your permissions.' })
       }
     } finally {
       setSubmitting(false)
@@ -413,9 +436,81 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
       await fetchAssets()
       setDeleteDialogOpen(false)
       setAssetToDelete(null)
+      toast({ title: 'Asset deleted', description: 'Asset removed successfully.' })
     } catch (err) {
       console.error('Error deleting asset:', err)
-      alert('Failed to delete asset: ' + (err instanceof Error ? err.message : 'Unknown error'))
+      toast({ title: 'Delete failed', description: 'Failed to delete asset: ' + (err instanceof Error ? err.message : 'Unknown error') })
+    }
+  }
+
+  const exportAssetsToCSV = () => {
+    const headers = ['Name', 'Serial', 'Category', 'Status', 'Assigned To', 'Purchase Date', 'Purchase Price', 'Warranty Expiry', 'Assigned At', 'Created At', 'Updated At', 'Photo URL', 'Description']
+    const rows = filteredAssets.map(a => [
+      a.name,
+      a.serial_number || '',
+      a.category || '',
+      a.status,
+      a.assigned_user?.full_name || '',
+      a.purchase_date || '',
+      a.purchase_price != null ? String(a.purchase_price) : '',
+      a.warranty_expiry || '',
+      (a as any).assigned_at || '',
+      a.created_at || '',
+      a.updated_at || '',
+      a.photo_url || '',
+      a.description || '',
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `assets-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    window.URL.revokeObjectURL(url)
+
+    toast({ title: 'Success', description: 'Assets exported as CSV' })
+  }
+
+  const exportAssetsToXLSX = () => {
+    try {
+      const data = filteredAssets.map(a => ({
+        Name: a.name,
+        Serial: a.serial_number || '',
+        Category: a.category || '',
+        Status: a.status,
+        AssignedTo: a.assigned_user?.full_name || '',
+        PurchaseDate: a.purchase_date || '',
+        PurchasePrice: a.purchase_price != null ? a.purchase_price : '',
+        WarrantyExpiry: a.warranty_expiry || '',
+        AssignedAt: (a as any).assigned_at || '',
+        CreatedAt: a.created_at || '',
+        UpdatedAt: a.updated_at || '',
+        PhotoURL: a.photo_url || '',
+        Description: a.description || '',
+      }))
+
+      const ws = XLSX.utils.json_to_sheet(data)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Assets')
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+      const blob = new Blob([wbout], { type: 'application/octet-stream' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `assets-${new Date().toISOString().split('T')[0]}.xlsx`
+      a.click()
+      window.URL.revokeObjectURL(url)
+
+      toast({ title: 'Success', description: 'Assets exported as Excel' })
+    } catch (err) {
+      console.error('XLSX export failed', err)
+      toast({ title: 'Export failed', description: 'Could not create Excel file' })
     }
   }
 
@@ -505,137 +600,51 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
     return pages
   }, [currentPage, totalPages])
 
+  // Keyboard shortcuts: / to focus search, Cmd/Ctrl+N to open new asset, Esc to close
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === '/' && document.activeElement !== searchInputRef.current) {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+        e.preventDefault()
+        if (user?.role === 'admin') openCreateDialog()
+      }
+
+      if (e.key === 'Escape') {
+        if (createDialogOpen) closeCreateDialog()
+      }
+    }
+
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [createDialogOpen, user?.role])
+
+  // Autofocus the first field when opening create dialog
+  useEffect(() => {
+    if (createDialogOpen) {
+      setTimeout(() => nameInputRef.current?.focus(), 50)
+    }
+  }, [createDialogOpen])
+
   return (
     <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-6 py-8 text-white shadow-lg shadow-slate-900/20">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent)]" />
-          <div className="absolute -top-24 -right-10 h-56 w-56 rounded-full bg-emerald-400/20 blur-3xl" />
-          <div className="absolute bottom-0 left-8 h-56 w-56 rounded-full bg-blue-500/20 blur-[120px]" />
-        </div>
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/5 px-3 py-1 text-[11px] font-semibold tracking-[0.2em] uppercase">
-              <Shield className="h-3.5 w-3.5" />
-              Assets
-            </div>
-            <div>
-              <h1 className="text-3xl lg:text-4xl font-semibold tracking-tight">Asset Operations</h1>
-              <p className="mt-2 text-sm text-white/70 max-w-2xl">
-                Calm, premium-grade visibility across every hardware lifecycle. Monitor utilization,
-                availability, and service posture in one focused view.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-4">
-              {heroMetrics.map((metric) => (
-                <div
-                  key={metric.label}
-                  className="min-w-[160px] rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur"
-                >
-                  <p className="text-xs uppercase tracking-wide text-white/70">{metric.label}</p>
-                  <p className="text-2xl font-semibold mt-1">{metric.value}</p>
-                  <p className="text-xs text-white/60">{metric.hint}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant="secondary"
-              className="h-11 rounded-xl border border-white/20 bg-white/10 px-5 text-white hover:bg-white/20"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Export Snapshot
-            </Button>
-            {user?.role === 'admin' && (
-              <Button
-                onClick={toggleForm}
-                className="h-11 rounded-xl bg-white px-6 text-slate-900 shadow-lg shadow-slate-900/20 hover:bg-slate-50"
-              >
-                <Sparkles className="mr-2 h-4 w-4 text-slate-600" />
-                Add Asset
-              </Button>
-            )}
-          </div>
-        </div>
-      </section>
+      {/* Hero section removed to simplify UI and free space for actions */}
 
-      <div className="grid gap-4 xl:grid-cols-3">
-        <Card className="xl:col-span-2 rounded-3xl border-0 bg-slate-950 text-white">
-          <div className="p-6 space-y-5">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-white/60">Portfolio overview</p>
-                <h2 className="text-xl font-semibold">Executive snapshot</h2>
-              </div>
-              <Badge className="bg-white/10 text-white border-0">
-                {totalAssets} tracked assets
-              </Badge>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              {heroMetrics.map((metric) => (
-                <div key={metric.label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-white/60">{metric.label}</p>
-                  <p className="text-3xl font-semibold mt-1">{metric.value}</p>
-                  <p className="text-xs text-white/60">{metric.hint}</p>
-                </div>
-              ))}
-            </div>
-            <div className="text-sm text-white/70 leading-relaxed">
-              Precision view across availability, utilization, and care load — tuned for premium fleet reviews.
-            </div>
+      <Card className="rounded-3xl border-slate-200 shadow-sm">
+        <div className="p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Inventory</p>
+            <h3 className="text-sm font-medium text-slate-900">Snapshot</h3>
+            <p className="text-xs text-slate-500 mt-1">{totalAssets} assets • {assignedAssets.length} assigned • {availableAssets.length} available</p>
           </div>
-        </Card>
-
-        <div className="space-y-4">
-          <Card className="rounded-3xl border-slate-200 shadow-sm">
-            <div className="p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Status mix</p>
-                  <h3 className="text-base font-semibold text-slate-900">Distribution</h3>
-                </div>
-                <Package className="h-4 w-4 text-slate-400" />
-              </div>
-              {[
-                { label: 'Available', value: availableAssets.length, percent: availabilityRate, color: 'bg-emerald-500' },
-                { label: 'Assigned', value: assignedAssets.length, percent: utilizationRate, color: 'bg-blue-500' },
-                { label: 'Maintenance', value: maintenanceAssets.length, percent: maintenanceRate, color: 'bg-amber-500' },
-              ].map((item) => (
-                <div key={item.label}>
-                  <div className="flex items-center justify-between text-sm text-slate-600">
-                    <span className="font-medium">{item.label}</span>
-                    <span>{item.percent}%</span>
-                  </div>
-                  <div className="mt-2 h-2 rounded-full bg-slate-100">
-                    <div
-                      className={`h-2 rounded-full ${item.color}`}
-                      style={{ width: `${item.percent}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">{item.value} assets</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-          <Card className="rounded-3xl border-slate-200 shadow-sm">
-            <div className="p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Signals</p>
-                  <h3 className="text-base font-semibold text-slate-900">Lifecycle notes</h3>
-                </div>
-                <Activity className="h-4 w-4 text-slate-400" />
-              </div>
-              <div className="space-y-3 text-sm text-slate-600">
-                <p>• {utilizationRate}% of assets earning value in-field</p>
-                <p>• {availabilityRate}% of hardware ready for immediate deploy</p>
-                <p>• {maintenanceRate}% currently under service care</p>
-              </div>
-            </div>
-          </Card>
+          <Badge variant="secondary" className="bg-slate-100 text-slate-700 border-0">
+            {totalAssets} tracked
+          </Badge>
         </div>
-      </div>
+      </Card>
 
       <Card className="rounded-3xl border-slate-200 shadow-sm">
         <div className="p-4 lg:p-6 space-y-4">
@@ -644,6 +653,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Search by name, serial, or category..."
+                ref={searchInputRef}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9 rounded-xl text-sm h-11"
@@ -674,68 +684,103 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
           </div>
         </div>
         {filteredAssets.length > 0 && (
-          <div className="border-t border-slate-100 px-4 py-4 lg:px-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <p className="text-sm text-slate-500">
-                Page {currentPage} of {totalPages}
-              </p>
-              {totalPages > 1 && (
-                <Pagination className="justify-start lg:justify-end">
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          goToPage(currentPage - 1)
-                        }}
-                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                      />
-                    </PaginationItem>
-                    {paginationStructure.map((entry, idx) =>
-                      typeof entry === 'string' ? (
-                        <PaginationItem key={`${entry}-${idx}`}>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      ) : (
-                        <PaginationItem key={entry}>
-                          <PaginationLink
+          <div className="border-t border-slate-100 px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
+              <div className="flex flex-col gap-3 lg:gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <p className="text-xs sm:text-sm text-slate-500">Page {currentPage} of {totalPages}</p>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportAssetsToCSV}
+                    disabled={filteredAssets.length === 0}
+                    className="flex-1 sm:flex-none text-xs sm:text-sm h-10 sm:h-11"
+                  >
+                    <Download className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                    <span className="hidden sm:inline">CSV</span>
+                    <span className="sm:hidden">CSV</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportAssetsToXLSX}
+                    disabled={filteredAssets.length === 0}
+                    className="flex-1 sm:flex-none text-xs sm:text-sm h-10 sm:h-11"
+                  >
+                    <Download className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                    <span className="hidden sm:inline">Excel</span>
+                    <span className="sm:hidden">Excel</span>
+                  </Button>
+
+                  {totalPages > 1 && (
+                    <Pagination className="justify-start lg:justify-end">
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
                             href="#"
-                            isActive={entry === currentPage}
                             onClick={(e) => {
                               e.preventDefault()
-                              goToPage(entry)
+                              goToPage(currentPage - 1)
                             }}
-                          >
-                            {entry}
-                          </PaginationLink>
+                            className={`text-xs sm:text-sm h-10 sm:h-11 ${currentPage === 1 ? 'pointer-events-none opacity-50' : ''}`}
+                          />
                         </PaginationItem>
-                      )
-                    )}
-                    <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          goToPage(currentPage + 1)
-                        }}
-                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              )}
-            </div>
+                        {paginationStructure.map((entry, idx) =>
+                          typeof entry === 'string' ? (
+                            <PaginationItem key={`${entry}-${idx}`}>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                          ) : (
+                            <PaginationItem key={entry}>
+                              <PaginationLink
+                                href="#"
+                                isActive={entry === currentPage}
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  goToPage(entry)
+                                }}
+                                className="text-xs sm:text-sm h-10 sm:h-11"
+                              >
+                                {entry}
+                              </PaginationLink>
+                            </PaginationItem>
+                          )
+                        )}
+                        <PaginationItem>
+                          <PaginationNext
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              goToPage(currentPage + 1)
+                            }}
+                            className={`text-xs sm:text-sm h-10 sm:h-11 ${currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}`}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  )}
+                </div>
+              </div>
           </div>
         )}
       </Card>
+
+      {user?.role === 'admin' && (
+        <Button
+          onClick={openCreateDialog}
+          title="Add asset"
+          className="fixed bottom-6 right-6 z-50 h-14 w-14 sm:h-12 sm:w-12 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg hover:shadow-xl flex items-center justify-center transition-all active:scale-95"
+        >
+          <Plus className="h-6 w-6 sm:h-5 sm:w-5" />
+        </Button>
+      )}
 
       <Dialog
         open={Boolean(createDialogOpen && user?.role === 'admin')}
         onOpenChange={(isOpen) => (isOpen ? openCreateDialog() : closeCreateDialog())}
       >
-        <DialogContent className="max-w-5xl border-0 p-0 overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr]">
+        <DialogContent className="max-w-6xl mx-4 my-8 max-h-[90vh] overflow-auto border-0 p-0 rounded-2xl lg:rounded-3xl">
+          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-0">
             <div className="relative bg-slate-950 text-white p-6 space-y-6">
               <div className="space-y-3">
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.3em]">
@@ -785,6 +830,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                   type="file"
                   accept="image/*"
                   onChange={handlePhotoChange}
+                  disabled={submitting}
                   className="text-sm cursor-pointer bg-white/5 text-white placeholder:text-white/50 file:text-slate-900"
                 />
               </div>
@@ -813,6 +859,8 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                     <Label>Asset name *</Label>
                     <Input
                       required
+                      ref={nameInputRef}
+                      disabled={submitting}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="MacBook Pro 16”"
@@ -821,6 +869,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                   <div className="space-y-2">
                     <Label>Serial number</Label>
                     <Input
+                      disabled={submitting}
                       value={formData.serial_number}
                       onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
                       placeholder="SN123456"
@@ -832,6 +881,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                   <div className="space-y-2">
                     <Label>Category</Label>
                     <Select
+                      disabled={submitting}
                       value={formData.category}
                       onValueChange={(value) => setFormData({ ...formData, category: value })}
                     >
@@ -839,7 +889,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Uncategorized</SelectItem>
+                        <SelectItem value="__none">Uncategorized</SelectItem>
                         <SelectItem value="laptop">Laptop</SelectItem>
                         <SelectItem value="desktop">Desktop</SelectItem>
                         <SelectItem value="monitor">Monitor</SelectItem>
@@ -853,6 +903,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                   <div className="space-y-2">
                     <Label>Status</Label>
                     <Select
+                      disabled={submitting}
                       value={formData.status}
                       onValueChange={(value) => setFormData({ ...formData, status: value })}
                     >
@@ -873,6 +924,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                   <div className="space-y-2">
                     <Label>Purchase date</Label>
                     <Input
+                      disabled={submitting}
                       type="date"
                       value={formData.purchase_date}
                       onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
@@ -881,6 +933,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                   <div className="space-y-2">
                     <Label>Purchase price</Label>
                     <Input
+                      disabled={submitting}
                       type="number"
                       min="0"
                       step="0.01"
@@ -895,6 +948,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                   <div className="space-y-2">
                     <Label>Warranty months</Label>
                     <Input
+                      disabled={submitting}
                       type="number"
                       min="0"
                       value={formData.warranty_months}
@@ -905,6 +959,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                   <div className="space-y-2">
                     <Label>Warranty expiry</Label>
                     <Input
+                      disabled={submitting}
                       type="date"
                       value={formData.warranty_expiry}
                       onChange={(e) => setFormData({ ...formData, warranty_expiry: e.target.value })}
@@ -915,6 +970,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                 <div className="space-y-2">
                   <Label>Assign to</Label>
                   <Select
+                    disabled={submitting}
                     value={formData.assigned_to}
                     onValueChange={(value) => setFormData({ ...formData, assigned_to: value })}
                   >
@@ -922,7 +978,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                       <SelectValue placeholder="Keep unassigned" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
+                      <SelectItem value="__none">Unassigned</SelectItem>
                       {companyUsers.map((companyUser) => (
                         <SelectItem key={companyUser.id} value={companyUser.id}>
                           {companyUser.full_name || 'Unnamed'} {companyUser.email ? `(${companyUser.email})` : ''}
@@ -935,6 +991,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                 <div className="space-y-2">
                   <Label>Description *</Label>
                   <Textarea
+                    disabled={submitting}
                     required
                     rows={4}
                     value={formData.description}
@@ -981,48 +1038,48 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
               <p className="text-sm text-slate-500">No assets match the current filters.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {paginatedAssets.map((asset) => (
                 <div
                   key={asset.id}
-                  className="rounded-3xl border border-slate-100 bg-white px-4 py-5 lg:p-6 shadow-sm hover:shadow-lg transition"
+                  className="rounded-2xl lg:rounded-3xl border border-slate-100 bg-white px-3 sm:px-4 lg:px-6 py-4 sm:py-5 lg:py-6 shadow-sm hover:shadow-lg transition"
                 >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-                    <div className="flex items-start gap-4 flex-1">
+                  <div className="flex flex-col gap-3 lg:gap-4 lg:flex-row lg:items-center">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
                       <img
                         src={asset.photo_url}
                         alt={asset.name}
-                        className="h-20 w-20 lg:h-24 lg:w-24 rounded-2xl object-cover border border-slate-100 shadow-sm"
+                        className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24 rounded-xl lg:rounded-2xl object-cover border border-slate-100 shadow-sm flex-shrink-0"
                       />
-                      <div className="space-y-2 w-full">
+                      <div className="space-y-2 w-full min-w-0">
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                          <div>
-                            <p className="text-base font-semibold text-slate-900">{asset.name}</p>
-                            <p className="text-xs text-slate-500">{asset.serial_number || '—'}</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm sm:text-base font-semibold text-slate-900 truncate">{asset.name}</p>
+                            <p className="text-[10px] sm:text-xs text-slate-500 truncate">{asset.serial_number || '—'}</p>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
                             <Badge
-                              className={`text-[11px] ${assetStatusAccent[asset.status]?.badge ?? 'bg-slate-100 text-slate-600 border-0'}`}
+                              className={`text-[10px] sm:text-xs ${assetStatusAccent[asset.status]?.badge ?? 'bg-slate-100 text-slate-600 border-0'}`}
                             >
                               {asset.status}
                             </Badge>
-                            <Badge variant="outline" className="capitalize text-[11px]">
+                            <Badge variant="outline" className="capitalize text-[10px] sm:text-xs">
                               {asset.category || 'Uncategorized'}
                             </Badge>
                           </div>
                         </div>
                         {asset.description && (
-                          <p className="text-sm text-slate-500">{asset.description}</p>
+                          <p className="text-xs sm:text-sm text-slate-500 line-clamp-2">{asset.description}</p>
                         )}
-                        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-slate-500">
                           {asset.assigned_user?.full_name ? (
                             <span className="flex items-center gap-1">
-                              <Box className="h-3.5 w-3.5 text-slate-400" />
+                              <Box className="h-3 w-3 text-slate-400 flex-shrink-0" />
                               Assigned to {asset.assigned_user.full_name}
                             </span>
                           ) : (
                             <span className="flex items-center gap-1 text-emerald-600">
-                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
                               Ready to assign
                             </span>
                           )}
@@ -1032,10 +1089,10 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-3 sm:flex-row lg:flex-col lg:w-[180px]">
+                    <div className="flex flex-col gap-2 sm:flex-row lg:flex-col lg:w-[180px] w-full sm:w-auto">
                       <Button
                         variant="outline"
-                        className="rounded-2xl h-11 text-sm"
+                        className="rounded-lg lg:rounded-2xl h-10 sm:h-11 text-xs sm:text-sm"
                         onClick={() => navigate(`/app/assets/${asset.id}`)}
                       >
                         View details
@@ -1043,9 +1100,9 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                       {user?.role === 'admin' && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="rounded-2xl h-11 text-sm border border-slate-200">
+                            <Button variant="ghost" className="rounded-lg lg:rounded-2xl h-10 sm:h-11 text-xs sm:text-sm border border-slate-200">
                               More
-                              <MoreVertical className="h-4 w-4 ml-2" />
+                              <MoreVertical className="h-4 w-4 ml-2 flex-shrink-0" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -1074,18 +1131,18 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="max-w-[90vw] lg:max-w-lg rounded-3xl">
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-[500px] lg:max-w-lg rounded-2xl lg:rounded-3xl mx-4">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-lg lg:text-xl text-slate-900">Delete Asset</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm lg:text-base text-slate-600">
+            <AlertDialogDescription className="text-xs sm:text-sm lg:text-base text-slate-600">
               Are you sure you want to delete "{assetToDelete?.name}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl h-11 lg:h-10">Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel className="rounded-lg lg:rounded-xl h-10 sm:h-11 text-xs sm:text-sm">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
-              className="bg-red-600 hover:bg-red-700 rounded-xl h-11 lg:h-10"
+              className="bg-red-600 hover:bg-red-700 rounded-lg lg:rounded-xl h-10 sm:h-11 text-xs sm:text-sm"
             >
               Delete
             </AlertDialogAction>

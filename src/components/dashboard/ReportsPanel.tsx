@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Download, FileText, Users, Package, Ticket, FileSpreadsheet } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 import * as XLSX from 'xlsx'
 
 interface ReportsPanelProps {
@@ -10,11 +11,16 @@ interface ReportsPanelProps {
 }
 
 export default function ReportsPanel({ noCard = false }: ReportsPanelProps) {
+  const { toast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
 
   const downloadCSV = (data: any[], filename: string) => {
     if (data.length === 0) {
-      alert('No data to export')
+      toast({
+        title: 'No Data',
+        description: 'There is no data available to export',
+        variant: 'destructive'
+      })
       return
     }
 
@@ -44,7 +50,11 @@ export default function ReportsPanel({ noCard = false }: ReportsPanelProps) {
 
   const downloadExcel = (data: any[], filename: string, sheetName: string = 'Sheet1') => {
     if (data.length === 0) {
-      alert('No data to export')
+      toast({
+        title: 'No Data',
+        description: 'There is no data available to export',
+        variant: 'destructive'
+      })
       return
     }
 
@@ -82,7 +92,11 @@ export default function ReportsPanel({ noCard = false }: ReportsPanelProps) {
       }
     } catch (error) {
       console.error('Error generating users report:', error)
-      alert('Failed to generate report')
+      toast({
+        title: 'Error',
+        description: 'Failed to generate users report',
+        variant: 'destructive'
+      })
     } finally {
       setLoading(null)
     }
@@ -127,7 +141,11 @@ export default function ReportsPanel({ noCard = false }: ReportsPanelProps) {
       }
     } catch (error) {
       console.error('Error generating assets report:', error)
-      alert('Failed to generate report')
+      toast({
+        title: 'Error',
+        description: 'Failed to generate assets report',
+        variant: 'destructive'
+      })
     } finally {
       setLoading(null)
     }
@@ -174,7 +192,11 @@ export default function ReportsPanel({ noCard = false }: ReportsPanelProps) {
       }
     } catch (error) {
       console.error('Error generating tickets report:', error)
-      alert('Failed to generate report')
+      toast({
+        title: 'Error',
+        description: 'Failed to generate tickets report',
+        variant: 'destructive'
+      })
     } finally {
       setLoading(null)
     }
@@ -216,7 +238,11 @@ export default function ReportsPanel({ noCard = false }: ReportsPanelProps) {
       }
     } catch (error) {
       console.error('Error generating system report:', error)
-      alert('Failed to generate report')
+      toast({
+        title: 'Error',
+        description: 'Failed to generate system summary report',
+        variant: 'destructive'
+      })
     } finally {
       setLoading(null)
     }

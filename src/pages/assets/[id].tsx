@@ -20,12 +20,12 @@ import {
   Download,
   Package,
   RefreshCcw,
-  Shield,
   Sparkles,
   Tag,
   User,
   Wrench,
 } from 'lucide-react'
+import * as XLSX from 'xlsx'
 
 type AssetRow = Database['public']['Tables']['assets']['Row']
 type UserRow = Database['public']['Tables']['users']['Row']
@@ -87,11 +87,17 @@ export default function AssetDetailPage() {
   const [timeline, setTimeline] = useState<HistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [statusUpdating, setStatusUpdating] = useState(false)
+  const [companyUsers, setCompanyUsers] = useState<UserRow[]>([])
+  const [assignmentUpdating, setAssignmentUpdating] = useState(false)
+  const [usersLoading, setUsersLoading] = useState(false)
 
   useEffect(() => {
     if (!id) return
     loadAsset()
-  }, [id, user?.company_id])
+    if (user?.role === 'admin') {
+      loadCompanyUsers()
+    }
+  }, [id, user?.company_id, user?.role])
 
   const loadAsset = async () => {
     if (!id || !user?.company_id) return
@@ -163,6 +169,52 @@ export default function AssetDetailPage() {
     }
   }
 
+  const loadCompanyUsers = async () => {
+    if (!user?.company_id) return
+    setUsersLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('company_id', user.company_id)
+        .order('full_name')
+      if (error) throw error
+      setCompanyUsers((data as UserRow[]) || [])
+    } catch (err) {
+      console.error('Failed to load company users', err)
+    } finally {
+      setUsersLoading(false)
+    }
+  }
+
+  const handleAssignmentChange = async (userId: string | null) => {
+    if (!asset) return
+    setAssignmentUpdating(true)
+    try {
+      const { error } = await supabase
+        .from('assets')
+        .update({ assigned_to: userId })
+        .eq('id', asset.id)
+      if (error) throw error
+      
+      const userName = userId ? (companyUsers.find(u => u.id === userId)?.full_name || 'Unknown user') : 'Unassigned'
+      setAsset({ ...asset, assigned_to: userId })
+      toast({
+        title: userId ? 'Asset reassigned' : 'Asset unassigned',
+        description: userId ? `Asset assigned to ${userName}.` : 'Asset is now available for assignment.',
+      })
+    } catch (err) {
+      console.error('Failed to assign asset', err)
+      toast({
+        variant: 'destructive',
+        title: 'Assignment failed',
+        description: err instanceof Error ? err.message : 'Please try again.',
+      })
+    } finally {
+      setAssignmentUpdating(false)
+    }
+  }
+
   const heroMetrics = useMemo(() => {
     if (!asset) return []
 
@@ -223,6 +275,71 @@ export default function AssetDetailPage() {
 
   const assetImage = asset.photo_url || 'https://placehold.co/600x400/f1f5f9/94a3b8?text=Asset+Photo'
 
+  const exportAssetToXLSX = () => {
+    try {
+      const obj: Record<string, any> = {
+        ID: asset.id,
+        Name: asset.name,
+        Description: asset.description || '',
+        Serial: asset.serial_number || '',
+        Category: asset.category || '',
+        Status: asset.status,
+        AssignedTo: asset.assigned_user?.full_name || '',
+        PurchaseDate: asset.purchase_date || '',
+        PurchasePrice: asset.purchase_price != null ? asset.purchase_price : '',
+        WarrantyExpiry: asset.warranty_expiry || '',
+        CreatedAt: asset.created_at || '',
+        UpdatedAt: asset.updated_at || '',
+        PhotoURL: asset.photo_url || '',
+      }
+
+      const ws = XLSX.utils.json_to_sheet([obj])
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Asset')
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+      const blob = new Blob([wbout], { type: 'application/octet-stream' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `asset-${asset.id}.xlsx`
+      a.click()
+      window.URL.revokeObjectURL(url)
+
+      toast({ title: 'Success', description: 'Asset exported as Excel' })
+    } catch (err) {
+      console.error('Asset XLSX export failed', err)
+      toast({ title: 'Export failed', description: 'Could not create Excel file' })
+    }
+  }
+
+  const exportAssetToPDF = async () => {
+    try {
+      const node = document.getElementById('asset-detail-export')
+      if (!node) throw new Error('Export element not found')
+
+      const html2canvasMod = await import('html2canvas')
+      const jspdfMod = await import('jspdf')
+      const html2canvas = (html2canvasMod as any).default || html2canvasMod
+      const { jsPDF } = jspdfMod as any
+
+      const canvas = await html2canvas(node, { scale: 2 })
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pageWidth = pdf.internal.pageSize.getWidth()
+
+      const imgWidth = pageWidth - 20 // margins
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+      pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight)
+      pdf.save(`asset-${asset.id}.pdf`)
+
+      toast({ title: 'Success', description: 'Asset exported as PDF' })
+    } catch (err) {
+      console.error('PDF export failed', err)
+      toast({ title: 'Export failed', description: 'Could not create PDF' })
+    }
+  }
+
   return (
     <div className="space-y-6 lg:space-y-8">
       <Button
@@ -234,66 +351,62 @@ export default function AssetDetailPage() {
         Back to inventory
       </Button>
 
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-lg shadow-slate-900/20">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent)]" />
-          <div className="absolute -top-20 -right-10 h-56 w-56 rounded-full bg-emerald-400/20 blur-3xl" />
-          <div className="absolute bottom-0 left-0 h-80 w-80 rounded-full bg-blue-500/20 blur-[140px]" />
-        </div>
-        <div className="relative px-6 py-8 lg:px-10 lg:py-12 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-5 w-full">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.2em] uppercase">
-              <Shield className="h-3.5 w-3.5" />
-              Asset Profile
-            </div>
-            <div className="w-full">
-              <div className="relative rounded-[28px] overflow-hidden border border-white/10 bg-white/5">
-                <img
-                  src={assetImage}
-                  alt={`${asset.name} photo`}
-                  className="h-56 w-full object-cover"
-                />
-                <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-slate-900/50 to-transparent" />
-              </div>
-            </div>
-            <div className="space-y-3">
-              <h1 className="text-3xl lg:text-4xl font-semibold tracking-tight">{asset.name}</h1>
-              <div className="flex flex-wrap items-center gap-2 text-sm text-white/70">
-                <Badge className={`text-xs ${statusTokens[asset.status].badge} capitalize`}>
-                  {statusTokens[asset.status].label}
-                </Badge>
-                <span className="text-white/60">ID: {asset.id.slice(0, 8)}</span>
-                {assetAge && <span className="text-white/60">{assetAge}</span>}
-              </div>
-              {asset.description && <p className="text-sm text-white/80 max-w-2xl">{asset.description}</p>}
-            </div>
-            <div className="flex flex-wrap gap-4">
-              {heroMetrics.map((metric) => {
-                const Icon = metric.icon
-                return (
-                  <div
-                    key={metric.label}
-                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 min-w-[150px] backdrop-blur"
-                  >
-                    <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-white/60">
-                      <Icon className="h-3.5 w-3.5" />
-                      {metric.label}
-                    </div>
-                    <p className="text-lg font-semibold mt-1">{metric.value}</p>
-                  </div>
-                )
-              })}
+      <section className="relative rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-lg shadow-slate-900/20 overflow-hidden">
+        <div id="asset-detail-export" className="relative px-4 py-6 lg:px-8 lg:py-8 grid gap-6 lg:grid-cols-[1fr_420px] items-start">
+          {/* Left: large image panel */}
+          <div className="w-full">
+            <div className="rounded-3xl overflow-hidden border border-white/10 bg-white/5">
+              <img
+                src={assetImage}
+                alt={`${asset.name} photo`}
+                className="w-full h-[520px] sm:h-[440px] md:h-[520px] lg:h-[640px] object-cover"
+              />
             </div>
           </div>
-          <div className="flex flex-col gap-3 lg:items-end">
-            <Button variant="secondary" className="bg-white/10 text-white border border-white/20 rounded-2xl h-11 px-6">
-              <Download className="h-4 w-4 mr-2" />
-              Export dossier
-            </Button>
-            <Button className="bg-white text-slate-900 rounded-2xl shadow-lg shadow-slate-900/20 h-11 px-6">
-              <Sparkles className="h-4 w-4 mr-2 text-slate-600" />
-              New service action
-            </Button>
+
+          {/* Right: compact info/actions */}
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.2em] uppercase">
+              Asset Profile
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">{asset.name}</h1>
+              <div className="flex items-center gap-2 mt-2">
+                <Badge className={`text-xs ${statusTokens[asset.status].badge} capitalize`}>{statusTokens[asset.status].label}</Badge>
+                <span className="text-white/60 text-sm">ID: {asset.id.slice(0, 8)}</span>
+              </div>
+              {assetAge && <div className="text-xs text-white/60 mt-1">{assetAge}</div>}
+              {asset.description && <p className="text-sm text-white/80 mt-3">{asset.description}</p>}
+            </div>
+
+            <div className="grid gap-3">
+              {heroMetrics.map((m) => (
+                <div key={m.label} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-sm">
+                  <div className="flex items-center gap-2 text-xs text-white/60">
+                    <m.icon className="h-4 w-4" />
+                    {m.label}
+                  </div>
+                  <div className="font-semibold">{m.value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-3 pt-2">
+              <div className="flex gap-2">
+                <Button variant="outline" className="rounded-2xl h-10 px-4" onClick={exportAssetToPDF}>
+                  <Download className="h-4 w-4 mr-2" />
+                  PDF
+                </Button>
+                <Button variant="outline" className="rounded-2xl h-10 px-4" onClick={exportAssetToXLSX}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Excel
+                </Button>
+                <Button onClick={() => {}} className="bg-white text-slate-900 rounded-2xl h-10 px-4">
+                  <Sparkles className="h-4 w-4 mr-2 text-slate-600" />
+                  Action
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -380,7 +493,28 @@ export default function AssetDetailPage() {
                 </Select>
               )}
             </div>
-            {asset.assigned_user ? (
+            {user?.role === 'admin' ? (
+              <div className="rounded-2xl border border-slate-100 p-4 space-y-3">
+                <p className="text-sm font-medium text-slate-800">Assign to team member</p>
+                <Select
+                  value={asset.assigned_to || '__none'}
+                  onValueChange={(value) => handleAssignmentChange(value === '__none' ? null : value)}
+                  disabled={assignmentUpdating || usersLoading}
+                >
+                  <SelectTrigger className="w-full rounded-2xl">
+                    <SelectValue placeholder={usersLoading ? 'Loading users...' : 'Select user'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">Unassigned</SelectItem>
+                    {companyUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : asset.assigned_user ? (
               <div className="flex items-center gap-3 rounded-2xl border border-slate-100 p-4">
                 <Avatar className="h-12 w-12">
                   <AvatarImage src={asset.assigned_user.avatar_url || undefined} />
@@ -400,14 +534,6 @@ export default function AssetDetailPage() {
               <div className="rounded-2xl border border-dashed border-slate-200 p-5 text-center">
                 <p className="text-sm font-medium text-slate-800">Unassigned asset</p>
                 <p className="text-xs text-slate-500">Perfect candidate for upcoming onboardings.</p>
-                <Button
-                  variant="outline"
-                  className="mt-3 rounded-2xl text-sm"
-                  onClick={() => navigate('/app/users')}
-                >
-                  <User className="h-4 w-4 mr-2" />
-                  Assign to user
-                </Button>
               </div>
             )}
             <Separator />

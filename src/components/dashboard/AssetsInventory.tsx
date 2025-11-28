@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Search, Trash2, Eye, Filter, Package } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +32,7 @@ interface AssetsInventoryProps {
 
 export default function AssetsInventory({ fullView = false, noCard = false }: AssetsInventoryProps) {
   const navigate = useNavigate()
+  const { toast } = useToast()
   const [assets, setAssets] = useState<Asset[]>([])
   const [filteredAssets, setFilteredAssets] = useState<Asset[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -120,7 +122,11 @@ export default function AssetsInventory({ fullView = false, noCard = false }: As
 
     if (error) {
       console.error('Error deleting asset:', error)
-      alert('Failed to delete asset. It may have associated tickets.')
+      toast({
+        title: 'Error',
+        description: 'Failed to delete asset. It may have associated tickets.',
+        variant: 'destructive'
+      })
     } else {
       setAssets(assets.filter(a => a.id !== assetToDelete.id))
     }
