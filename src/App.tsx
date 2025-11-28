@@ -27,6 +27,7 @@ import TeamsPage from './pages/TeamsPage'
 import CallPage from './pages/CallPage'
 import SettingsPage from './pages/SettingsPage'
 import QRScannerPage from './pages/QRScannerPage'
+import WorkingAreaPage from './pages/WorkingArea'
 
 import Layout from './app/layout'
 
@@ -283,6 +284,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <QRScannerPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 📁 Working Area */}
+      <Route
+        path="/app/working-area"
+        element={
+          <ProtectedRoute>
+            <WorkingAreaPage />
           </ProtectedRoute>
         }
       />

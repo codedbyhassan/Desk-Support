@@ -16,6 +16,7 @@ import {
   Users,
   User,
   Settings,
+  FileText,
 } from 'lucide-react'
 import { NavItem } from '@/components/layout/types'
 
@@ -125,6 +126,13 @@ export default function Layout({ children }: LayoutProps) {
       href: '/app/teams', 
       icon: Users,
       description: 'Team management'
+    },
+    { 
+      id: 'working-area',
+      name: 'Files', 
+      href: '/app/working-area', 
+      icon: FileText,
+      description: 'File management and storage'
     },
     { 
       id: 'users',
