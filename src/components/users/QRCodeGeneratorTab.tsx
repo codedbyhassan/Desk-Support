@@ -414,8 +414,8 @@ export default function QRCodeGeneratorTab() {
             <QrCode className="h-6 w-6 text-white" />
           </div>
         <div>
-            <h2 className="text-2xl lg:text-3xl font-bold text-slate-900">QR Code Generator</h2>
-            <p className="text-sm text-slate-500">Create and manage attendance QR codes</p>
+            <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">QR Code Generator</h2>
+            <p className="text-sm text-slate-500 dark:text-white">Create and manage attendance QR codes</p>
           </div>
         </div>
         </div>
@@ -620,31 +620,28 @@ export default function QRCodeGeneratorTab() {
                     {Object.entries(actionConfig).map(([value, config]) => {
                       const Icon = config.icon
                       return (
-                        <Card
-                          key={value}
-                          className={cn(
-                            'cursor-pointer transition-all border-2',
-                            formData.action === value
-                              ? 'border-blue-500 bg-blue-50/50'
-                              : 'border-slate-200 hover:border-slate-300'
-                          )}
-                          onClick={() => setFormData({ ...formData, action: value as QRCodeAction })}
-                        >
-                          <CardContent className="p-4">
+                        <div key={value}>
+                          <RadioGroupItem value={value} id={value} className="hidden" />
+                          <Label
+                            htmlFor={value}
+                            className={cn(
+                              'block cursor-pointer transition-all border-2 rounded-lg p-4',
+                              formData.action === value
+                                ? 'border-blue-500 bg-blue-50/50'
+                                : 'border-slate-200 hover:border-slate-300'
+                            )}
+                          >
                             <div className="flex items-center gap-3">
-                              <RadioGroupItem value={value} id={value} />
-                              <Label htmlFor={value} className="cursor-pointer flex-1 flex items-center gap-2">
-                                <Icon className="h-4 w-4" />
-                                <span className="text-sm">{config.label}</span>
-                                {value === 'toggle' && (
-                                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs ml-auto">
-                                    Recommended
-                                  </Badge>
-                                )}
-                              </Label>
+                              <Icon className="h-4 w-4" />
+                              <span className="text-sm">{config.label}</span>
+                              {value === 'toggle' && (
+                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs ml-auto">
+                                  Recommended
+                                </Badge>
+                              )}
                             </div>
-                          </CardContent>
-                        </Card>
+                          </Label>
+                        </div>
                       )
                     })}
                   </RadioGroup>
@@ -971,7 +968,7 @@ export default function QRCodeGeneratorTab() {
                               {status.label}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-xs text-slate-600">
+                          <TableCell className="text-xs text-slate-600 dark:text-white">
                             {format(new Date(qr.created_at), 'MMM dd, yyyy')}
                           </TableCell>
                           <TableCell className="text-right">
@@ -1018,7 +1015,7 @@ export default function QRCodeGeneratorTab() {
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <p className="font-semibold text-sm">{qr.location_name}</p>
-                            <p className="text-xs text-slate-500 mt-1">
+                            <p className="text-xs text-slate-500 dark:text-white mt-1">
                               {format(new Date(qr.created_at), 'MMM dd, yyyy')}
                             </p>
                           </div>

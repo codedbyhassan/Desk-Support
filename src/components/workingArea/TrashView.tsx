@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Trash2, RotateCcw, Trash, Loader, AlertCircle, Calendar, File, Folder } from 'lucide-react';
 import { WorkingAreaTrash } from '@/types/workingArea';
+import { supabase } from '@/lib/supabase';
 
 interface TrashViewProps {
   onClose?: () => void;
@@ -37,14 +38,39 @@ export const TrashView: React.FC<TrashViewProps> = ({
   const loadTrashItems = async () => {
     try {
       setIsLoading(true);
-      // In a real implementation, fetch from Supabase
-      // const { data: trashItems } = await supabase
-      //   .from('working_area_trash')
-      //   .select('*')
-      //   .order('deleted_at', { ascending: false });
-
-      // For now, initialize with empty trash
-      setItems([]);
+      
+      // Get current user for filtering
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+      
+      // Fetch deleted items for current user
+      const { data: trashItems, error } = await supabase
+        .from('working_area_trash')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('deleted_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Calculate days remaining and format for display
+      const now = new Date();
+      const TRASH_RETENTION_DAYS = 30;
+      
+      const itemsWithCountdown: TrashItemDisplay[] = (trashItems || []).map(item => {
+        const deletedDate = new Date(item.deleted_at);
+        const expiryDate = new Date(deletedDate.getTime() + TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+        const daysRemaining = Math.ceil((expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+        
+        return {
+          ...item,
+          daysRemaining: Math.max(0, daysRemaining),
+          autoDeletesIn: daysRemaining > 0 
+            ? `${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}`
+            : 'Today'
+        };
+      });
+      
+      setItems(itemsWithCountdown);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load trash';
       showNotification?.(message, 'error');
@@ -57,11 +83,22 @@ export const TrashView: React.FC<TrashViewProps> = ({
   const handleRestore = async (itemId: string) => {
     try {
       setIsRestoring(true);
-      // In a real implementation:
-      // await supabase
-      //   .from('working_area_trash')
-      //   .delete()
-      //   .eq('id', itemId);
+      
+      // Find item to determine its type
+      const item = items.find(i => i.id === itemId);
+      if (!item) throw new Error('Item not found');
+      
+      // Restore by setting deleted_at to NULL
+      const tableName = item.item_type === 'folder' 
+        ? 'working_area_folders' 
+        : 'working_area_files';
+      
+      const { error } = await supabase
+        .from(tableName)
+        .update({ deleted_at: null })
+        .eq('id', item.original_item_id);
+      
+      if (error) throw error;
       
       showNotification?.('Item restored successfully', 'success');
       setItems((prev) => prev.filter((item) => item.id !== itemId));
@@ -81,11 +118,18 @@ export const TrashView: React.FC<TrashViewProps> = ({
   const handleDelete = async (itemId: string) => {
     try {
       setIsDeleting(true);
-      // In a real implementation:
-      // await supabase
-      //   .from('working_area_trash')
-      //   .delete()
-      //   .eq('id', itemId);
+      
+      // Find item to determine its type
+      const item = items.find(i => i.id === itemId);
+      if (!item) throw new Error('Item not found');
+      
+      // Permanently delete from trash
+      const { error } = await supabase
+        .from('working_area_trash')
+        .delete()
+        .eq('id', itemId);
+      
+      if (error) throw error;
       
       showNotification?.('Item deleted permanently', 'success');
       setItems((prev) => prev.filter((item) => item.id !== itemId));
@@ -105,7 +149,36 @@ export const TrashView: React.FC<TrashViewProps> = ({
   const handleRestoreSelected = async () => {
     try {
       setIsRestoring(true);
-      // In a real implementation, batch restore from Supabase
+      
+      // Get all items to restore
+      const itemsToRestore = items.filter(item => selectedItems.includes(item.id));
+      
+      // Group by type for batch operations
+      const folders = itemsToRestore.filter(i => i.item_type === 'folder');
+      const files = itemsToRestore.filter(i => i.item_type === 'file');
+      
+      // Batch restore folders
+      if (folders.length > 0) {
+        const folderIds = folders.map(f => f.original_item_id);
+        const { error } = await supabase
+          .from('working_area_folders')
+          .update({ deleted_at: null })
+          .in('id', folderIds);
+        
+        if (error) throw error;
+      }
+      
+      // Batch restore files
+      if (files.length > 0) {
+        const fileIds = files.map(f => f.original_item_id);
+        const { error } = await supabase
+          .from('working_area_files')
+          .update({ deleted_at: null })
+          .in('id', fileIds);
+        
+        if (error) throw error;
+      }
+      
       showNotification?.(
         `${selectedItems.length} item${selectedItems.length !== 1 ? 's' : ''} restored`,
         'success'
@@ -128,7 +201,15 @@ export const TrashView: React.FC<TrashViewProps> = ({
 
     try {
       setIsDeleting(true);
-      // In a real implementation, batch delete from Supabase
+      
+      // Batch delete from trash permanently
+      const { error } = await supabase
+        .from('working_area_trash')
+        .delete()
+        .in('id', selectedItems);
+      
+      if (error) throw error;
+      
       showNotification?.(
         `${selectedItems.length} item${selectedItems.length !== 1 ? 's' : ''} deleted`,
         'success'

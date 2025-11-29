@@ -35,7 +35,7 @@ export function Sidebar({ navItems, primaryColor }: SidebarProps) {
       <div 
         className={`relative h-full w-16 flex flex-col items-center py-6 gap-2 transition-colors duration-300 ${
           theme === 'dark' 
-            ? 'bg-gradient-to-b from-[#190019] via-[#2B124C] to-[#190019] border-r border-[#522B5B]/30' 
+            ? 'bg-gradient-to-b from-[#0d1117] via-[#0d1117] to-[#0d1117] border-r border-[#151a1f]' 
             : `bg-gradient-to-b from-[${primaryColor}] to-[${lightenColor(primaryColor, -10)}] border-r border-white/20`
         }`}
         style={theme === 'light' ? {
@@ -57,8 +57,8 @@ export function Sidebar({ navItems, primaryColor }: SidebarProps) {
                 } ${
                   theme === 'dark'
                     ? isActive 
-                      ? 'bg-[#522B5B] border border-[#854F6C]/40 shadow-lg' 
-                      : 'bg-[#2B124C]/50 hover:bg-[#2B124C] border border-transparent hover:border-[#522B5B]/30'
+                      ? 'bg-white border-2 border-white shadow-lg' 
+                      : 'bg-transparent hover:bg-[#151a1f] border border-transparent hover:border-[#151a1f]'
                     : isActive 
                       ? 'bg-white shadow-md' 
                       : 'bg-white/15 hover:bg-white/25'
@@ -69,17 +69,17 @@ export function Sidebar({ navItems, primaryColor }: SidebarProps) {
                   size={18} 
                   className={`transition-colors ${
                     theme === 'dark'
-                      ? isActive ? 'text-[#FBE4D8]' : 'text-[#DFB6B2]'
+                      ? isActive ? 'text-black' : 'text-white/70 group-hover:text-white'
                       : isActive ? 'text-slate-800' : 'text-white'
                   }`}
                   style={theme === 'light' && isActive ? { color: primaryColor } : undefined}
                 />
                 {item.badge && (
                   <span 
-                    className="absolute -top-2 -right-2 flex items-center justify-center min-w-[20px] h-[20px] px-0.5 text-[10px] font-bold rounded-full text-[#FBE4D8]"
+                    className="absolute -top-2 -right-2 flex items-center justify-center min-w-[20px] h-[20px] px-0.5 text-[10px] font-bold rounded-full text-white"
                     style={{ 
                       backgroundColor: theme === 'dark' 
-                        ? (isActive ? '#854F6C' : '#ef4444')
+                        ? (isActive ? '#ef4444' : '#ef4444')
                         : (isActive ? primaryColor : '#ef4444')
                     }}
                   >

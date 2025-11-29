@@ -132,19 +132,12 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
           *,
           assigned_user:assigned_to(full_name, email, company_id)
         `)
+        .eq('company_id', user?.company_id || '')
         .order('created_at', { ascending: false })
 
       if (error) throw error
       
-      if (data && user?.company_id) {
-        const validAssets = data.filter(asset => asset.company_id === user.company_id)
-        if (validAssets.length !== data.length) {
-          console.warn('RLS filtering mismatch detected')
-        }
-        setAssets(validAssets)
-      } else {
-        setAssets(data || [])
-      }
+      setAssets(data || [])
     } catch (error) {
       console.error('Error fetching assets:', error)
     } finally {
@@ -344,6 +337,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
       if (data && user?.id) {
         await supabase.from('audit_logs').insert({
           user_id: user.id,
+          company_id: user.company_id,
           action: 'ASSET_CREATED',
           target_type: 'asset',
           target_id: data.id,
@@ -423,6 +417,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
       if (user?.id) {
         await supabase.from('audit_logs').insert({
           user_id: user.id,
+          company_id: user.company_id,
           action: 'ASSET_DELETED',
           target_type: 'asset',
           target_id: assetToDelete.id,
@@ -1092,7 +1087,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                     <div className="flex flex-col gap-2 sm:flex-row lg:flex-col lg:w-[180px] w-full sm:w-auto">
                       <Button
                         variant="outline"
-                        className="rounded-lg lg:rounded-2xl h-10 sm:h-11 text-xs sm:text-sm"
+                        className="rounded-lg lg:rounded-2xl h-10 sm:h-11 text-xs sm:text-sm text-slate-900 dark:text-white"
                         onClick={() => navigate(`/app/assets/${asset.id}`)}
                       >
                         View details

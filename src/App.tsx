@@ -12,6 +12,7 @@ import { ToastContainer } from '@/components/ToastNotification'
 // ✅ Pages
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
+import VerificationPage from './pages/VerificationPage'
 import DashboardPage from './pages/DashboardPage'
 import TicketsPage from './pages/TicketsPage'
 import TicketDetailPage from '@/pages/tickets/[id]'
@@ -120,6 +121,10 @@ function AppRoutes() {
         element={
           user ? <Navigate to="/app/dashboard" replace /> : <LoginPage defaultToSignUp={true} />
         }
+      />
+      <Route
+        path="/verify-email"
+        element={<VerificationPage />}
       />
 
       {/* 🔒 Protected Routes */}

@@ -416,8 +416,8 @@ export default function AssetDetailPage() {
           <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">Asset insights</p>
-                <h2 className="text-lg font-semibold text-slate-900">Operational snapshot</h2>
+                <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">Asset insights</p>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Operational snapshot</h2>
               </div>
               <Badge variant="outline" className="rounded-full text-xs capitalize">
                 {asset.category || 'Uncategorized'}
@@ -425,28 +425,28 @@ export default function AssetDetailPage() {
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-2xl border border-slate-100 p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Serial Number</p>
-                <p className="text-base font-semibold text-slate-900 mt-1">{asset.serial_number || '—'}</p>
-                <p className="text-xs text-slate-500 mt-1">Tracked identifier for compliance.</p>
+                <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">Serial Number</p>
+                <p className="text-base font-semibold text-slate-900 dark:text-white mt-1">{asset.serial_number || '—'}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-300 mt-1">Tracked identifier for compliance.</p>
               </div>
               <div className="rounded-2xl border border-slate-100 p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Lifecycle</p>
-                <p className="text-base font-semibold text-slate-900 mt-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">Lifecycle</p>
+                <p className="text-base font-semibold text-slate-900 dark:text-white mt-1">
                   {asset.purchase_date ? formatDate(asset.purchase_date) : 'Not recorded'}
                 </p>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-300 mt-1">
                   Warranty {asset.warranty_expiry ? `until ${formatDate(asset.warranty_expiry)}` : 'not configured'}
                 </p>
               </div>
               <div className="rounded-2xl border border-slate-100 p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Current Status</p>
+                <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">Current Status</p>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge className={`text-xs ${statusTokens[asset.status].badge}`}>{statusTokens[asset.status].label}</Badge>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${statusTokens[asset.status].chip}`}>
                     Updated {formatDate(asset.updated_at)}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-300 mt-1">
                   {asset.status === 'available'
                     ? 'Ready for immediate assignment.'
                     : asset.status === 'assigned'
@@ -457,11 +457,11 @@ export default function AssetDetailPage() {
                 </p>
               </div>
               <div className="rounded-2xl border border-slate-100 p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Investment</p>
-                <p className="text-base font-semibold text-slate-900 mt-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">Investment</p>
+                <p className="text-base font-semibold text-slate-900 dark:text-white mt-1">
                   {asset.purchase_price ? `$${asset.purchase_price.toLocaleString()}` : 'Not provided'}
                 </p>
-                <p className="text-xs text-slate-500 mt-1">Capex reference for finance teams.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-300 mt-1">Capex reference for finance teams.</p>
               </div>
             </div>
           </div>
@@ -471,8 +471,8 @@ export default function AssetDetailPage() {
           <div className="p-6 space-y-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">Ownership</p>
-                <h2 className="text-lg font-semibold text-slate-900">Assignment</h2>
+                <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">Ownership</p>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Assignment</h2>
               </div>
               {user?.role === 'admin' && (
                 <Select
@@ -495,7 +495,7 @@ export default function AssetDetailPage() {
             </div>
             {user?.role === 'admin' ? (
               <div className="rounded-2xl border border-slate-100 p-4 space-y-3">
-                <p className="text-sm font-medium text-slate-800">Assign to team member</p>
+                <p className="text-sm font-medium text-slate-800 dark:text-white">Assign to team member</p>
                 <Select
                   value={asset.assigned_to || '__none'}
                   onValueChange={(value) => handleAssignmentChange(value === '__none' ? null : value)}
@@ -538,7 +538,7 @@ export default function AssetDetailPage() {
             )}
             <Separator />
             <div className="space-y-3">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Quick actions</p>
+              <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">Quick actions</p>
               <div className="space-y-2">
                 <Button variant="outline" className="w-full rounded-2xl justify-between">
                   Open service ticket
@@ -559,8 +559,8 @@ export default function AssetDetailPage() {
           <div className="p-6 space-y-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">Lifecycle</p>
-                <h2 className="text-lg font-semibold text-slate-900">Activity timeline</h2>
+                <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">Lifecycle</p>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Activity timeline</h2>
               </div>
               <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-700 border-0">
                 {timeline.length} events
@@ -568,8 +568,8 @@ export default function AssetDetailPage() {
             </div>
             {timeline.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center">
-                <Activity className="mx-auto h-6 w-6 text-slate-300" />
-                <p className="mt-3 text-sm text-slate-500">No recorded events yet.</p>
+                <Activity className="mx-auto h-6 w-6 text-slate-300 dark:text-slate-500" />
+                <p className="mt-3 text-sm text-slate-500 dark:text-slate-300">No recorded events yet.</p>
               </div>
             ) : (
               <ol className="space-y-4">
@@ -577,16 +577,16 @@ export default function AssetDetailPage() {
                   <li key={entry.id} className="relative pl-6">
                     <span className="absolute left-0 top-2 h-3 w-3 rounded-full bg-slate-300" />
                     <div className="flex items-center justify-between gap-4">
-                      <p className="text-sm font-semibold text-slate-900 capitalize">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white capitalize">
                         {entry.action.replace(/_/g, ' ')}
                       </p>
-                      <span className="text-xs text-slate-400">{formatDate(entry.created_at, true)}</span>
+                      <span className="text-xs text-slate-400 dark:text-slate-400">{formatDate(entry.created_at, true)}</span>
                     </div>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 dark:text-slate-300">
                       by {entry.performer?.full_name || 'System'}
                       {entry.assignee?.full_name ? ` • assignee: ${entry.assignee.full_name}` : ''}
                     </p>
-                    {entry.notes && <p className="text-sm text-slate-600 mt-1">{entry.notes}</p>}
+                    {entry.notes && <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{entry.notes}</p>}
                   </li>
                 ))}
               </ol>
@@ -598,8 +598,8 @@ export default function AssetDetailPage() {
           <div className="p-6 space-y-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">Readiness</p>
-                <h2 className="text-lg font-semibold text-slate-900">Health & compliance</h2>
+                <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">Readiness</p>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Health & compliance</h2>
               </div>
               <Badge variant="outline" className="rounded-full text-xs">
                 Monitored
@@ -611,8 +611,8 @@ export default function AssetDetailPage() {
                   <CheckCircle2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">Security posture</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Security posture</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-300">
                     {asset.status === 'retired'
                       ? 'Archived from compliance scope.'
                       : 'Asset meets baseline hardening controls.'}
@@ -624,8 +624,8 @@ export default function AssetDetailPage() {
                   <Wrench className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">Maintenance cadence</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Maintenance cadence</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-300">
                     {asset.status === 'maintenance'
                       ? 'Currently undergoing service.'
                       : 'No open service orders.'}
@@ -637,8 +637,8 @@ export default function AssetDetailPage() {
                   <AlertTriangle className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">Warranty status</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Warranty status</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-300">
                     {asset.warranty_expiry ? `Coverage until ${formatDate(asset.warranty_expiry)}` : 'Warranty not tracked'}
                   </p>
                 </div>

@@ -205,11 +205,11 @@ export default function ReportsPanel({ noCard = false }: ReportsPanelProps) {
   const handleFullSystemReport = async (format: 'csv' | 'excel' = 'excel') => {
     setLoading('system')
     try {
-      // Fetch all data
+      // Fetch all data - filtered by company_id
       const [usersRes, assetsRes, ticketsRes] = await Promise.all([
-        supabase.from('users').select('*'),
-        supabase.from('assets').select('*'),
-        supabase.from('tickets').select('*')
+        supabase.from('users').select('*').eq('company_id', user?.company_id || ''),
+        supabase.from('assets').select('*').eq('company_id', user?.company_id || ''),
+        supabase.from('tickets').select('*').eq('company_id', user?.company_id || '')
       ])
 
       if (usersRes.error || assetsRes.error || ticketsRes.error) {

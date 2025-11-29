@@ -39,7 +39,7 @@ export default function UsersPage() {
         onValueChange={setActiveTab} 
         className="space-y-3 sm:space-y-4 lg:space-y-6 px-0"
       >
-        <TabsList className="grid w-full grid-cols-3 lg:max-w-2xl bg-muted p-1 rounded-lg gap-1 h-auto mx-4 sm:mx-0">
+        <TabsList className="hidden">
           <TabsTrigger 
             value="management" 
             className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-[11px] sm:text-xs lg:text-sm text-foreground py-2 sm:py-2.5"

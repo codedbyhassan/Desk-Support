@@ -16,8 +16,12 @@ export async function logAudit(
       return
     }
 
+    // Get company_id from user metadata
+    const companyId = (user?.user_metadata as any)?.company_id || user.id
+
     const { error } = await supabase.from('audit_logs').insert({
       user_id: user.id,
+      company_id: companyId,
       action,
       target_type: table,
       target_id: targetId,

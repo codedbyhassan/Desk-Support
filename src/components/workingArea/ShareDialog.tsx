@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Search, Loader, Check, Trash2, Calendar } from 'lucide-react';
 import { AccessLevel, ShareType, UserInfo, TeamInfo } from '@/types/workingArea';
+import { supabase } from '@/lib/supabase';
 
 interface ShareDialogProps {
   isOpen: boolean;
@@ -83,14 +84,28 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
   const loadCurrentAccess = async () => {
     try {
       setIsLoading(true);
-      // In a real implementation, fetch from Supabase
-      // const { data: access } = await supabase
-      //   .from('working_area_access')
-      //   .select('*')
-      //   .eq('folder_id', folderId);
       
-      // For now, initialize with empty access
-      setCurrentAccess([]);
+      // Fetch current access grants for this folder
+      const { data: access, error } = await supabase
+        .from('working_area_access')
+        .select('*')
+        .eq('folder_id', folderId);
+      
+      if (error) throw error;
+      
+      // Transform access records to AccessItem format
+      const accessItems: AccessItem[] = (access || []).map(a => ({
+        id: a.id,
+        type: a.user_id ? 'user' : 'team',
+        name: a.user_id ? a.user_id : a.team_id || 'Unknown',
+        email: a.user_id ? a.user_id : undefined,
+        permissionLevel: a.access_level as AccessLevel,
+        grantedBy: a.granted_by || 'System',
+        expiresAt: a.expires_at ? new Date(a.expires_at) : undefined,
+        createdAt: new Date(a.created_at)
+      }));
+      
+      setCurrentAccess(accessItems);
     } catch (error) {
       console.error('Failed to load access:', error);
       showNotification?.('Failed to load sharing information', 'error');

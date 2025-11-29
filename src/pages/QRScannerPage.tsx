@@ -197,11 +197,11 @@ export default function QRScannerPage() {
                   <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
                 )}
               </div>
-              <p className="text-[10px] sm:text-xs font-medium text-slate-600 uppercase tracking-wide mb-1">Today</p>
-              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900">
+              <p className="text-[10px] sm:text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-1">Today</p>
+              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 dark:text-white">
                 {attendanceHistory.today.present > 0 ? '✓' : '✗'}
               </p>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-300 mt-1">
                 {attendanceHistory.today.hours > 0 ? `${attendanceHistory.today.hours}h` : 'No hours'}
               </p>
             </div>
@@ -215,11 +215,11 @@ export default function QRScannerPage() {
                   <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
               </div>
-              <p className="text-[10px] sm:text-xs font-medium text-slate-600 uppercase tracking-wide mb-1">This Week</p>
-              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900">
+              <p className="text-[10px] sm:text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-1">This Week</p>
+              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 dark:text-white">
                 {attendanceHistory.week.present}/{attendanceHistory.week.total}
               </p>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-300 mt-1">
                 {attendanceHistory.week.hours}h total
               </p>
             </div>
@@ -233,11 +233,11 @@ export default function QRScannerPage() {
                   <Award className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
               </div>
-              <p className="text-[10px] sm:text-xs font-medium text-slate-600 uppercase tracking-wide mb-1">This Month</p>
-              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900">
+              <p className="text-[10px] sm:text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-1">This Month</p>
+              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 dark:text-white">
                 {attendanceHistory.month.present}/{attendanceHistory.month.total}
               </p>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-300 mt-1">
                 {attendanceHistory.month.hours}h total
               </p>
             </div>
@@ -251,11 +251,11 @@ export default function QRScannerPage() {
                   <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
               </div>
-              <p className="text-[10px] sm:text-xs font-medium text-slate-600 uppercase tracking-wide mb-1">This Year</p>
-              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900">
+              <p className="text-[10px] sm:text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-1">This Year</p>
+              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 dark:text-white">
                 {attendanceHistory.year.present}/{attendanceHistory.year.total}
               </p>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-300 mt-1">
                 {attendanceHistory.year.hours}h total
               </p>
             </div>
@@ -272,8 +272,8 @@ export default function QRScannerPage() {
                   <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-base sm:text-lg font-semibold text-slate-900">Today's Status</h3>
-                  <p className="text-xs sm:text-sm text-slate-500">Current attendance status</p>
+                  <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">Today's Status</h3>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-300">Current attendance status</p>
                 </div>
               </div>
 
@@ -286,19 +286,19 @@ export default function QRScannerPage() {
                     </div>
                   </div>
                   <div>
-                    <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900">{status.label}</h3>
+                    <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">{status.label}</h3>
                     {attendanceStatus.clockInTime && (
                       <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mt-3 lg:mt-4">
-                        <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/60 backdrop-blur-sm rounded-lg">
-                          <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-slate-600" />
-                          <span className="text-[10px] sm:text-sm font-semibold text-slate-900">
+                        <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/60 dark:bg-slate-700/60 backdrop-blur-sm rounded-lg">
+                          <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-slate-600 dark:text-slate-300" />
+                          <span className="text-[10px] sm:text-sm font-semibold text-slate-900 dark:text-white">
                             {attendanceStatus.clockInTime}
                           </span>
                         </div>
                         {attendanceStatus.elapsedHours && (
-                          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/60 backdrop-blur-sm rounded-lg">
-                            <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-slate-600" />
-                            <span className="text-[10px] sm:text-sm font-semibold text-slate-900">
+                          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/60 dark:bg-slate-700/60 backdrop-blur-sm rounded-lg">
+                            <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-slate-600 dark:text-slate-300" />
+                            <span className="text-[10px] sm:text-sm font-semibold text-slate-900 dark:text-white">
                               {attendanceStatus.elapsedHours}
                             </span>
                           </div>
@@ -319,8 +319,8 @@ export default function QRScannerPage() {
                   <Camera className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-base sm:text-lg font-semibold text-slate-900">Scanner</h3>
-                  <p className="text-xs sm:text-sm text-slate-500">Scan QR code</p>
+                  <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">Scanner</h3>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-300">Scan QR code</p>
                 </div>
               </div>
 

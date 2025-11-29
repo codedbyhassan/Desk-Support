@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTickets } from '@/hooks/useTickets'
+import { useDashboardTab } from '@/context/DashboardTabContext'
 import { TicketList } from '@/components/Ticket/TicketList'
 import { TicketForm } from '@/components/Ticket/TicketForm'
 import { Button } from '@/components/ui/button'
@@ -52,6 +53,7 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
   const { user } = useAuth()
   const { toast } = useToast()
   const { tickets, loading, fetchTickets } = useTickets()
+  const { activeTab, setActiveTab } = useDashboardTab()
   const [showForm, setShowForm] = useState(newTicket || location.search.includes('new=true'))
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -59,7 +61,13 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [ticketToDelete, setTicketToDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [ticketViewTab, setTicketViewTab] = useState<'incoming' | 'outgoing'>('incoming')
+  
+  // Ensure activeTab is set to incoming when page loads
+  useEffect(() => {
+    if (!activeTab || (activeTab !== 'incoming' && activeTab !== 'outgoing')) {
+      setActiveTab('incoming')
+    }
+  }, [])
 
   useEffect(() => {
     if (user?.company_id) {
@@ -170,7 +178,7 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
 
   // Get the currently displayed tickets based on active tab
   // Incoming = tickets assigned to me, Outgoing = tickets created by me
-  const displayedTickets = ticketViewTab === 'incoming' ? departmentTickets : personalTickets
+  const displayedTickets = activeTab === 'incoming' ? departmentTickets : personalTickets
 
   // Old filtered tickets (for backwards compatibility if needed)
   const filteredTickets = tickets.filter(ticket => {
@@ -204,13 +212,13 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
       {/* Header with Breadcrumb */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between px-4 sm:px-0">
         <div className="space-y-1 lg:space-y-2 flex-1 min-w-0">
-          <div className="flex items-center gap-2 text-xs lg:text-sm text-slate-500 overflow-x-auto">
+          <div className="flex items-center gap-2 text-xs lg:text-sm dark:text-white/60 text-slate-500 overflow-x-auto">
             <span className="whitespace-nowrap">Support</span>
             <span className="flex-shrink-0">/</span>
-            <span className="text-slate-900 font-medium whitespace-nowrap">Tickets</span>
+            <span className="dark:text-white text-slate-900 font-medium whitespace-nowrap">Tickets</span>
           </div>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 break-words">Support Tickets</h1>
-          <p className="text-xs sm:text-sm lg:text-base text-slate-500">Track, manage, and resolve customer support requests</p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold dark:text-white text-slate-900 break-words">Support Tickets</h1>
+          <p className="text-xs sm:text-sm lg:text-base dark:text-white/70 text-slate-500">Track, manage, and resolve customer support requests</p>
         </div>
         <div className="flex gap-2 flex-shrink-0 w-full sm:w-auto">
           <Button variant="outline" className="rounded-lg lg:rounded-xl border-slate-200 h-10 sm:h-11 lg:h-10 flex-1 sm:flex-none text-xs sm:text-sm">
@@ -231,21 +239,21 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
 
       {/* Ticket View Tabs - Incoming vs Outgoing */}
       <Tabs
-        value={ticketViewTab}
-        onValueChange={(val) => setTicketViewTab(val as 'incoming' | 'outgoing')}
+        value={activeTab}
+        onValueChange={(val) => setActiveTab(val as 'incoming' | 'outgoing')}
         className="w-full px-4 sm:px-0"
       >
-        <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1 rounded-lg lg:rounded-xl h-auto gap-1">
+        <TabsList className="hidden">
           <TabsTrigger 
             value="incoming" 
-            className="py-2 sm:py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md lg:rounded-lg transition-all text-xs sm:text-sm lg:text-base font-medium"
+            className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground"
           >
             Incoming
-            <Badge variant="secondary" className="ml-1 sm:ml-2 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">{departmentTickets.length}</Badge>
+            <Badge variant="secondary" className="ml-2">{departmentTickets.length}</Badge>
           </TabsTrigger>
           <TabsTrigger 
             value="outgoing" 
-            className="py-2 sm:py-2.5 lg:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md lg:rounded-lg transition-all text-xs sm:text-sm lg:text-base font-medium"
+            className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground"
           >
             Outgoing
             <Badge variant="secondary" className="ml-1 sm:ml-2 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">{personalTickets.length}</Badge>
@@ -318,7 +326,7 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="space-y-1">
                 <h2 className="text-base sm:text-lg font-semibold text-slate-900">
-                  {ticketViewTab === 'incoming'
+                  {activeTab === 'incoming'
                     ? 'Incoming Tickets (Assigned to Me)'
                     : 'Outgoing Tickets (My Tickets)'}
                 </h2>

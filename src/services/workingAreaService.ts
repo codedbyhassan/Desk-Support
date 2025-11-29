@@ -77,11 +77,12 @@ export class WorkingAreaFolderService {
   /**
    * Get folder details with stats
    */
-  static async getFolderWithStats(folderId: string): Promise<FolderWithStats> {
+  static async getFolderWithStats(folderId: string, companyId: string): Promise<FolderWithStats> {
     const { data: folder, error: folderError } = await supabase
       .from('working_area_folders')
       .select('*')
       .eq('id', folderId)
+      .eq('company_id', companyId)
       .is('deleted_at', null)
       .single();
 
@@ -92,6 +93,7 @@ export class WorkingAreaFolderService {
       .from('working_area_files')
       .select('*', { count: 'exact', head: true })
       .eq('folder_id', folderId)
+      .eq('company_id', companyId)
       .is('deleted_at', null)
       .eq('is_current_version', true);
 
@@ -100,11 +102,13 @@ export class WorkingAreaFolderService {
       .from('working_area_folders')
       .select('*', { count: 'exact', head: true })
       .eq('parent_folder_id', folderId)
+      .eq('company_id', companyId)
       .is('deleted_at', null);
 
     // Calculate folder size
     const { data: sizeData } = await supabase.rpc('calculate_folder_size', {
-      p_folder_id: folderId
+      p_folder_id: folderId,
+      p_company_id: companyId
     });
 
     return {
@@ -120,6 +124,7 @@ export class WorkingAreaFolderService {
    */
   static async getFolderContents(
     folderId: string,
+    companyId: string,
     options?: {
       sort_by?: 'name' | 'modified' | 'size' | 'type';
       sort_order?: 'asc' | 'desc';
@@ -136,6 +141,7 @@ export class WorkingAreaFolderService {
       .from('working_area_folders')
       .select('*', { count: 'exact' })
       .eq('parent_folder_id', folderId)
+      .eq('company_id', companyId)
       .is('deleted_at', null)
       .order(sortBy === 'name' ? 'name' : 'created_at', { ascending: sortOrder === 'asc' });
 
@@ -149,6 +155,7 @@ export class WorkingAreaFolderService {
       .from('working_area_files')
       .select('*', { count: 'exact' })
       .eq('folder_id', folderId)
+      .eq('company_id', companyId)
       .is('deleted_at', null)
       .eq('is_current_version', true)
       .order(sortBy === 'name' ? 'name' : sortBy === 'size' ? 'size_bytes' : 'created_at', {
@@ -334,6 +341,7 @@ export class WorkingAreaFileService {
       .from('working_area_files')
       .select('*')
       .eq('folder_id', folderId)
+      .eq('company_id', companyId)
       .eq('checksum', checksum)
       .eq('is_current_version', true)
       .is('deleted_at', null);
@@ -400,6 +408,7 @@ export class WorkingAreaFileService {
       .from('working_area_files')
       .select('*')
       .eq('id', fileId)
+      .eq('company_id', companyId)
       .eq('is_current_version', true)
       .single();
 
@@ -428,11 +437,12 @@ export class WorkingAreaFileService {
   /**
    * Get file details
    */
-  static async getFile(fileId: string): Promise<WorkingAreaFile> {
+  static async getFile(fileId: string, companyId: string): Promise<WorkingAreaFile> {
     const { data, error } = await supabase
       .from('working_area_files')
       .select('*')
       .eq('id', fileId)
+      .eq('company_id', companyId)
       .is('deleted_at', null)
       .single();
 
@@ -504,11 +514,12 @@ export class WorkingAreaFileService {
   /**
    * Get file version history
    */
-  static async getFileVersions(fileId: string): Promise<WorkingAreaFile[]> {
+  static async getFileVersions(fileId: string, companyId: string): Promise<WorkingAreaFile[]> {
     const { data, error } = await supabase
       .from('working_area_files')
       .select('*')
       .eq('id', fileId)
+      .eq('company_id', companyId)
       .order('version_number', { ascending: false });
 
     if (error) throw new Error(`Failed to fetch versions: ${error.message}`);
@@ -566,6 +577,7 @@ export class WorkingAreaAccessService {
   static async grantAccess(
     folderId: string,
     grantedBy: string,
+    companyId: string,
     request: GrantAccessRequest
   ): Promise<WorkingAreaAccess[]> {
     const accessRecords: WorkingAreaAccess[] = [];
@@ -577,6 +589,7 @@ export class WorkingAreaAccessService {
           .from('working_area_access')
           .insert({
             folder_id: folderId,
+            company_id: companyId,
             user_id: userId,
             permission_level: request.permission_level,
             granted_by: grantedBy,
@@ -596,6 +609,7 @@ export class WorkingAreaAccessService {
           .from('working_area_access')
           .insert({
             folder_id: folderId,
+            company_id: companyId,
             team_id: teamId,
             permission_level: request.permission_level,
             granted_by: grantedBy,
@@ -614,7 +628,7 @@ export class WorkingAreaAccessService {
   /**
    * Get access list for folder
    */
-  static async getFolderAccess(folderId: string): Promise<AccessWithDetails[]> {
+  static async getFolderAccess(folderId: string, companyId: string): Promise<AccessWithDetails[]> {
     const { data, error } = await supabase
       .from('working_area_access')
       .select(`
@@ -623,7 +637,8 @@ export class WorkingAreaAccessService {
         team:team_id(id, name),
         granted_by_user:granted_by(email, full_name)
       `)
-      .eq('folder_id', folderId);
+      .eq('folder_id', folderId)
+      .eq('company_id', companyId);
 
     if (error) throw new Error(`Failed to fetch access list: ${error.message}`);
     return (data || []) as AccessWithDetails[];
@@ -632,11 +647,12 @@ export class WorkingAreaAccessService {
   /**
    * Revoke access
    */
-  static async revokeAccess(accessId: string): Promise<void> {
+  static async revokeAccess(accessId: string, companyId: string): Promise<void> {
     const { error } = await supabase
       .from('working_area_access')
       .delete()
-      .eq('id', accessId);
+      .eq('id', accessId)
+      .eq('company_id', companyId);
 
     if (error) throw new Error(`Failed to revoke access: ${error.message}`);
   }
@@ -647,6 +663,7 @@ export class WorkingAreaAccessService {
   static async checkPermission(
     userId: string,
     folderId: string,
+    companyId: string,
     requiredLevel: PermissionLevel
   ): Promise<boolean> {
     // First check if user owns the folder
@@ -654,6 +671,7 @@ export class WorkingAreaAccessService {
       .from('working_area_folders')
       .select('owner_id')
       .eq('id', folderId)
+      .eq('company_id', companyId)
       .single();
 
     if (folder?.owner_id === userId) return true;
@@ -664,6 +682,7 @@ export class WorkingAreaAccessService {
       .select('permission_level')
       .eq('folder_id', folderId)
       .eq('user_id', userId)
+      .eq('company_id', companyId)
       .is('deleted_at', null)
       .single();
 
@@ -769,11 +788,12 @@ export class WorkingAreaTrashService {
   /**
    * Get user trash items
    */
-  static async getUserTrash(userId: string, limit = 50, offset = 0): Promise<PaginatedResponse<WorkingAreaTrash>> {
+  static async getUserTrash(userId: string, companyId: string, limit = 50, offset = 0): Promise<PaginatedResponse<WorkingAreaTrash>> {
     const { data, count, error } = await supabase
       .from('working_area_trash')
       .select('*', { count: 'exact' })
       .eq('deleted_by', userId)
+      .eq('company_id', companyId)
       .order('deleted_at', { ascending: false })
       .limit(limit)
       .range(offset, offset + limit - 1);
@@ -841,13 +861,15 @@ export class WorkingAreaTrashService {
    */
   static async permanentlyDelete(
     trashId: string,
-    userId: string
+    userId: string,
+    companyId: string
   ): Promise<void> {
     const { data: trash, error: fetchError } = await supabase
       .from('working_area_trash')
       .select('*')
       .eq('id', trashId)
       .eq('deleted_by', userId)
+      .eq('company_id', companyId)
       .single();
 
     if (fetchError) throw new Error(`Trash item not found: ${fetchError.message}`);
@@ -857,13 +879,15 @@ export class WorkingAreaTrashService {
       await supabase
         .from('working_area_folders')
         .delete()
-        .eq('id', trash.entity_id);
+        .eq('id', trash.entity_id)
+        .eq('company_id', companyId);
     } else if (trash.entity_type === 'file') {
       // Also delete from storage
       const { data: file } = await supabase
         .from('working_area_files')
         .select('storage_path')
         .eq('id', trash.entity_id)
+        .eq('company_id', companyId)
         .single();
 
       if (file?.storage_path) {
@@ -873,14 +897,16 @@ export class WorkingAreaTrashService {
       await supabase
         .from('working_area_files')
         .delete()
-        .eq('id', trash.entity_id);
+        .eq('id', trash.entity_id)
+        .eq('company_id', companyId);
     }
 
     // Remove from trash
     await supabase
       .from('working_area_trash')
       .delete()
-      .eq('id', trashId);
+      .eq('id', trashId)
+      .eq('company_id', companyId);
   }
 }
 
@@ -952,10 +978,11 @@ export class WorkingAreaSearchService {
   /**
    * Search files and folders
    */
-  static async search(query: SearchQuery): Promise<SearchResult[]> {
+  static async search(query: SearchQuery, companyId: string): Promise<SearchResult[]> {
     let fileQuery = supabase
       .from('working_area_files')
       .select('id, name, folder_id, owner_id, size_bytes, created_at, file_type')
+      .eq('company_id', companyId)
       .is('deleted_at', null)
       .ilike('name', `%${query.q}%`);
 
@@ -1020,6 +1047,7 @@ export class WorkingAreaQuotaService {
       .from('users')
       .select('storage_tier')
       .eq('id', userId)
+      .eq('company_id', companyId)
       .single();
 
     const tier = user?.storage_tier || 'free';
@@ -1027,7 +1055,8 @@ export class WorkingAreaQuotaService {
 
     // Calculate used storage
     const { data: fileData } = await supabase.rpc('get_user_storage_usage', {
-      p_user_id: userId
+      p_user_id: userId,
+      p_company_id: companyId
     });
 
     const usedBytes = fileData || 0;

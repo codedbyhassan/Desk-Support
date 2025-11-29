@@ -408,14 +408,14 @@ export default function ManagerDashboard() {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1 lg:space-y-2">
           <div className="flex items-center gap-2 lg:gap-3 mb-1 lg:mb-2">
-            <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Manager Dashboard</h1>
+            <h1 className="text-2xl lg:text-3xl font-bold dark:text-white text-slate-900">Manager Dashboard</h1>
             <Badge className="bg-purple-100 text-purple-800 border-0 px-2 lg:px-3 py-1 text-xs lg:text-sm">
               <Briefcase className="h-3 w-3 mr-1" />
               Manager
             </Badge>
           </div>
-          <p className="text-sm lg:text-base text-slate-500">
-            Welcome back, <span className="font-medium text-slate-700">{user?.full_name}</span>
+          <p className="text-sm lg:text-base dark:text-white/80 text-slate-500">
+            Welcome back, <span className="font-medium dark:text-white text-slate-700">{user?.full_name}</span>
           </p>
           {stats.departmentName && (
             <p className="text-xs lg:text-sm text-slate-500">
@@ -426,8 +426,8 @@ export default function ManagerDashboard() {
 
         {company && (
           <div className="text-right">
-            <p className="text-sm font-medium text-slate-900">{company.name}</p>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-sm font-medium dark:text-white text-slate-900">{company.name}</p>
+            <p className="text-xs dark:text-white/70 text-slate-500 mt-1">
               {stats.departmentMembers} department members • {stats.departmentAssets} assets • {stats.departmentTickets} tickets
             </p>
           </div>
@@ -436,22 +436,22 @@ export default function ManagerDashboard() {
 
       {/* Main Content Tabs */}
       <Tabs value={normalizedTab} onValueChange={setActiveTab} className="space-y-4 lg:space-y-6">
-        <TabsList className="bg-slate-100 p-1 rounded-lg lg:rounded-xl w-full overflow-x-auto hidden">
-          <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs lg:text-sm flex-1 min-w-0">
-            <Activity className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-            <span className="truncate">Overview</span>
+        <TabsList className="hidden">
+          <TabsTrigger value="overview" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground">
+            <Activity className="h-4 w-4 mr-2" />
+            Overview
           </TabsTrigger>
-          <TabsTrigger value="tickets" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs lg:text-sm flex-1 min-w-0">
-            <Ticket className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-            <span className="truncate">Department Tickets</span>
+          <TabsTrigger value="tickets" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground">
+            <Ticket className="h-4 w-4 mr-2" />
+            Tickets
           </TabsTrigger>
-          <TabsTrigger value="assets" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs lg:text-sm flex-1 min-w-0">
-            <Package className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-            <span className="truncate">Department Assets</span>
+          <TabsTrigger value="assets" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground">
+            <Package className="h-4 w-4 mr-2" />
+            Assets
           </TabsTrigger>
-          <TabsTrigger value="members" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs lg:text-sm flex-1 min-w-0">
-            <Users className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-            <span className="truncate">Department Members</span>
+          <TabsTrigger value="members" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground">
+            <Users className="h-4 w-4 mr-2" />
+            Members
           </TabsTrigger>
         </TabsList>
 

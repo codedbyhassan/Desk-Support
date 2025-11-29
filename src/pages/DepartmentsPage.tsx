@@ -71,7 +71,7 @@ export default function DepartmentsPage() {
     setLoading(true)
     try {
       // Admins can see all departments; managers should only see the department they belong to
-      let query = supabase.from('departments').select(`*`)
+      let query = supabase.from('departments').select(`*`).eq('company_id', user?.company_id || '')
 
       if (user?.role === 'manager') {
         // Limit to the manager's own department
@@ -96,18 +96,21 @@ export default function DepartmentsPage() {
           const { count: memberCount } = await supabase
             .from('users')
             .select('*', { count: 'exact', head: true })
+            .eq('company_id', user?.company_id || '')
             .eq('department_id', dept.id)
 
           // Count total tickets
           const { count: ticketCount } = await supabase
             .from('tickets')
             .select('*', { count: 'exact', head: true })
+            .eq('company_id', user?.company_id || '')
             .eq('department_id', dept.id)
 
           // Count pending tickets (not assigned yet)
           const { count: pendingCount } = await supabase
             .from('tickets')
             .select('*', { count: 'exact', head: true })
+            .eq('company_id', user?.company_id || '')
             .eq('department_id', dept.id)
             .is('assigned_to', null)
 
@@ -116,6 +119,7 @@ export default function DepartmentsPage() {
           const { data: managerUser, error: managerError } = await supabase
             .from('users')
             .select('full_name, email, role')
+            .eq('company_id', user?.company_id || '')
             .eq('department_id', dept.id)
             .eq('role', 'manager')
             .maybeSingle()
@@ -160,6 +164,7 @@ export default function DepartmentsPage() {
       const { error } = await supabase
         .from('departments')
         .insert({
+          company_id: user?.company_id,
           name: formData.name,
           description: formData.description,
           manager_id: user?.id,

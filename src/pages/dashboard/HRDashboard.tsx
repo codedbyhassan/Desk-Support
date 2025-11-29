@@ -323,20 +323,20 @@ export default function HRDashboard() {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1 lg:space-y-2">
           <div className="flex items-center gap-2 lg:gap-3 mb-1 lg:mb-2">
-            <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">HR Dashboard</h1>
+            <h1 className="text-2xl lg:text-3xl font-bold dark:text-white text-slate-900">HR Dashboard</h1>
             <Badge className="bg-pink-100 text-pink-800 border-0 px-2 lg:px-3 py-1 text-xs lg:text-sm">
               <Users className="h-3 w-3 mr-1" />
               Human Resources
             </Badge>
           </div>
-          <p className="text-sm lg:text-base text-slate-500">
-            Welcome back, <span className="font-medium text-slate-700">{user?.full_name}</span>
+          <p className="text-sm lg:text-base dark:text-white/80 text-slate-500">
+            Welcome back, <span className="font-medium dark:text-white text-slate-700">{user?.full_name}</span>
           </p>
         </div>
 
         {company && (
           <div className="text-right">
-            <p className="text-sm font-medium text-slate-900">{company.name}</p>
+            <p className="text-sm font-medium dark:text-white text-slate-900">{company.name}</p>
             <p className="text-xs text-slate-500 mt-1">
               {stats.totalEmployees} employees • {stats.departments} departments
             </p>
@@ -346,18 +346,18 @@ export default function HRDashboard() {
 
             {/* Main Content Tabs */}
       <Tabs value={normalizedTab} onValueChange={setActiveTab} className="space-y-4 lg:space-y-6">
-        <TabsList className="bg-slate-100 p-1 rounded-lg lg:rounded-xl w-full overflow-x-auto hidden">
-          <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs lg:text-sm flex-1 min-w-0">
-            <Activity className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-            <span className="truncate">Overview</span>
+        <TabsList className="hidden">
+          <TabsTrigger value="overview" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground">
+            <Activity className="h-4 w-4 mr-2" />
+            Overview
           </TabsTrigger>
-          <TabsTrigger value="employees" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs lg:text-sm flex-1 min-w-0">
-            <Users className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-            <span className="truncate">Employees</span>
+          <TabsTrigger value="employees" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground">
+            <Users className="h-4 w-4 mr-2" />
+            Employees
           </TabsTrigger>
-          <TabsTrigger value="departments" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs lg:text-sm flex-1 min-w-0">
-            <Building2 className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-            <span className="truncate">Departments</span>
+          <TabsTrigger value="departments" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground">
+            <Building2 className="h-4 w-4 mr-2" />
+            Departments
           </TabsTrigger>
         </TabsList>
 

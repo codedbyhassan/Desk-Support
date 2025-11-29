@@ -702,24 +702,24 @@ export default function SettingsPage() {
 
         {/* Tabs */}
         <Tabs value={normalizedTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full justify-start overflow-x-auto bg-card rounded-lg p-1 shadow-sm hidden">
-            <TabsTrigger value="profile" className="gap-2 text-xs sm:text-sm">
+          <TabsList className="hidden">
+            <TabsTrigger value="profile" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground gap-2">
               <User className="h-4 w-4" />
               Profile
             </TabsTrigger>
-            <TabsTrigger value="company" className="gap-2 text-xs sm:text-sm">
+            <TabsTrigger value="company" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground gap-2">
               <Building2 className="h-4 w-4" />
               Company
             </TabsTrigger>
-            <TabsTrigger value="appearance" className="gap-2 text-xs sm:text-sm">
+            <TabsTrigger value="appearance" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground gap-2">
               <Palette className="h-4 w-4" />
               Appearance
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="gap-2 text-xs sm:text-sm">
+            <TabsTrigger value="notifications" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground gap-2">
               <Bell className="h-4 w-4" />
               Notifications
             </TabsTrigger>
-            <TabsTrigger value="security" className="gap-2 text-xs sm:text-sm">
+            <TabsTrigger value="security" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground gap-2">
               <Shield className="h-4 w-4" />
               Security
             </TabsTrigger>

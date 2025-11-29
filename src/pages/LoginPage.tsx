@@ -54,16 +54,19 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
           return
         }
         await signUp(trimmedEmail, trimmedPassword, trimmedName, trimmedCompanyName, 'admin')
-        toast.success('Account created successfully!')
+        toast.success('Verification code sent to your email!')
+        
+        // Redirect to verification page instead of dashboard
+        navigate(`/verify-email?email=${encodeURIComponent(trimmedEmail)}`, { replace: true })
       } else {
         await signIn(trimmedEmail, trimmedPassword)
         toast.success('Logged in successfully!')
+        
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          navigate('/app/dashboard', { replace: true })
+        }, 100)
       }
-      
-      // Small delay to ensure state is updated
-      setTimeout(() => {
-        navigate('/app/dashboard', { replace: true })
-      }, 100)
       
     } catch (error: any) {
       console.error('❌ Auth error:', error)

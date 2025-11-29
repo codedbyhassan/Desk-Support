@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Search, X, Calendar, FileType, ChevronDown, Loader } from 'lucide-react';
 import { WorkingAreaFile, WorkingAreaFolder } from '@/types/workingArea';
+import { supabase } from '@/lib/supabase';
 
 interface SearchBarProps {
   onSearch: (results: (WorkingAreaFile | WorkingAreaFolder)[]) => void;
@@ -93,8 +94,58 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     try {
       setIsSearching(true);
 
-      // TODO: Implement when working_area_files table is deployed to Supabase
-      const results: (WorkingAreaFile | WorkingAreaFolder)[] = [];
+      // Build Supabase query - search across file names and descriptions
+      let searchQuery = supabase
+        .from('working_area_files')
+        .select('*')
+        .ilike('name', `%${query}%`)
+        .is('deleted_at', null);
+
+      // Apply file type filter
+      if (filters.fileType) {
+        const fileExtensions = FILE_TYPES.find(ft => ft.value === filters.fileType)?.extensions || [];
+        if (fileExtensions.length > 0) {
+          searchQuery = searchQuery.or(
+            fileExtensions.map((ext: string) => `name.ilike.%${ext}`).join(',')
+          );
+        }
+      }
+
+      // Apply date filter
+      if (filters.dateFrom) {
+        searchQuery = searchQuery.gte('created_at', filters.dateFrom.toISOString());
+      }
+      if (filters.dateTo) {
+        searchQuery = searchQuery.lte('created_at', filters.dateTo.toISOString());
+      }
+
+      // Apply size filter
+      if (filters.minSize) {
+        searchQuery = searchQuery.gte('size', filters.minSize);
+      }
+      if (filters.maxSize) {
+        searchQuery = searchQuery.lte('size', filters.maxSize);
+      }
+
+      const { data: files, error } = await searchQuery.limit(50);
+
+      if (error) throw error;
+
+      // Also search folders by name
+      const { data: folders, error: foldersError } = await supabase
+        .from('working_area_folders')
+        .select('*')
+        .ilike('name', `%${query}%`)
+        .is('deleted_at', null)
+        .limit(20);
+
+      if (foldersError) throw foldersError;
+
+      // Combine results with is_folder flag
+      const results: (WorkingAreaFile | WorkingAreaFolder)[] = [
+        ...(folders?.map(f => ({ ...f, is_folder: true })) || []),
+        ...(files?.map(f => ({ ...f, is_folder: false })) || [])
+      ];
 
       onSearch(results);
       setShowSuggestions(false);

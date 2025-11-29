@@ -310,7 +310,7 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1 lg:space-y-2">
           <div className="flex items-center gap-2 lg:gap-3 mb-1 lg:mb-2">
-            <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Dashboard</h1>
+            <h1 className="text-2xl lg:text-3xl font-bold dark:text-white text-slate-900">Dashboard</h1>
             {user?.role === 'admin' && (
               <Badge className="bg-slate-900 text-white border-0 px-2 lg:px-3 py-1 text-xs lg:text-sm">
                 <Shield className="h-3 w-3 mr-1" />
@@ -318,15 +318,15 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
               </Badge>
             )}
           </div>
-          <p className="text-sm lg:text-base text-slate-500">
-            Welcome back, <span className="font-medium text-slate-700">{user?.full_name}</span>
+          <p className="text-sm lg:text-base dark:text-white/80 text-slate-500">
+            Welcome back, <span className="font-medium dark:text-white text-slate-700">{user?.full_name}</span>
           </p>
         </div>
 
         {company && (
           <div className="text-right">
-            <p className="text-sm font-medium text-slate-900">{company.name}</p>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-sm font-medium dark:text-white text-slate-900">{company.name}</p>
+            <p className="text-xs dark:text-white/70 text-slate-500 mt-1">
               {stats.totalUsers} / {company.max_users} users • {stats.totalAssets} / {company.max_assets} assets
             </p>
           </div>
@@ -360,18 +360,18 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
 
       {/* Main Content Tabs */}
       <Tabs value={mainTab} onValueChange={setMainTab} className="space-y-4 lg:space-y-6">
-        <TabsList className="bg-slate-100 p-1 rounded-lg lg:rounded-xl w-full overflow-x-auto hidden">
-          <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs lg:text-sm flex-1 min-w-0">
-            <BarChart3 className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-            <span className="truncate">Overview</span>
+        <TabsList className="hidden">
+          <TabsTrigger value="overview" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Overview
           </TabsTrigger>
-          <TabsTrigger value="users" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs lg:text-sm flex-1 min-w-0">
-            <Users className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-            <span className="truncate">Users</span>
+          <TabsTrigger value="users" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground">
+            <Users className="h-4 w-4 mr-2" />
+            Users
           </TabsTrigger>
-          <TabsTrigger value="assets" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs lg:text-sm flex-1 min-w-0">
-            <Package className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-            <span className="truncate">Assets</span>
+          <TabsTrigger value="assets" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground">
+            <Package className="h-4 w-4 mr-2" />
+            Assets
           </TabsTrigger>
         </TabsList>
 
@@ -379,7 +379,7 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
           {/* Key Performance Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
             {/* Total Users Card */}
-            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 text-white">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
               <div className="relative p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -399,15 +399,15 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                   )}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-slate-300 font-medium">Total Users</p>
-                  <h3 className="text-3xl font-bold">{stats.totalUsers}</h3>
-                  <p className="text-xs text-slate-400">Active team members</p>
+                  <p className="text-sm dark:text-white/80 text-slate-300 font-medium">Total Users</p>
+                  <h3 className="text-3xl font-bold dark:text-white text-white">{stats.totalUsers}</h3>
+                  <p className="text-xs dark:text-white/60 text-slate-400">Active team members</p>
                 </div>
               </div>
             </Card>
 
             {/* Total Assets Card */}
-            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600 text-white">
+            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600 dark:from-blue-700 dark:via-blue-600 dark:to-blue-700 text-white">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
               <div className="relative p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -420,15 +420,15 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-blue-100 font-medium">Total Assets</p>
-                  <h3 className="text-3xl font-bold">{stats.totalAssets}</h3>
-                  <p className="text-xs text-blue-100">{stats.assignedAssets} assigned</p>
+                  <p className="text-sm dark:text-white/80 text-blue-100 font-medium">Total Assets</p>
+                  <h3 className="text-3xl font-bold dark:text-white text-white">{stats.totalAssets}</h3>
+                  <p className="text-xs dark:text-white/60 text-blue-100">{stats.assignedAssets} assigned</p>
                 </div>
               </div>
             </Card>
 
             {/* Active Tickets Card */}
-            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-amber-600 via-amber-500 to-amber-600 text-white">
+            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-amber-600 via-amber-500 to-amber-600 dark:from-amber-700 dark:via-amber-600 dark:to-amber-700 text-white">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
               <div className="relative p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -448,15 +448,15 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                   )}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-amber-100 font-medium">Active Tickets</p>
-                  <h3 className="text-3xl font-bold">{stats.openTickets + stats.inProgressTickets}</h3>
-                  <p className="text-xs text-amber-100">{stats.resolvedTickets} resolved</p>
+                  <p className="text-sm dark:text-white/80 text-amber-100 font-medium">Active Tickets</p>
+                  <h3 className="text-3xl font-bold dark:text-white text-white">{stats.openTickets + stats.inProgressTickets}</h3>
+                  <p className="text-xs dark:text-white/60 text-amber-100">{stats.resolvedTickets} resolved</p>
                 </div>
               </div>
             </Card>
 
             {/* Resolution Rate Card */}
-            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-600 text-white">
+            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-600 dark:from-emerald-700 dark:via-emerald-600 dark:to-emerald-700 text-white">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
               <div className="relative p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -481,9 +481,9 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                   )}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-emerald-100 font-medium">Resolution Rate</p>
-                  <h3 className="text-3xl font-bold">{stats.resolutionRate}%</h3>
-                  <p className="text-xs text-emerald-100">Ticket resolution efficiency</p>
+                  <p className="text-sm dark:text-white/80 text-emerald-100 font-medium">Resolution Rate</p>
+                  <h3 className="text-3xl font-bold dark:text-white text-white">{stats.resolutionRate}%</h3>
+                  <p className="text-xs dark:text-white/60 text-emerald-100">Ticket resolution efficiency</p>
                 </div>
               </div>
             </Card>

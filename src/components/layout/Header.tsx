@@ -77,10 +77,8 @@ const PAGE_TAB_CONFIG: Record<string, RoleTab[]> = {
     { value: 'qrcode', label: 'QR Codes', icon: QrCode }
   ],
   '/app/tickets': [
-    { value: 'open', label: 'Open', icon: AlertCircle },
-    { value: 'progress', label: 'Progress', icon: Activity },
-    { value: 'resolved', label: 'Resolved', icon: CheckCircle2 },
-    { value: 'rate', label: 'Rate', icon: Target }
+    { value: 'incoming', label: 'Incoming', icon: AlertCircle },
+    { value: 'outgoing', label: 'Outgoing', icon: Activity }
   ],
   '/app/profile': [
     { value: 'profile', label: 'Profile', icon: User },
@@ -135,7 +133,7 @@ export function Header({
 
   return (
     <>
-      <header className="fixed top-0 right-0 left-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border dark:bg-[#190019]/80 dark:border-[#522B5B]/30">
+      <header className="fixed top-0 right-0 left-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border dark:bg-[#0d1117]/95 dark:border-[#151a1f]">
         <div className="flex h-full">
           {/* Sidebar spacer on desktop */}
           <div className="hidden lg:block w-16 flex-shrink-0" />
@@ -155,10 +153,10 @@ export function Header({
                 
                 <div className="hidden lg:flex items-center gap-2">
                   <div 
-                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 dark:bg-[#2B124C]"
+                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 dark:bg-[#0d1117] dark:border dark:border-[#151a1f]"
                     style={{ backgroundColor: theme === 'dark' ? undefined : primaryColor }}
                   >
-                    <BarChart3 className={`h-5 w-5 ${theme === 'dark' ? 'text-[#DFB6B2]' : 'text-white'}`} />
+                    <BarChart3 className={`h-5 w-5 ${theme === 'dark' ? 'text-white' : 'text-white'}`} />
                   </div>
                   <div className="flex items-center gap-2">
                     <h1 className="text-lg font-semibold text-foreground">
@@ -176,10 +174,10 @@ export function Header({
                 </div>
 
                 <div 
-                  className="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 dark:bg-[#2B124C]"
+                  className="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 dark:bg-[#0d1117] dark:border dark:border-[#151a1f]"
                   style={{ backgroundColor: theme === 'dark' ? undefined : primaryColor }}
                 >
-                  <BarChart3 className={`h-4 w-4 ${theme === 'dark' ? 'text-[#DFB6B2]' : 'text-white'}`} />
+                  <BarChart3 className={`h-4 w-4 ${theme === 'dark' ? 'text-white' : 'text-white'}`} />
                 </div>
 
                 <div className="lg:hidden min-w-0">
@@ -194,14 +192,19 @@ export function Header({
                 {/* Navigation Tabs - Show on desktop and other pages with tabs */}
                 {shouldRenderTabs && (
                   <Tabs value={activeTab} onValueChange={setActiveTab} className="hidden lg:block mr-2">
-                    <TabsList className="bg-slate-100 p-1 rounded-lg h-auto">
+                    <TabsList className="bg-transparent dark:bg-transparent p-1 rounded-lg h-auto border-0">
                       {tabsToShow.map((tab) => {
                         const Icon = tab.icon
+                        const isTabActive = activeTab === tab.value
                         return (
                           <TabsTrigger
                             key={tab.value}
                             value={tab.value}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                              isTabActive
+                                ? 'bg-transparent text-slate-900 dark:bg-white dark:text-black shadow-md'
+                                : 'bg-transparent text-slate-900 dark:text-white/60 hover:text-slate-700 dark:hover:text-white/90'
+                            }`}
                           >
                             <Icon className="h-4 w-4" />
                             <span className="truncate">{tab.label}</span>

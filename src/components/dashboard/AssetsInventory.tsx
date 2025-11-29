@@ -270,7 +270,7 @@ export default function AssetsInventory({ fullView = false, noCard = false }: As
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 rounded-lg h-8 lg:h-9"
+                    className="flex-1 rounded-lg h-8 lg:h-9 text-slate-900 dark:text-white"
                     onClick={() => navigate(`/app/assets/${asset.id}`)}
                   >
                     <Eye className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-1.5" />

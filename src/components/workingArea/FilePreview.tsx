@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Download, Share2, ChevronLeft, ChevronRight, Loader, AlertCircle } from 'lucide-react';
 import { WorkingAreaFile } from '@/types/workingArea';
+import { supabase } from '@/lib/supabase';
 
 interface FilePreviewProps {
   isOpen: boolean;
@@ -68,12 +69,14 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
         return;
       }
 
-      // Get download URL from Supabase Storage
-      // const { data } = await supabase.storage
-      //   .from('working-area-files')
-      //   .createSignedUrl(previewFile.storage_path, 3600);
-      // setPreviewUrl(data?.signedUrl || '');
-      setPreviewUrl('');
+      // Get download URL from Supabase Storage (signed URL valid for 1 hour)
+      const { data, error } = await supabase.storage
+        .from('working-area-files')
+        .createSignedUrl(previewFile.storage_path, 3600);
+      
+      if (error) throw error;
+      
+      setPreviewUrl(data?.signedUrl || '');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load preview';
       setError(message);
