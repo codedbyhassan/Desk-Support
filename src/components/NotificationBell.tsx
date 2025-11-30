@@ -1,17 +1,20 @@
 // src/components/NotificationBell.tsx
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '@/context/NotificationContext'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Bell,
   Check,
   CheckCheck,
   Trash2,
-  X,
   FileText,
   MessageSquare,
   Users,
@@ -64,8 +67,6 @@ export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false)
   const [prevUnreadCount, setPrevUnreadCount] = useState(unreadCount)
   const [shouldPulse, setShouldPulse] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
 
   // Trigger pulse animation when unread count increases
   useEffect(() => {
@@ -75,23 +76,6 @@ export function NotificationBell() {
     }
     setPrevUnreadCount(unreadCount)
   }, [unreadCount])
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
 
   const handleNotificationClick = async (notification: Notification) => {
     // Mark as read if not already read
@@ -153,218 +137,203 @@ export function NotificationBell() {
   }
 
   return (
-    <div className="relative">
-      {/* Bell Button with Badge */}
-      <Button
-        ref={buttonRef}
-        variant="ghost"
-        size="icon"
-        className={`relative transition-all duration-200 ${shouldPulse ? 'bell-shake' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <Bell className={`h-5 w-5 ${unreadCount > 0 ? 'text-orange-500' : ''}`} />
-        
-        {/* Badge Count with Animation */}
-        {unreadCount > 0 && (
-          <span className={`
-            absolute -top-1 -right-1 
-            h-5 min-w-[20px] px-1
-            rounded-full 
-            bg-gradient-to-r from-red-500 to-rose-500
-            text-white text-[10px] font-bold
-            flex items-center justify-center
-            shadow-lg shadow-red-500/50
-            ${shouldPulse ? 'badge-pulse' : ''}
-            ring-2 ring-white dark:ring-gray-900
-          `}>
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
-        )}
-      </Button>
-
-      {/* Notification Dropdown */}
-      {isOpen && (
-        <Card
-          ref={dropdownRef}
-          className="absolute right-0 mt-2 w-96 max-h-[600px] shadow-2xl border-2 z-50 overflow-hidden animate-slideDown"
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`relative transition-all duration-200 ${shouldPulse ? 'bell-shake' : ''}`}
         >
-          {/* Header */}
-          <div className="p-4 border-b bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-lg flex items-center gap-2 text-white">
-                <Bell className="h-5 w-5" />
-                Notifications
-                {unreadCount > 0 && (
-                  <span className="bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs font-semibold">
-                    {unreadCount} new
-                  </span>
-                )}
-              </h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsOpen(false)}
-                className="h-7 w-7 hover:bg-white/20 text-white"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+          <Bell className={`h-5 w-5 ${unreadCount > 0 ? 'text-orange-500' : ''}`} />
+          
+          {/* Badge Count with Animation */}
+          {unreadCount > 0 && (
+            <span className={`
+              absolute -top-1 -right-1 
+              h-5 min-w-[20px] px-1
+              rounded-full 
+              bg-gradient-to-r from-red-500 to-rose-500
+              text-white text-[10px] font-bold
+              flex items-center justify-center
+              shadow-lg shadow-red-500/50
+              ${shouldPulse ? 'badge-pulse' : ''}
+              ring-2 ring-white dark:ring-gray-900
+            `}>
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
 
-            {/* Action Buttons */}
-            {notifications.length > 0 && (
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={markAllAsRead}
-                  disabled={unreadCount === 0}
-                  className="flex-1 text-xs bg-white/90 hover:bg-white text-orange-600 font-semibold"
-                >
-                  <CheckCheck className="h-3 w-3 mr-1" />
-                  Mark all read
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={deleteAllRead}
-                  disabled={notifications.filter((n: Notification) => n.read).length === 0}
-                  className="flex-1 text-xs bg-white/90 hover:bg-white text-orange-600 font-semibold"
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Clear read
-                </Button>
-              </div>
-            )}
+      <DropdownMenuContent align="end" className="w-full max-w-sm p-0">
+        {/* Header */}
+        <div className="p-4 border-b bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-base flex items-center gap-2 text-white">
+              <Bell className="h-5 w-5" />
+              Notifications
+              {unreadCount > 0 && (
+                <span className="bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs font-semibold">
+                  {unreadCount} new
+                </span>
+              )}
+            </h3>
           </div>
 
-          {/* Notifications List */}
-          <div className="overflow-y-auto max-h-[480px] bg-gray-50/50 dark:bg-gray-900/50">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="relative">
-                  <div className="h-10 w-10 border-4 border-orange-200 dark:border-orange-900 rounded-full" />
-                  <div className="absolute top-0 left-0 h-10 w-10 border-4 border-transparent border-t-orange-500 rounded-full animate-spin" />
-                </div>
+          {/* Action Buttons */}
+          {notifications.length > 0 && (
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={markAllAsRead}
+                disabled={unreadCount === 0}
+                className="flex-1 text-xs bg-white/90 hover:bg-white text-orange-600 font-semibold"
+              >
+                <CheckCheck className="h-3 w-3 mr-1" />
+                Mark all read
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={deleteAllRead}
+                disabled={notifications.filter((n: Notification) => n.read).length === 0}
+                className="flex-1 text-xs bg-white/90 hover:bg-white text-orange-600 font-semibold"
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                Clear read
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Notifications List */}
+        <div className="overflow-y-auto max-h-[480px] bg-gray-50/50 dark:bg-gray-900/50">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="relative">
+                <div className="h-10 w-10 border-4 border-orange-200 dark:border-orange-900 rounded-full" />
+                <div className="absolute top-0 left-0 h-10 w-10 border-4 border-transparent border-t-orange-500 rounded-full animate-spin" />
               </div>
-            ) : notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/20 dark:to-amber-900/20 flex items-center justify-center mb-4">
-                  <Bell className="h-10 w-10 text-orange-300 dark:text-orange-700" />
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 font-semibold mb-1">All caught up!</p>
-                <p className="text-xs text-gray-500 dark:text-gray-500">
-                  No new notifications at the moment
-                </p>
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/20 dark:to-amber-900/20 flex items-center justify-center mb-4">
+                <Bell className="h-10 w-10 text-orange-300 dark:text-orange-700" />
               </div>
-            ) : (
-              <div>
-                {notifications.map((notification: Notification) => (
-                  <div
-                    key={notification.id}
-                    onClick={() => handleNotificationClick(notification)}
-                    className={`
-                      p-4 hover:bg-white dark:hover:bg-gray-800 
-                      cursor-pointer transition-all duration-200
-                      border-b border-gray-100 dark:border-gray-800
-                      relative group
-                      ${!notification.read ? 'bg-orange-50/80 dark:bg-orange-900/10' : 'bg-white dark:bg-gray-900'}
-                    `}
-                  >
-                    {/* Unread Indicator */}
-                    {!notification.read && (
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-orange-500 to-amber-500" />
-                    )}
+              <p className="text-sm text-gray-600 dark:text-gray-400 font-semibold mb-1">All caught up!</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500">
+                No new notifications at the moment
+              </p>
+            </div>
+          ) : (
+            <div>
+              {notifications.map((notification: Notification) => (
+                <div
+                  key={notification.id}
+                  onClick={() => handleNotificationClick(notification)}
+                  className={`
+                    p-4 hover:bg-white dark:hover:bg-gray-800 
+                    cursor-pointer transition-all duration-200
+                    border-b border-gray-100 dark:border-gray-800
+                    relative group
+                    ${!notification.read ? 'bg-orange-50/80 dark:bg-orange-900/10' : 'bg-white dark:bg-gray-900'}
+                  `}
+                >
+                  {/* Unread Indicator */}
+                  {!notification.read && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-orange-500 to-amber-500" />
+                  )}
 
-                    <div className="flex items-start gap-3 ml-2">
-                      {/* Icon */}
-                      <div className={`
-                        h-11 w-11 rounded-xl
-                        bg-gradient-to-br from-gray-100 to-gray-200 
-                        dark:from-gray-800 dark:to-gray-700 
-                        flex items-center justify-center flex-shrink-0
-                        shadow-sm
-                        group-hover:scale-110 transition-transform duration-200
-                      `}>
-                        {getNotificationIcon(notification.type)}
-                      </div>
+                  <div className="flex items-start gap-3 ml-2">
+                    {/* Icon */}
+                    <div className={`
+                      h-10 w-10 rounded-xl
+                      bg-gradient-to-br from-gray-100 to-gray-200 
+                      dark:from-gray-800 dark:to-gray-700 
+                      flex items-center justify-center flex-shrink-0
+                      shadow-sm
+                      group-hover:scale-110 transition-transform duration-200
+                    `}>
+                      {getNotificationIcon(notification.type)}
+                    </div>
 
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <p className={`font-semibold text-sm mb-1 ${!notification.read ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
-                          {notification.title}
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                          {notification.message}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-xs text-gray-500 dark:text-gray-500">
-                            {formatTimeAgo(notification.created_at)}
-                          </span>
-                          {!notification.read && (
-                            <Badge variant="default" className="text-[10px] py-0 px-1.5 bg-orange-500 hover:bg-orange-600">
-                              New
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-semibold text-sm mb-1 ${!notification.read ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+                        {notification.title}
+                      </p>
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                        {notification.message}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xs text-gray-500 dark:text-gray-500">
+                          {formatTimeAgo(notification.created_at)}
+                        </span>
                         {!notification.read && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 hover:bg-green-100 dark:hover:bg-green-900/20 hover:text-green-600"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              markAsRead(notification.id)
-                            }}
-                            title="Mark as read"
-                          >
-                            <Check className="h-3.5 w-3.5" />
-                          </Button>
+                          <Badge variant="default" className="text-[10px] py-0 px-1.5 bg-orange-500 hover:bg-orange-600">
+                            New
+                          </Badge>
                         )}
+                      </div>
+                    </div>
+
+                    {/* Actions - Only visible on hover (desktop) or always clickable on mobile */}
+                    <div className="hidden sm:flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {!notification.read && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-600"
+                          className="h-7 w-7 hover:bg-green-100 dark:hover:bg-green-900/20 hover:text-green-600"
                           onClick={(e) => {
                             e.stopPropagation()
-                            deleteNotification(notification.id)
+                            markAsRead(notification.id)
                           }}
-                          title="Delete"
+                          title="Mark as read"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Check className="h-3.5 w-3.5" />
                         </Button>
-                      </div>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-600"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deleteNotification(notification.id)
+                        }}
+                        title="Delete"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          {notifications.length > 0 && (
-            <>
-              <Separator />
-              <div className="p-3 text-center bg-white dark:bg-gray-900">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-orange-600 hover:text-orange-700 font-semibold hover:bg-orange-50"
-                  onClick={() => {
-                    navigate('/app/notifications')
-                    setIsOpen(false)
-                  }}
-                >
-                  View all notifications →
-                </Button>
-              </div>
-            </>
+                </div>
+              ))}
+            </div>
           )}
-        </Card>
-      )}
+        </div>
+
+        {/* Footer */}
+        {notifications.length > 0 && (
+          <>
+            <Separator />
+            <div className="p-3 text-center bg-white dark:bg-gray-900">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-orange-600 hover:text-orange-700 font-semibold hover:bg-orange-50"
+                onClick={() => {
+                  navigate('/app/notifications')
+                  setIsOpen(false)
+                }}
+              >
+                View all notifications →
+              </Button>
+            </div>
+          </>
+        )}
+      </DropdownMenuContent>
 
       {/* Animations */}
       <style>{`
@@ -383,29 +352,14 @@ export function NotificationBell() {
           20%, 40%, 60%, 80% { transform: rotate(10deg); }
         }
 
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
         .badge-pulse {
-          animation: badgePulse 0.6s ease-in-out;
+          animation: badgePulse 0.5s ease-in-out;
         }
 
         .bell-shake {
-          animation: bellShake 0.6s ease-in-out;
-        }
-
-        .animate-slideDown {
-          animation: slideDown 0.2s ease-out;
+          animation: bellShake 0.5s ease-in-out;
         }
       `}</style>
-    </div>
+    </DropdownMenu>
   )
 }

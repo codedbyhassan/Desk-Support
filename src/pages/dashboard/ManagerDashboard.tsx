@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth'
 import { supabase, Asset, Tickets } from '@/lib/supabase'
+import Loader from '@/components/Loader'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -362,12 +363,7 @@ export default function ManagerDashboard() {
   }
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div className="h-10 w-10 lg:h-12 lg:w-12 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin" />
-        <p className="text-sm lg:text-base text-slate-500">Loading dashboard...</p>
-      </div>
-    )
+    return <Loader />
   }
 
   if (error) {
@@ -408,27 +404,27 @@ export default function ManagerDashboard() {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1 lg:space-y-2">
           <div className="flex items-center gap-2 lg:gap-3 mb-1 lg:mb-2">
-            <h1 className="text-2xl lg:text-3xl font-bold dark:text-white text-slate-900">Manager Dashboard</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold dark:text-white text-slate-900">Dashboard</h1>
             <Badge className="bg-purple-100 text-purple-800 border-0 px-2 lg:px-3 py-1 text-xs lg:text-sm">
               <Briefcase className="h-3 w-3 mr-1" />
               Manager
             </Badge>
           </div>
-          <p className="text-sm lg:text-base dark:text-white/80 text-slate-500">
+          <p className="text-xs sm:text-sm lg:text-base dark:text-white/80 text-slate-500">
             Welcome back, <span className="font-medium dark:text-white text-slate-700">{user?.full_name}</span>
           </p>
           {stats.departmentName && (
-            <p className="text-xs lg:text-sm text-slate-500">
-              Managing: <span className="font-medium text-slate-700">{stats.departmentName}</span>
+            <p className="text-xs dark:text-white/70 text-slate-500">
+              <span className="font-medium dark:text-white text-slate-700">{stats.departmentName}</span>
             </p>
           )}
         </div>
 
         {company && (
           <div className="text-right">
-            <p className="text-sm font-medium dark:text-white text-slate-900">{company.name}</p>
+            <p className="text-xs sm:text-sm font-medium dark:text-white text-slate-900">{company.name}</p>
             <p className="text-xs dark:text-white/70 text-slate-500 mt-1">
-              {stats.departmentMembers} department members • {stats.departmentAssets} assets • {stats.departmentTickets} tickets
+              {stats.departmentMembers} members • {stats.departmentAssets} assets • {stats.departmentTickets} tickets
             </p>
           </div>
         )}
@@ -458,160 +454,98 @@ export default function ManagerDashboard() {
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 lg:space-y-8">
           {/* Key Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
-              <div className="relative p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
-                    <Users className="h-6 w-6" />
-                  </div>
-                  {stats.ticketGrowthPercentage >= 0 ? (
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300">
-                      <TrendingUp className="h-3 w-3" />
-                      <span className="text-xs font-semibold">{stats.ticketGrowthPercentage}%</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/20 text-red-300">
-                      <TrendingDown className="h-3 w-3" />
-                      <span className="text-xs font-semibold">{Math.abs(stats.ticketGrowthPercentage)}%</span>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-slate-300 font-medium">Department Members</p>
-                  <h3 className="text-3xl font-bold">{stats.departmentMembers}</h3>
-                  <p className="text-xs text-slate-400">{stats.departmentName}</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 text-white">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+              <div className="relative p-3 sm:p-4">
+                <div className="space-y-2">
+                  <p className="text-xs sm:text-sm dark:text-white/80 text-slate-300 font-medium">Team Members</p>
+                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.departmentMembers}</h3>
+                  <p className="text-xs dark:text-white/60 text-slate-400">In your department</p>
                 </div>
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600 text-white">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
-              <div className="relative p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <Package className="h-6 w-6" />
-                  </div>
-                  <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
-                    <CheckCircle2 className="h-3 w-3" />
-                    <span className="text-xs font-semibold">{stats.departmentAssets} assigned</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-blue-100 font-medium">Department Assets</p>
-                  <h3 className="text-3xl font-bold">{stats.departmentAssets}</h3>
-                  <p className="text-xs text-blue-100">Assets managed across your department</p>
+            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600 dark:from-blue-700 dark:via-blue-600 dark:to-blue-700 text-white">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+              <div className="relative p-3 sm:p-4">
+                <div className="space-y-2">
+                  <p className="text-xs sm:text-sm dark:text-white/80 text-blue-100 font-medium">Assets</p>
+                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.departmentAssets}</h3>
+                  <p className="text-xs dark:text-white/60 text-blue-100">Managed in department</p>
                 </div>
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-amber-600 via-amber-500 to-amber-600 text-white">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
-              <div className="relative p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <Ticket className="h-6 w-6" />
-                  </div>
-                  {stats.openTickets > 0 ? (
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
-                      <Clock className="h-3 w-3" />
-                      <span className="text-xs font-semibold">{stats.openTickets} open</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/30 text-white">
-                      <CheckCircle2 className="h-3 w-3" />
-                      <span className="text-xs font-semibold">All resolved</span>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-amber-100 font-medium">Active Department Tickets</p>
-                  <h3 className="text-3xl font-bold">{stats.departmentTickets}</h3>
-                  <p className="text-xs text-amber-100">{stats.inProgressTickets} in progress</p>
+            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-amber-600 via-amber-500 to-amber-600 dark:from-amber-700 dark:via-amber-600 dark:to-amber-700 text-white">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+              <div className="relative p-3 sm:p-4">
+                <div className="space-y-2">
+                  <p className="text-xs sm:text-sm dark:text-white/80 text-amber-100 font-medium">Active Tickets</p>
+                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.openTickets + stats.inProgressTickets}</h3>
+                  <p className="text-xs dark:text-white/60 text-amber-100">{stats.resolvedTickets} resolved</p>
                 </div>
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-600 text-white">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
-              <div className="relative p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <Target className="h-6 w-6" />
-                  </div>
-                  {stats.resolutionRate >= 90 ? (
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
-                      <Award className="h-3 w-3" />
-                      <span className="text-xs font-semibold">Excellent</span>
-                    </div>
-                  ) : stats.resolutionRate >= 70 ? (
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
-                      <Zap className="h-3 w-3" />
-                      <span className="text-xs font-semibold">Good</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/30 text-white">
-                      <AlertCircle className="h-3 w-3" />
-                      <span className="text-xs font-semibold">Needs work</span>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-emerald-100 font-medium">Resolution Rate</p>
-                  <h3 className="text-3xl font-bold">{stats.resolutionRate}%</h3>
-                  <p className="text-xs text-emerald-100">Department-wide ticket efficiency</p>
+            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-600 dark:from-emerald-700 dark:via-emerald-600 dark:to-emerald-700 text-white">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+              <div className="relative p-3 sm:p-4">
+                <div className="space-y-2">
+                  <p className="text-xs sm:text-sm dark:text-white/80 text-emerald-100 font-medium">Resolution Rate</p>
+                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.resolutionRate}%</h3>
+                  <p className="text-xs dark:text-white/60 text-emerald-100">Ticket resolution efficiency</p>
                 </div>
               </div>
             </Card>
           </div>
 
           {/* Quick Actions & Insights */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
             <Card className="border-slate-200 shadow-md hover:shadow-lg transition-shadow">
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 sm:p-4 lg:p-6">
+                <div className="flex items-center gap-3 mb-4 lg:mb-6">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center">
                     <Sparkles className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-900">Manager Shortcuts</h3>
-                    <p className="text-xs text-slate-500">Lead faster with favorites</p>
+                    <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Manager Shortcuts</h3>
+                    <p className="text-xs lg:text-sm text-slate-500">Lead faster with favorites</p>
                   </div>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2 lg:space-y-3">
                   <Button 
                     onClick={() => navigate('/app/users')}
-                    className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
                     variant="ghost"
                   >
                     <Users className="h-4 w-4 mr-3 text-slate-600" />
-                    <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-sm">Review Department</div>
+                    <div className="flex-1 text-left hidden sm:block">
+                      <div className="font-medium text-slate-900 text-xs sm:text-sm">Review Department</div>
                       <div className="text-xs text-slate-500">See everyone in your department</div>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
                   </Button>
                   <Button 
                     onClick={() => navigate('/app/assets')}
-                    className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
                     variant="ghost"
                   >
                     <Package className="h-4 w-4 mr-3 text-slate-600" />
-                    <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-sm">Assign Assets</div>
+                    <div className="flex-1 text-left hidden sm:block">
+                      <div className="font-medium text-slate-900 text-xs sm:text-sm">Assign Assets</div>
                       <div className="text-xs text-slate-500">Track laptops & equipment</div>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
                   </Button>
                   <Button 
                     onClick={() => navigate('/app/tickets')}
-                    className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
                     variant="ghost"
                   >
                     <Ticket className="h-4 w-4 mr-3 text-slate-600" />
-                    <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-sm">Monitor Tickets</div>
+                    <div className="flex-1 text-left hidden sm:block">
+                      <div className="font-medium text-slate-900 text-xs sm:text-sm">Monitor Tickets</div>
                       <div className="text-xs text-slate-500">Balance workloads & priorities</div>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
@@ -621,65 +555,65 @@ export default function ManagerDashboard() {
             </Card>
 
             <Card className="border-slate-200 shadow-md hover:shadow-lg transition-shadow lg:col-span-2">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
+              <div className="p-3 sm:p-4 lg:p-6">
+                <div className="flex items-center justify-between gap-2 lg:gap-3 mb-4 lg:mb-6 flex-wrap">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                       <LineChart className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">Department Performance</h3>
-                      <p className="text-xs text-slate-500">Key metrics at a glance</p>
+                      <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Department Performance</h3>
+                      <p className="text-xs lg:text-sm text-slate-500">Key metrics at a glance</p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="rounded-lg">
+                  <Button variant="outline" size="sm" className="rounded-lg text-xs sm:text-sm h-10">
                     <Download className="h-4 w-4 mr-2" />
                     Export
                   </Button>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
+                <div className="grid grid-cols-2 gap-3 lg:gap-4">
+                  <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
                     <div className="flex items-center gap-2 mb-2">
-                      <PieChart className="h-4 w-4 text-blue-600" />
+                      <PieChart className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
                       <span className="text-xs font-medium text-slate-600">Ticket Volume</span>
                     </div>
-                    <div className="text-2xl font-bold text-slate-900 mb-1">
+                    <div className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 mb-1">
                       {stats.departmentTickets}
                     </div>
                     <div className="text-xs text-slate-500">
                       {stats.openTickets} open • {stats.resolvedTickets} resolved
                     </div>
                   </div>
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
+                  <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
                     <div className="flex items-center gap-2 mb-2">
-                      <Activity className="h-4 w-4 text-emerald-600" />
+                      <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600" />
                       <span className="text-xs font-medium text-slate-600">In Progress</span>
                     </div>
-                    <div className="text-2xl font-bold text-slate-900 mb-1">
+                    <div className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 mb-1">
                       {stats.inProgressTickets}
                     </div>
                     <div className="text-xs text-slate-500">
                       Tickets currently being worked on
                     </div>
                   </div>
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
+                  <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
                     <div className="flex items-center gap-2 mb-2">
-                      <Users className="h-4 w-4 text-purple-600" />
+                      <Users className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
                       <span className="text-xs font-medium text-slate-600">Assets / Member</span>
                     </div>
-                    <div className="text-2xl font-bold text-slate-900 mb-1">
+                    <div className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 mb-1">
                       {stats.departmentMembers ? (stats.departmentAssets / stats.departmentMembers).toFixed(1) : '0'} 
                     </div>
                     <div className="text-xs text-slate-500">
                       Average assets issued per department member
                     </div>
                   </div>
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
+                  <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
                     <div className="flex items-center gap-2 mb-2">
-                      <Target className="h-4 w-4 text-amber-600" />
+                      <Target className="h-3 w-3 sm:h-4 sm:w-4 text-amber-600" />
                       <span className="text-xs font-medium text-slate-600">Resolution Rate</span>
                     </div>
-                    <div className="text-2xl font-bold text-slate-900 mb-1">{stats.resolutionRate}%</div>
+                    <div className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 mb-1">{stats.resolutionRate}%</div>
                     <div className="text-xs text-slate-500">Closed vs total tickets</div>
                   </div>
                 </div>
@@ -688,21 +622,21 @@ export default function ManagerDashboard() {
           </div>
 
           {/* Recent Activity Cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             <Card className="border-slate-200 shadow-md">
-              <div className="p-6 border-b border-slate-200">
-                <div className="flex items-center justify-between">
+              <div className="p-3 sm:p-4 lg:p-6 border-b border-slate-200">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center">
                       <Ticket className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">Recent Department Tickets</h3>
-                      <p className="text-xs text-slate-500">Latest requests from your department</p>
+                      <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Recent Department Tickets</h3>
+                      <p className="text-xs lg:text-sm text-slate-500">Latest requests from your department</p>
                     </div>
                   </div>
                   <Button 
-                    className="bg-slate-900 hover:bg-slate-800 rounded-lg"
+                    className="bg-slate-900 hover:bg-slate-800 rounded-lg text-xs sm:text-sm h-10"
                     size="sm"
                     onClick={() => navigate('/app/tickets')}
                   >
@@ -711,25 +645,25 @@ export default function ManagerDashboard() {
                   </Button>
                 </div>
               </div>
-              <div className="p-6">
+              <div className="p-3 sm:p-4 lg:p-6">
                 {tickets.length === 0 ? (
-                  <div className="text-center py-6 lg:py-8">
+                  <div className="text-center py-4 lg:py-6">
                     <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
                       <Ticket className="h-6 w-6 text-slate-400" />
                     </div>
-                    <p className="text-sm text-slate-500">No department tickets yet</p>
+                    <p className="text-xs sm:text-sm text-slate-500">No department tickets yet</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2 lg:space-y-3">
                     {tickets.slice(0, 4).map((ticket) => (
                       <div
                         key={ticket.id}
-                        className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group"
+                        className="p-3 sm:p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group"
                         onClick={() => navigate(`/app/tickets/${ticket.id}`)}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-slate-900 text-sm lg:text-base truncate">{ticket.title}</div>
+                            <div className="font-medium text-slate-900 text-xs sm:text-sm truncate">{ticket.title}</div>
                             <div className="text-xs text-slate-500 line-clamp-1">{ticket.description}</div>
                           </div>
                           <div className="flex flex-col gap-1 ml-3">
@@ -752,21 +686,21 @@ export default function ManagerDashboard() {
             </Card>
 
             <Card className="border-slate-200 shadow-md">
-              <div className="p-6 border-b border-slate-200">
-                <div className="flex items-center justify-between">
+              <div className="p-3 sm:p-4 lg:p-6 border-b border-slate-200">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
                       <Package className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">Department Assets</h3>
-                      <p className="text-xs text-slate-500">Most recent assignments</p>
+                      <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Department Assets</h3>
+                      <p className="text-xs lg:text-sm text-slate-500">Most recent assignments</p>
                     </div>
                   </div>
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="rounded-lg"
+                    className="rounded-lg text-xs sm:text-sm h-10"
                     onClick={() => navigate('/app/assets')}
                   >
                     <ArrowUpRight className="h-4 w-4 mr-1" />
@@ -774,25 +708,25 @@ export default function ManagerDashboard() {
                   </Button>
                 </div>
               </div>
-              <div className="p-6">
+              <div className="p-3 sm:p-4 lg:p-6">
                 {assets.length === 0 ? (
-                  <div className="text-center py-6 lg:py-8">
+                  <div className="text-center py-4 lg:py-6">
                     <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
                       <Package className="h-6 w-6 text-slate-400" />
                     </div>
-                    <p className="text-sm text-slate-500">No assets assigned to your department</p>
+                    <p className="text-xs sm:text-sm text-slate-500">No assets assigned to your department</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2 lg:space-y-3">
                     {assets.slice(0, 4).map((asset) => (
                       <div
                         key={asset.id}
-                        className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group"
+                        className="p-3 sm:p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group"
                         onClick={() => navigate(`/app/assets/${asset.id}`)}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-slate-900 text-sm lg:text-base truncate">{asset.name}</div>
+                            <div className="font-medium text-slate-900 text-xs sm:text-sm truncate">{asset.name}</div>
                             <div className="text-xs text-slate-500 truncate">{asset.serial_number}</div>
                           </div>
                           <Badge className={`text-xs ${getAssetStatusColor(asset.status)}`}>
@@ -812,43 +746,43 @@ export default function ManagerDashboard() {
         {/* Tickets Tab */}
         <TabsContent value="tickets">
           <Card className="border-slate-200">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 lg:p-6 border-b border-slate-200">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between p-3 sm:p-4 lg:p-6 border-b border-slate-200">
               <div className="space-y-1">
-                <h3 className="text-base lg:text-lg font-semibold text-slate-900">Department Tickets</h3>
+                <h3 className="text-xs sm:text-sm lg:text-lg font-semibold text-slate-900">Department Tickets</h3>
                 <p className="text-xs lg:text-sm text-slate-500">
                   {stats.departmentTickets} tickets • {stats.openTickets} open • {stats.resolvedTickets} resolved
                 </p>
               </div>
               <Button 
                 onClick={() => navigate('/app/tickets')}
-                className="bg-slate-900 hover:bg-slate-800 rounded-lg h-11 lg:h-10 w-full lg:w-auto"
+                className="bg-slate-900 hover:bg-slate-800 rounded-lg h-11 lg:h-10 w-full lg:w-auto text-xs sm:text-sm"
               >
                 <Plus className="h-4 w-4 mr-1 lg:mr-2" />
-                <span className="text-sm">View All Tickets</span>
+                View All Tickets
               </Button>
             </div>
-            <div className="p-4 lg:p-6">
+            <div className="p-3 sm:p-4 lg:p-6">
               {tickets.length === 0 ? (
                 <div className="text-center py-8 lg:py-12">
                   <div className="w-12 h-12 lg:w-16 lg:h-16 bg-slate-100 rounded-xl lg:rounded-2xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
                     <Ticket className="h-6 w-6 lg:h-8 lg:w-8 text-slate-400" />
                   </div>
-                  <h3 className="text-base lg:text-lg font-semibold text-slate-900 mb-1 lg:mb-2">No department tickets</h3>
-                  <p className="text-sm text-slate-500">No tickets have been created by your department yet</p>
+                  <h3 className="text-xs sm:text-sm lg:text-lg font-semibold text-slate-900 mb-1 lg:mb-2">No department tickets</h3>
+                  <p className="text-xs sm:text-sm text-slate-500">No tickets have been created by your department yet</p>
                 </div>
               ) : (
-                <div className="space-y-3 lg:space-y-4">
+                <div className="space-y-2 lg:space-y-4">
                   {tickets.map((ticket) => (
                     <div
                       key={ticket.id}
-                      className="p-4 lg:p-5 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden"
+                      className="p-3 sm:p-4 lg:p-5 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden"
                       onClick={() => navigate(`/app/tickets/${ticket.id}`)}
                     >
                       <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       <div className="relative">
-                        <div className="flex items-start justify-between mb-2 lg:mb-3">
+                        <div className="flex items-start justify-between mb-2 lg:mb-3 gap-2">
                           <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-slate-900 text-sm lg:text-base mb-1 lg:mb-2">
+                            <div className="font-semibold text-slate-900 text-xs sm:text-sm lg:text-base mb-1 lg:mb-2">
                               {ticket.title}
                             </div>
                             <div className="text-xs lg:text-sm text-slate-600 mb-2 lg:mb-3 line-clamp-2">

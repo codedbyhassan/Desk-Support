@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import Loader from '@/components/Loader'
 import UsersTable from '@/components/dashboard/UsersTable'
 import AssetsInventory from '@/components/dashboard/AssetsInventory'
 import ReportsPanel from '@/components/dashboard/ReportsPanel'
@@ -262,12 +263,7 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
   }
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div className="h-10 w-10 lg:h-12 lg:w-12 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin" />
-        <p className="text-sm lg:text-base text-slate-500">Loading dashboard...</p>
-      </div>
-    )
+    return <Loader />
   }
 
   if (error) {
