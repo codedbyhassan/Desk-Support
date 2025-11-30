@@ -273,7 +273,7 @@ export default function VideoCallView({ roomId, mode = 'video', initiator = fals
           isClicked ? 'scale-95' : 'scale-100'
         } ${
           variant === 'danger'
-            ? 'bg-gradient-to-br from-red-500 to-red-600 shadow-lg hover:shadow-red-500/50'
+            ? 'bg-gradient-to-br from-destructive to-destructive/80 shadow-lg hover:shadow-destructive/50'
             : 'bg-gradient-to-br from-slate-600/80 to-slate-700/80 backdrop-blur-sm'
         }`}
       >
@@ -291,8 +291,8 @@ export default function VideoCallView({ roomId, mode = 'video', initiator = fals
     >
       {/* Background gradient effect */}
       <div className="absolute inset-0 opacity-30">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full filter blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full filter blur-3xl animate-pulse"></div>
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full filter blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/20 rounded-full filter blur-3xl animate-pulse"></div>
       </div>
 
       {/* Main content */}
@@ -383,8 +383,8 @@ export default function VideoCallView({ roomId, mode = 'video', initiator = fals
                   
                 {/* Status indicator */}
                 <div className="absolute top-2 right-2 flex items-center gap-1">
-                  <div className={`w-2 h-2 rounded-full ${isVideoOff ? 'bg-red-500' : 'bg-emerald-500'} animate-pulse`}></div>
-                  {isVideoOff && <span className="text-white text-xs font-semibold px-1.5 py-0.25 bg-red-600/70 rounded text-center">Camera Off</span>}
+                  <div className={`w-2 h-2 rounded-full ${isVideoOff ? 'bg-destructive' : 'bg-success'} animate-pulse`}></div>
+                  {isVideoOff && <span className="text-white text-xs font-semibold px-1.5 py-0.25 bg-destructive/70 rounded text-center">Camera Off</span>}
                 </div>
 
                 {/* Audio level indicator */}
@@ -397,7 +397,7 @@ export default function VideoCallView({ roomId, mode = 'video', initiator = fals
                             key={i}
                             className={`w-0.5 h-2 rounded-sm transition-all duration-75 ${
                               audioLevel > i * 33
-                                ? 'bg-emerald-400'
+                                ? 'bg-success'
                                 : 'bg-slate-600/50'
                             }`}
                           />
@@ -447,7 +447,7 @@ export default function VideoCallView({ roomId, mode = 'video', initiator = fals
                           
                           {/* Connection status */}
                           <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5">
-                            <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-emerald-500' : connectionStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'} animate-pulse`}></div>
+                            <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-success' : connectionStatus === 'connecting' ? 'bg-warning' : 'bg-destructive'} animate-pulse`}></div>
                           </div>
                         </div>
                       ))}
@@ -568,7 +568,7 @@ export default function VideoCallView({ roomId, mode = 'video', initiator = fals
           {/* Right: Call duration */}
           <div className="px-3 py-1.5 bg-gradient-to-r from-slate-700/50 to-slate-800/50 rounded-full backdrop-blur-sm border border-slate-600/30">
             <span className="text-slate-300 text-xs font-medium flex items-center gap-2 whitespace-nowrap">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
               <span className="font-mono text-xs">{callDuration}</span>
             </span>
           </div>
@@ -580,7 +580,7 @@ export default function VideoCallView({ roomId, mode = 'video', initiator = fals
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-8 max-w-md w-full border border-slate-700/50 shadow-2xl">
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-destructive to-destructive/80 flex items-center justify-center flex-shrink-0">
                 <AlertCircle className="w-6 h-6 text-white" />
               </div>
               <h3 className="text-xl font-bold text-white">Connection Error</h3>

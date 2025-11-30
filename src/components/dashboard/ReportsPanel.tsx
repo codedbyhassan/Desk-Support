@@ -292,59 +292,53 @@ export default function ReportsPanel({ noCard = false }: ReportsPanelProps) {
           {reports.map((report) => (
             <div
               key={report.id}
-              className="p-3 lg:p-4 rounded-lg border border-gray-200 dark:border-gray-700 backdrop-blur-sm bg-white/30 dark:bg-gray-900/30 hover:bg-white/50 dark:hover:bg-gray-900/50 transition-colors"
+              className="p-3 lg:p-4 rounded-lg border border-gray-200 dark:border-gray-700 backdrop-blur-sm bg-white/30 dark:bg-gray-900/30 hover:bg-white/50 dark:hover:bg-gray-900/50 transition-colors flex items-center gap-3 lg:gap-4 justify-between"
             >
-              <div className="flex items-start gap-3 mb-3 lg:mb-4">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
                   <report.icon className="h-4 w-4 lg:h-5 lg:w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-gray-900 dark:text-white text-sm lg:text-base mb-1 truncate">
+                  <h3 className="font-medium text-gray-900 dark:text-white text-sm lg:text-base mb-0.5 truncate">
                     {report.title}
                   </h3>
-                  <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
                     {report.description}
                   </p>
                 </div>
               </div>
               
-              {/* Download buttons - Stack on mobile, side-by-side on larger screens */}
-              <div className="flex flex-col sm:flex-row gap-2">
+              {/* Download buttons - Always side-by-side on right */}
+              <div className="flex gap-1.5 lg:gap-2 flex-shrink-0">
                 <Button
                   onClick={() => report.action('excel')}
                   disabled={loading === report.id}
-                  className="flex-1 h-11 lg:h-10"
+                  className="h-9 px-2 lg:px-3"
                   variant="default"
                   size="sm"
                 >
                   {loading === report.id ? (
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2" />
-                      <span className="text-xs lg:text-sm">Generating...</span>
-                    </div>
+                    <div className="animate-spin h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full" />
                   ) : (
-                    <div className="flex items-center justify-center">
-                      <FileSpreadsheet className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <span className="text-xs lg:text-sm">Excel</span>
+                    <div className="flex items-center gap-1">
+                      <FileSpreadsheet className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="hidden lg:inline text-xs">Excel</span>
                     </div>
                   )}
                 </Button>
                 <Button
                   onClick={() => report.action('csv')}
                   disabled={loading === report.id}
-                  className="flex-1 h-11 lg:h-10"
+                  className="h-9 px-2 lg:px-3"
                   variant="outline"
                   size="sm"
                 >
                   {loading === report.id ? (
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2" />
-                      <span className="text-xs lg:text-sm">Generating...</span>
-                    </div>
+                    <div className="animate-spin h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full" />
                   ) : (
-                    <div className="flex items-center justify-center">
-                      <Download className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <span className="text-xs lg:text-sm">CSV</span>
+                    <div className="flex items-center gap-1">
+                      <Download className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="hidden lg:inline text-xs">CSV</span>
                     </div>
                   )}
                 </Button>

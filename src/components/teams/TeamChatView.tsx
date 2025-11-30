@@ -222,7 +222,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
           file_url, file_name, file_size, file_type,
           reply_to_id,
           sender:users(id, full_name, email, avatar_url),
-          reply_to_message:team_messages!reply_to_id(id, content, sender_id, sender:users(id, full_name)),
+          reply_to_message:team_messages!reply_to_id(id, content, sender_id, sender:users(id, full_name, email, avatar_url)),
           reactions:message_reactions(id, emoji, user_id, user:users(full_name)),
           read_by:message_reads(user_id, read_at)
         `)
@@ -315,6 +315,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
           file_url, file_name, file_size, file_type,
           reply_to_id,
           sender:users(id, full_name, email, avatar_url),
+          reply_to_message:team_messages!reply_to_id(id, content, sender_id, sender:users(id, full_name, email, avatar_url)),
           reactions:message_reactions(id, emoji, user_id, user:users(full_name)),
           read_by:message_reads(user_id, read_at)
         `)
@@ -347,9 +348,31 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
             }
           }
 
+          // Enrich reply_to_message sender if needed
+          let replyToMessage = msg.reply_to_message
+          if (replyToMessage && !replyToMessage.sender && replyToMessage.sender_id) {
+            try {
+              const { data: replySenderData } = await supabase
+                .from('users')
+                .select('id, full_name, email, avatar_url')
+                .eq('id', replyToMessage.sender_id)
+                .single()
+              
+              if (replySenderData) {
+                replyToMessage = {
+                  ...replyToMessage,
+                  sender: replySenderData
+                }
+              }
+            } catch (error) {
+              console.error('Error fetching reply sender:', error)
+            }
+          }
+
           return {
             ...msg,
             sender,
+            reply_to_message: replyToMessage,
             content: DOMPurify.sanitize(msg.content || ''),
             reactions: (msg.reactions || []).map((r: any) => ({
               id: r.id,
@@ -959,12 +982,12 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
 
   const getAvatarColor = (userId: string) => {
     const colors = [
-      'from-blue-500 to-cyan-500',
-      'from-purple-500 to-pink-500',
-      'from-emerald-500 to-teal-500',
-      'from-amber-500 to-orange-500',
-      'from-red-500 to-rose-500',
-      'from-indigo-500 to-purple-500',
+      'from-primary to-primary/80',
+      'from-accent to-accent/80',
+      'from-success-500 to-green-600',
+      'from-warning to-amber-500',
+      'from-destructive to-destructive/80',
+      'from-purple-500 to-purple-600',
     ]
     const index = parseInt(userId.slice(0, 8), 16) % colors.length
     return colors[index]
@@ -1016,7 +1039,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
     return (
       <div className="flex-1 flex items-center justify-center bg-background">
         <div className="text-center p-6">
-          <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <AlertCircle className="h-12 w-12 text-destructive/70 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-foreground mb-2">Access Denied</h2>
           <p className="text-muted-foreground">You don't have access to this team</p>
         </div>
@@ -1030,7 +1053,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
   )
 
   return (
-    <div className="flex-1 flex flex-col md:flex-row bg-background relative h-full">
+    <div className="flex-1 flex flex-col md:flex-row bg-background relative h-full overflow-hidden">
       <style>{`
         @keyframes slideInUp {
           from { opacity: 0; transform: translateY(10px); }
@@ -1051,9 +1074,9 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
       `}</style>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col bg-background chat-pattern">
+      <div className="flex-1 flex flex-col bg-background chat-pattern h-full overflow-hidden">
         {/* Chat Header */}
-        <div className="bg-card border-b border-border px-4 md:px-6 py-4 shadow-sm">
+        <div className="bg-card border-b border-border px-4 md:px-6 py-2 md:py-3 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 md:gap-4">
               {onClose && (
@@ -1093,19 +1116,19 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                   className="pl-9 w-48 xl:w-64 h-9 rounded-lg border-border"
                 />
               </div>
-              <Button variant="ghost" size="sm" className="hidden md:flex h-9 w-9 p-0 rounded-lg hover:bg-muted">
-                <Phone className="h-4 w-4 text-foreground" />
+              <Button variant="ghost" size="sm" className="hidden md:flex h-9 w-9 p-0 rounded-lg hover:bg-muted transition-colors">
+                <Phone className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setCallTypeDialogOpen(true)} className="hidden md:flex h-9 w-9 p-0 rounded-lg hover:bg-muted">
-                <Video className="h-4 w-4 text-foreground" />
+              <Button variant="ghost" size="sm" onClick={() => setCallTypeDialogOpen(true)} className="hidden md:flex h-9 w-9 p-0 rounded-lg hover:bg-muted transition-colors">
+                <Video className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 w-9 p-0 rounded-lg hover:bg-muted"
+                className="h-9 w-9 p-0 rounded-lg hover:bg-muted transition-colors"
                 onClick={() => setShowGroupInfo(!showGroupInfo)}
               >
-                {showGroupInfo ? <X className="h-4 w-4 text-foreground" /> : <Menu className="h-4 w-4 text-foreground" />}
+                {showGroupInfo ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
               </Button>
             </div>
           </div>
@@ -1155,17 +1178,6 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                     {dateMessages.map((message, msgIndex) => {
                       const isOwn = message.sender_id === user?.id
                       const prevMessage = msgIndex > 0 ? dateMessages[msgIndex - 1] : null
-                      const nextMessage = msgIndex < dateMessages.length - 1 ? dateMessages[msgIndex + 1] : null
-                      const showAvatar = !isOwn && (
-                        !nextMessage ||
-                        nextMessage.sender_id !== message.sender_id ||
-                        new Date(nextMessage.created_at).getTime() - new Date(message.created_at).getTime() > 300000
-                      )
-                      const showName = !isOwn && (
-                        !prevMessage ||
-                        prevMessage.sender_id !== message.sender_id ||
-                        new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() > 300000
-                      )
                       const isGroupStart = !prevMessage || prevMessage.sender_id !== message.sender_id
 
                       return (
@@ -1177,45 +1189,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                           onMouseEnter={() => setHoveredMessage(message.id)}
                           onMouseLeave={() => setHoveredMessage(null)}
                         >
-                          <div className={`flex gap-2 max-w-[85%] md:max-w-[70%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
-                            {showAvatar && !isOwn && (
-                              <Avatar className="h-7 w-7 md:h-8 md:w-8 flex-shrink-0 mt-6">
-                                <AvatarImage src={message.sender?.avatar_url || members.find(m => m.user.id === message.sender_id)?.user.avatar_url || undefined} />
-                                <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(message.sender_id)} text-white text-xs font-semibold`}>
-                                  {getInitials(message.sender?.full_name || members.find(m => m.user.id === message.sender_id)?.user.full_name || 'U')}
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
-                            {!showAvatar && !isOwn && <div className="w-7 md:w-8 flex-shrink-0" />}
-
-                            <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} flex-1`}>
-                              {showName && !isOwn && (
-                                <span className="text-xs font-medium text-muted-foreground mb-1 px-1">
-                                  {message.sender?.full_name || 
-                                   members.find(m => m.user.id === message.sender_id)?.user.full_name || 
-                                   'User'}
-                                </span>
-                              )}
-
-                              {message.reply_to_message && (
-                                <div className={`rounded-lg px-3 py-2 mb-2 border-l-2 text-xs ${
-                                  isOwn
-                                    ? 'bg-[#522B5B] border-[#854F6C] text-[#DFB6B2]'
-                                    : 'bg-muted border-border text-foreground'
-                                }`}>
-                                  <p className="font-medium">
-                                    {message.reply_to_message.sender_id === user?.id 
-                                      ? 'You' 
-                                      : (message.reply_to_message.sender?.full_name || 
-                                         members.find(m => m.user.id === message.reply_to_message.sender_id)?.user.full_name || 
-                                         'User')}
-                                  </p>
-                                  <p className="truncate opacity-70">
-                                    {message.reply_to_message.content}
-                                  </p>
-                                </div>
-                              )}
-
+                          <div className={`flex flex-col max-w-[85%] md:max-w-[70%] ${isOwn ? 'items-end' : 'items-start'}`}>
                               {message.type === 'text' && (
                                 <div
                                   className={`rounded-2xl px-3 md:px-4 py-2 md:py-2.5 ${
@@ -1383,7 +1357,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                                         size="sm"
                                         variant="ghost"
                                         onClick={() => handleDeleteMessage(message.id)}
-                                        className="h-8 md:h-7 px-2.5 md:px-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                        className="h-8 md:h-7 px-2.5 md:px-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                                       >
                                         <Trash2 className="h-4 md:h-3 w-4 md:w-3" />
                                       </Button>
@@ -1393,7 +1367,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => setShowReadReceipts(showReadReceipts === message.id ? null : message.id)}
-                                    className="h-8 md:h-7 px-2.5 md:px-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+                                    className="h-8 md:h-7 px-2.5 md:px-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors"
                                   >
                                     <Eye className="h-4 md:h-3 w-4 md:w-3" />
                                   </Button>
@@ -1446,7 +1420,6 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                                 </div>
                               )}
                             </div>
-                          </div>
                         </div>
                       )
                     })}
@@ -1510,7 +1483,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                   />
                 </div>
               ) : selectedFile.type.startsWith('audio/') ? (
-                <div className="h-12 w-12 rounded-lg bg-blue-600 flex items-center justify-center shadow-sm flex-shrink-0">
+                <div className="h-12 w-12 rounded-lg bg-accent flex items-center justify-center shadow-sm flex-shrink-0">
                   <Mic className="h-6 w-6 text-white" />
                 </div>
               ) : (
@@ -1521,7 +1494,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">
                   {selectedFile.name}
-                  {isRecording && <span className="ml-2 text-red-600">Recording...</span>}
+                  {isRecording && <span className="ml-2 text-destructive">Recording...</span>}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {selectedFile.type.startsWith('audio/') && isRecording 
@@ -1534,7 +1507,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                   variant="ghost"
                   size="sm"
                   onClick={cancelRecording}
-                  className="rounded-lg h-8 px-3 flex-shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="rounded-lg h-8 px-3 flex-shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
                   <X className="h-4 w-4 mr-1" />
                   Cancel
@@ -1553,11 +1526,11 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
           </div>
         )}
 
-        <div className="p-3 md:p-4 bg-card border-t border-border shadow-lg flex-shrink-0">
+        <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4 bg-card border-t border-border shadow-lg flex-shrink-0 relative z-10 w-full">
           {error && (
-            <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="mb-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
+              <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
 
@@ -1654,7 +1627,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                 onClick={isRecording ? stopRecording : startRecording}
                 className={`rounded-xl shadow-lg h-10 ${isRecording ? 'w-auto px-3' : 'w-10'} p-0 ${
                   isRecording 
-                    ? 'bg-red-600 hover:bg-red-700 animate-pulse' 
+                    ? 'bg-destructive hover:bg-destructive/90 animate-pulse' 
                     : 'bg-primary hover:bg-primary/90'
                 }`}
                 disabled={sending}
@@ -1906,7 +1879,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                         </AvatarFallback>
                       </Avatar>
                       {member.is_online && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-card rounded-full" />
+                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-success border-2 border-card rounded-full" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1917,7 +1890,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                       <p className="text-xs text-muted-foreground truncate capitalize">{member.role}</p>
                     </div>
                     {member.is_online ? (
-                      <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                      <Badge variant="secondary" className="text-xs bg-success/10 text-success">
                         Online
                       </Badge>
                     ) : (
@@ -1975,7 +1948,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                   .map((companyUser) => (
                     <div
                       key={companyUser.id}
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50"
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted"
                     >
                       <Avatar className="h-10 w-10">
                         <AvatarImage src={companyUser.avatar_url || undefined} />
@@ -1984,10 +1957,10 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-900 truncate">
+                        <p className="text-sm font-medium text-foreground truncate">
                           {companyUser.full_name}
                         </p>
-                        <p className="text-xs text-slate-500 truncate">
+                        <p className="text-xs text-muted-foreground truncate">
                           {companyUser.email}
                         </p>
                       </div>

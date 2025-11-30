@@ -530,7 +530,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+                  <div className="grid grid-cols-2 gap-3 lg:gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="fullName" className="text-xs sm:text-sm font-medium text-slate-700">
                         Full Name <span className="text-red-500">*</span>
@@ -543,16 +543,16 @@ export default function ProfilePage() {
                           if (errors.fullName) setErrors({ ...errors, fullName: '' })
                         }}
                         disabled={loading}
-                        className={`h-10 sm:h-11 text-xs sm:text-sm ${errors.fullName ? 'border-red-500 focus:border-red-500' : ''}`}
+                        className={`h-9 lg:h-11 text-xs lg:text-sm ${errors.fullName ? 'border-red-500 focus:border-red-500' : ''}`}
                         placeholder="John Doe"
                       />
-                      {errors.fullName && <p className="text-[10px] sm:text-xs text-red-500 mt-1">{errors.fullName}</p>}
+                      {errors.fullName && <p className="text-[10px] lg:text-xs text-red-500 mt-1">{errors.fullName}</p>}
                     </div>
 
                     <div className="space-y-2">
                       <Label className="text-xs sm:text-sm font-medium text-slate-700">Email</Label>
-                      <Input value={user.email} disabled className="h-10 sm:h-11 text-xs sm:text-sm bg-slate-50" />
-                      <p className="text-[10px] sm:text-xs text-slate-500 mt-1">Email cannot be changed</p>
+                      <Input value={user.email} disabled className="h-9 lg:h-11 text-xs lg:text-sm bg-slate-50" />
+                      <p className="text-[10px] lg:text-xs text-slate-500 mt-1">Email cannot be changed</p>
                     </div>
 
                     <div className="space-y-2">
@@ -567,19 +567,19 @@ export default function ProfilePage() {
                         }}
                         placeholder="+1 (555) 000-0000"
                         disabled={loading}
-                        className={`h-10 sm:h-11 text-xs sm:text-sm ${errors.phone ? 'border-red-500 focus:border-red-500' : ''}`}
+                        className={`h-9 lg:h-11 text-xs lg:text-sm ${errors.phone ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
-                      {errors.phone && <p className="text-[10px] sm:text-xs text-red-500 mt-1">{errors.phone}</p>}
+                      {errors.phone && <p className="text-[10px] lg:text-xs text-red-500 mt-1">{errors.phone}</p>}
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs sm:text-sm font-medium text-slate-700">Department</Label>\
-                      <Select value={departmentId} onValueChange={setDepartmentId} disabled={loading}>
-                        <SelectTrigger className="h-10 sm:h-11 text-xs sm:text-sm">
+                      <Label className="text-xs sm:text-sm font-medium text-slate-700">Department</Label>
+                      <Select value={departmentId || "none"} onValueChange={(value) => setDepartmentId(value === "none" ? "" : value)} disabled={loading}>
+                        <SelectTrigger className="h-9 lg:h-11 text-xs lg:text-sm">
                           <SelectValue placeholder="Select department" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No department</SelectItem>
+                          <SelectItem value="none">No department</SelectItem>
                           {departments.map((dept) => (
                             <SelectItem key={dept.id} value={dept.id}>
                               {dept.name}
@@ -603,7 +603,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+                  <div className="grid grid-cols-2 gap-3 lg:gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="password" className="text-xs sm:text-sm font-medium text-slate-700">New Password</Label>
                       <Input
@@ -616,9 +616,9 @@ export default function ProfilePage() {
                         }}
                         placeholder="••••••••"
                         disabled={loading}
-                        className={`h-10 sm:h-11 text-xs sm:text-sm ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
+                        className={`h-9 lg:h-11 text-xs lg:text-sm ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
-                      {errors.password && <p className="text-[10px] sm:text-xs text-red-500 mt-1">{errors.password}</p>}
+                      {errors.password && <p className="text-[10px] lg:text-xs text-red-500 mt-1">{errors.password}</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -633,9 +633,9 @@ export default function ProfilePage() {
                         }}
                         placeholder="••••••••"
                         disabled={loading}
-                        className={`h-10 sm:h-11 text-xs sm:text-sm ${errors.confirmPassword ? 'border-red-500 focus:border-red-500' : ''}`}
+                        className={`h-9 lg:h-11 text-xs lg:text-sm ${errors.confirmPassword ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
-                      {errors.confirmPassword && <p className="text-[10px] sm:text-xs text-red-500 mt-1">{errors.confirmPassword}</p>}
+                      {errors.confirmPassword && <p className="text-[10px] lg:text-xs text-red-500 mt-1">{errors.confirmPassword}</p>}
                     </div>
                   </div>
                 </div>
@@ -689,59 +689,51 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="p-5 rounded-xl bg-gradient-to-br from-blue-50 to-white border border-blue-100 hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
-                          <Mail className="h-5 w-5 text-white" />
+                  <div className="grid grid-cols-2 gap-3 lg:gap-6">
+                    <div className="p-3 lg:p-5 rounded-lg lg:rounded-xl bg-gradient-to-br from-blue-50 to-white border border-blue-100 hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 lg:w-10 h-8 lg:h-10 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
+                          <Mail className="h-4 lg:h-5 w-4 lg:w-5 text-white" />
                         </div>
-                        <div>
-                          <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">Email</p>
-                          <p className="text-sm font-semibold text-slate-900 mt-0.5">{user.email}</p>
-                        </div>
+                        <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">Email</p>
                       </div>
+                      <p className="text-xs lg:text-sm font-semibold text-slate-900 truncate">{user.email}</p>
                     </div>
 
-                    <div className="p-5 rounded-xl bg-gradient-to-br from-emerald-50 to-white border border-emerald-100 hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center">
-                          <Phone className="h-5 w-5 text-white" />
+                    <div className="p-3 lg:p-5 rounded-lg lg:rounded-xl bg-gradient-to-br from-emerald-50 to-white border border-emerald-100 hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 lg:w-10 h-8 lg:h-10 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                          <Phone className="h-4 lg:h-5 w-4 lg:w-5 text-white" />
                         </div>
-                        <div>
-                          <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">Phone</p>
-                          <p className="text-sm font-semibold text-slate-900 mt-0.5">{user.phone || 'Not provided'}</p>
-                        </div>
+                        <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">Phone</p>
                       </div>
+                      <p className="text-xs lg:text-sm font-semibold text-slate-900">{user.phone || 'Not provided'}</p>
                     </div>
 
-                    <div className="p-5 rounded-xl bg-gradient-to-br from-amber-50 to-white border border-amber-100 hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center">
-                          <Building2 className="h-5 w-5 text-white" />
+                    <div className="p-3 lg:p-5 rounded-lg lg:rounded-xl bg-gradient-to-br from-amber-50 to-white border border-amber-100 hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 lg:w-10 h-8 lg:h-10 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0">
+                          <Building2 className="h-4 lg:h-5 w-4 lg:w-5 text-white" />
                         </div>
-                        <div>
-                          <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">Department</p>
-                          <p className="text-sm font-semibold text-slate-900 mt-0.5">{userDepartment?.name || 'Not assigned'}</p>
-                        </div>
+                        <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">Department</p>
                       </div>
+                      <p className="text-xs lg:text-sm font-semibold text-slate-900 truncate">{userDepartment?.name || 'Not assigned'}</p>
                     </div>
 
-                    <div className="p-5 rounded-xl bg-gradient-to-br from-purple-50 to-white border border-purple-100 hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-lg bg-purple-500 flex items-center justify-center">
-                          <Calendar className="h-5 w-5 text-white" />
+                    <div className="p-3 lg:p-5 rounded-lg lg:rounded-xl bg-gradient-to-br from-purple-50 to-white border border-purple-100 hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 lg:w-10 h-8 lg:h-10 rounded-lg bg-purple-500 flex items-center justify-center flex-shrink-0">
+                          <Calendar className="h-4 lg:h-5 w-4 lg:w-5 text-white" />
                         </div>
-                        <div>
-                          <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">Member Since</p>
-                          <p className="text-sm font-semibold text-slate-900 mt-0.5">
-                            {new Date(user.created_at).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
-                          </p>
-                        </div>
+                        <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">Member Since</p>
                       </div>
+                      <p className="text-xs lg:text-sm font-semibold text-slate-900">
+                        {new Date(user.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </p>
                     </div>
                   </div>
 
@@ -812,27 +804,27 @@ export default function ProfilePage() {
         {/* Attendance Tab */}
         <TabsContent value="attendance" className="space-y-6">
           {/* Attendance History Summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
             {/* Today */}
             <Card className="border-slate-200 shadow-lg">
-              <div className="p-4 lg:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                    <Calendar className="h-5 w-5 text-white" />
+              <div className="p-3 lg:p-6">
+                <div className="flex items-center justify-between mb-3 lg:mb-4">
+                  <div className="w-8 lg:w-10 h-8 lg:h-10 rounded-lg lg:rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+                    <Calendar className="h-4 lg:h-5 w-4 lg:w-5 text-white" />
                   </div>
                   {attendanceLoadingHistory && (
-                    <div className="h-4 w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                    <div className="h-3 w-3 lg:h-4 lg:w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
                   )}
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-1">Today</p>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  <p className="text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-0.5">Today</p>
+                  <p className="text-lg lg:text-2xl font-bold text-slate-900 dark:text-white">
                     {attendanceHistory.today.present > 0 ? 'Present' : 'Absent'}
                   </p>
-                  <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
+                  <p className="text-xs lg:text-sm text-slate-500 dark:text-slate-300 mt-0.5 lg:mt-1">
                     {attendanceHistory.today.hours > 0 
-                      ? `${attendanceHistory.today.hours.toFixed(1)}h worked`
-                      : 'No hours logged'}
+                      ? `${attendanceHistory.today.hours.toFixed(1)}h`
+                      : 'No hours'}
                   </p>
                 </div>
               </div>
@@ -840,24 +832,24 @@ export default function ProfilePage() {
 
             {/* This Week */}
             <Card className="border-slate-200 shadow-lg">
-              <div className="p-4 lg:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-                    <Clock className="h-5 w-5 text-white" />
+              <div className="p-3 lg:p-6">
+                <div className="flex items-center justify-between mb-3 lg:mb-4">
+                  <div className="w-8 lg:w-10 h-8 lg:h-10 rounded-lg lg:rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center flex-shrink-0">
+                    <Clock className="h-4 lg:h-5 w-4 lg:w-5 text-white" />
                   </div>
                   {attendanceLoadingHistory && (
-                    <div className="h-4 w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                    <div className="h-3 w-3 lg:h-4 lg:w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
                   )}
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-1">This Week</p>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  <p className="text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-0.5">This Week</p>
+                  <p className="text-lg lg:text-2xl font-bold text-slate-900 dark:text-white">
                     {attendanceHistory.week.present}/{attendanceHistory.week.total}
                   </p>
-                  <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
+                  <p className="text-xs lg:text-sm text-slate-500 dark:text-slate-300 mt-0.5 lg:mt-1">
                     {attendanceHistory.week.hours > 0 
-                      ? `${attendanceHistory.week.hours.toFixed(1)}h total`
-                      : 'No hours logged'}
+                      ? `${attendanceHistory.week.hours.toFixed(1)}h`
+                      : 'No hours'}
                   </p>
                 </div>
               </div>
@@ -865,24 +857,24 @@ export default function ProfilePage() {
 
             {/* This Month */}
             <Card className="border-slate-200 shadow-lg">
-              <div className="p-4 lg:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                    <Award className="h-5 w-5 text-white" />
+              <div className="p-3 lg:p-6">
+                <div className="flex items-center justify-between mb-3 lg:mb-4">
+                  <div className="w-8 lg:w-10 h-8 lg:h-10 rounded-lg lg:rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center flex-shrink-0">
+                    <Award className="h-4 lg:h-5 w-4 lg:w-5 text-white" />
                   </div>
                   {attendanceLoadingHistory && (
-                    <div className="h-4 w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                    <div className="h-3 w-3 lg:h-4 lg:w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
                   )}
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-1">This Month</p>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  <p className="text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-0.5">This Month</p>
+                  <p className="text-lg lg:text-2xl font-bold text-slate-900 dark:text-white">
                     {attendanceHistory.month.present}/{attendanceHistory.month.total}
                   </p>
-                  <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
+                  <p className="text-xs lg:text-sm text-slate-500 dark:text-slate-300 mt-0.5 lg:mt-1">
                     {attendanceHistory.month.hours > 0 
-                      ? `${attendanceHistory.month.hours.toFixed(1)}h total`
-                      : 'No hours logged'}
+                      ? `${attendanceHistory.month.hours.toFixed(1)}h`
+                      : 'No hours'}
                   </p>
                 </div>
               </div>
@@ -890,24 +882,24 @@ export default function ProfilePage() {
 
             {/* This Year */}
             <Card className="border-slate-200 shadow-lg">
-              <div className="p-4 lg:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-white" />
+              <div className="p-3 lg:p-6">
+                <div className="flex items-center justify-between mb-3 lg:mb-4">
+                  <div className="w-8 lg:w-10 h-8 lg:h-10 rounded-lg lg:rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="h-4 lg:h-5 w-4 lg:w-5 text-white" />
                   </div>
                   {attendanceLoadingHistory && (
-                    <div className="h-4 w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                    <div className="h-3 w-3 lg:h-4 lg:w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
                   )}
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-1">This Year</p>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  <p className="text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-0.5">This Year</p>
+                  <p className="text-lg lg:text-2xl font-bold text-slate-900 dark:text-white">
                     {attendanceHistory.year.present}/{attendanceHistory.year.total}
                   </p>
-                  <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
+                  <p className="text-xs lg:text-sm text-slate-500 dark:text-slate-300 mt-0.5 lg:mt-1">
                     {attendanceHistory.year.hours > 0 
-                      ? `${attendanceHistory.year.hours.toFixed(1)}h total`
-                      : 'No hours logged'}
+                      ? `${attendanceHistory.year.hours.toFixed(1)}h`
+                      : 'No hours'}
                   </p>
                 </div>
               </div>

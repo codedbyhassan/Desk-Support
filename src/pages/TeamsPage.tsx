@@ -38,7 +38,9 @@ import {
   ArrowLeft,
   Menu,
   Edit2,
+  Home,
 } from 'lucide-react'
+import { useTheme } from '@/context/ThemeContext'
 import TeamChatView from '@/components/teams/TeamChatView'
 
 interface Team {
@@ -67,13 +69,140 @@ interface Team {
 }
 
 const AVATAR_COLORS = [
-  'from-blue-500 to-cyan-500',
-  'from-purple-500 to-pink-500',
-  'from-emerald-500 to-teal-500',
-  'from-amber-500 to-orange-500',
-  'from-red-500 to-rose-500',
-  'from-indigo-500 to-purple-500',
+  'from-primary to-primary/80',
+  'from-accent to-accent/80',
+  'from-success-500 to-green-600',
+  'from-warning to-amber-500',
+  'from-destructive to-destructive/80',
+  'from-purple-500 to-purple-600',
 ]
+
+// Floating Home Button Component with drag functionality (mouse + touch support)
+function FloatingHomeButton({ onNavigate }: { onNavigate: () => void }) {
+  const { theme } = useTheme()
+  const [position, setPosition] = useState({ x: 0, y: 0 })
+  const draggingRef = useRef(false)
+  const startPosRef = useRef({ x: 0, y: 0 })
+  const startClickRef = useRef({ x: 0, y: 0 })
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Unified handler for both mouse and touch
+  const handleStart = (clientX: number, clientY: number) => {
+    draggingRef.current = true
+    startClickRef.current = { x: clientX, y: clientY }
+    startPosRef.current = { ...position }
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    handleStart(e.clientX, e.clientY)
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault()
+    const touch = e.touches[0]
+    handleStart(touch.clientX, touch.clientY)
+  }
+
+  useEffect(() => {
+    const handleMove = (clientX: number, clientY: number) => {
+      if (!draggingRef.current || !containerRef.current) return
+
+      const deltaX = clientX - startClickRef.current.x
+      const deltaY = clientY - startClickRef.current.y
+
+      const newX = startPosRef.current.x + deltaX
+      const newY = startPosRef.current.y + deltaY
+
+      containerRef.current.style.transform = `translate(${newX}px, ${newY}px)`
+    }
+
+    const handleEnd = (clientX: number, clientY: number) => {
+      if (!draggingRef.current) return
+
+      const deltaX = Math.abs(clientX - startClickRef.current.x)
+      const deltaY = Math.abs(clientY - startClickRef.current.y)
+
+      // If moved less than 5px, treat as click
+      if (deltaX < 5 && deltaY < 5) {
+        onNavigate()
+      } else {
+        // Update position state after drag
+        const newX = startPosRef.current.x + (clientX - startClickRef.current.x)
+        const newY = startPosRef.current.y + (clientY - startClickRef.current.y)
+        setPosition({ x: newX, y: newY })
+      }
+
+      draggingRef.current = false
+    }
+
+    // Mouse events
+    const handleMouseMove = (e: MouseEvent) => {
+      handleMove(e.clientX, e.clientY)
+    }
+
+    const handleMouseUp = (e: MouseEvent) => {
+      handleEnd(e.clientX, e.clientY)
+    }
+
+    // Touch events
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const touch = e.touches[0]
+        handleMove(touch.clientX, touch.clientY)
+      }
+    }
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.changedTouches.length > 0) {
+        const touch = e.changedTouches[0]
+        handleEnd(touch.clientX, touch.clientY)
+      }
+    }
+
+    // Add both mouse and touch listeners
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    document.addEventListener('touchmove', handleTouchMove, { passive: false })
+    document.addEventListener('touchend', handleTouchEnd)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [position, onNavigate])
+
+  return (
+    <div
+      ref={containerRef}
+      className="fixed bottom-8 right-4 lg:hidden z-50 select-none touch-none"
+      style={{
+        transform: `translate(${position.x}px, ${position.y}px)`,
+        transition: draggingRef.current ? 'none' : 'transform 0.2s ease-out',
+        cursor: 'grab',
+      }}
+      onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
+    >
+      <div
+        className={`h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 ${
+          theme === 'dark'
+            ? 'bg-white hover:bg-gray-100 text-slate-900'
+            : 'bg-blue-600 hover:bg-blue-700 text-white'
+        }`}
+        style={{
+          cursor: 'grab',
+          userSelect: 'none',
+        }}
+        title="Go to Dashboard - Drag to move"
+      >
+        <Home className="h-6 w-6 pointer-events-none" />
+      </div>
+    </div>
+  )
+}
 
 export default function TeamsPage() {
   const navigate = useNavigate()
@@ -558,9 +687,9 @@ export default function TeamsPage() {
           variant="ghost"
           size="sm"
           onClick={() => setShowSidebar(true)}
-          className="fixed top-20 left-4 z-50 md:hidden bg-card shadow-lg rounded-full h-10 w-10 p-0 border border-border"
+          className="fixed top-24 left-4 z-50 md:hidden bg-card shadow-lg rounded-full h-10 w-10 p-0 border border-border"
         >
-          <Menu className="h-5 w-5" />
+          <ArrowLeft className="h-5 w-5" />
         </Button>
       )}
 
@@ -598,9 +727,9 @@ export default function TeamsPage() {
                   </DialogDescription>
                 </DialogHeader>
                 {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex gap-2">
-                    <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs sm:text-sm text-red-700">{error}</p>
+                  <div className="bg-error/10 border border-error rounded-lg p-3 flex gap-2">
+                    <AlertCircle className="h-4 w-4 text-error flex-shrink-0 mt-0.5" />
+                    <p className="text-xs sm:text-sm text-error">{error}</p>
                   </div>
                 )}
                 <div className="space-y-4">
@@ -694,7 +823,7 @@ export default function TeamsPage() {
             </div>
           ) : error && filteredTeams.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-              <AlertCircle className="h-12 w-12 text-red-300 mb-3" />
+              <AlertCircle className="h-12 w-12 text-error/60 mb-3" />
               <p className="text-sm font-medium text-foreground mb-1">Error loading teams</p>
               <p className="text-xs text-muted-foreground">{error}</p>
             </div>
@@ -789,7 +918,7 @@ export default function TeamsPage() {
                           }
                         }}
                         disabled={deletingTeamId === team.id || leavingTeamId === team.id}
-                        className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition-colors"
+                        className="p-2 hover:bg-destructive/10 rounded-lg text-destructive transition-colors"
                         title={isAdmin ? 'Delete team' : 'Leave team'}
                       >
                         {deletingTeamId === team.id || leavingTeamId === team.id ? (
@@ -850,7 +979,7 @@ export default function TeamsPage() {
             <AlertDialogCancel className="rounded-lg lg:rounded-xl h-10 sm:h-11">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => teamToDelete && confirmDeleteTeam(teamToDelete)}
-              className="bg-red-600 hover:bg-red-700 rounded-lg lg:rounded-xl h-10 sm:h-11"
+              className="bg-destructive hover:bg-destructive/90 rounded-lg lg:rounded-xl h-10 sm:h-11"
             >
               Delete
             </AlertDialogAction>
@@ -889,9 +1018,9 @@ export default function TeamsPage() {
             </DialogDescription>
           </DialogHeader>
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex gap-2">
-              <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-xs sm:text-sm text-red-700">{error}</p>
+            <div className="bg-error/10 border border-error rounded-lg p-3 flex gap-2">
+              <AlertCircle className="h-4 w-4 text-error flex-shrink-0 mt-0.5" />
+              <p className="text-xs sm:text-sm text-error">{error}</p>
             </div>
           )}
           {teamToEdit && (
@@ -953,6 +1082,9 @@ export default function TeamsPage() {
           onClick={() => setShowSidebar(false)}
         />
       )}
+
+      {/* Floating Home Button - Mobile only, Draggable */}
+      <FloatingHomeButton onNavigate={() => navigate('/app/dashboard')} />
     </div>
   )
 }

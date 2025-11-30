@@ -19,13 +19,15 @@ interface MobileMenuProps {
   mobileMenuOpen: boolean
   setMobileMenuOpen: (open: boolean) => void
   primaryColor: string
+  hidden?: boolean
 }
 
 export function MobileMenu({ 
   navItems, 
   mobileMenuOpen, 
   setMobileMenuOpen, 
-  primaryColor 
+  primaryColor,
+  hidden = false
 }: MobileMenuProps) {
   const { user, signOut } = useAuth()
   const { theme, toggleTheme } = useTheme()
@@ -67,7 +69,7 @@ export function MobileMenu({
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 lg:hidden rounded-xl"
+          className={`h-9 w-9 rounded-xl ${hidden ? 'hidden' : 'lg:hidden'}`}
         >
           <Menu className="h-5 w-5" />
         </Button>

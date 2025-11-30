@@ -46,7 +46,7 @@ export default function ScreenShareDisplay({ stream, sharerName, onClose }: Scre
       {onClose && (
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-red-500/80 hover:bg-red-600 flex items-center justify-center text-white transition-all duration-300 z-10 backdrop-blur-sm"
+          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-destructive/80 hover:bg-destructive flex items-center justify-center text-white transition-all duration-300 z-10 backdrop-blur-sm"
           title="Close screen share"
         >
           <X className="w-5 h-5" />

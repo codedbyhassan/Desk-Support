@@ -33,26 +33,26 @@ export function UserMenu({ primaryColor }: UserMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="relative hidden lg:block">
-          <Avatar className={`h-10 w-10 ring-2 transition-all backdrop-blur-md ${
+        <button className="relative">
+          <Avatar className={`h-9 w-9 sm:h-10 sm:w-10 ring-2 transition-all backdrop-blur-md ${
             theme === 'dark' 
               ? 'ring-[#854F6C] hover:ring-[#522B5B]' 
               : 'ring-slate-200 hover:ring-slate-300'
           }`}>
             <AvatarImage src={user?.avatar_url || undefined} />
             <AvatarFallback 
-              className={`text-sm font-semibold ${theme === 'dark' ? 'text-[#FBE4D8]' : 'text-white'}`}
+              className={`text-xs sm:text-sm font-semibold ${theme === 'dark' ? 'text-[#FBE4D8]' : 'text-white'}`}
               style={{ backgroundColor: theme === 'dark' ? '#522B5B' : primaryColor }}
             >
               {user?.full_name?.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div className={`absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 ${theme === 'dark' ? 'border-[#2B124C]' : 'border-white'}`} />
+          <div className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 ${theme === 'dark' ? 'border-[#2B124C]' : 'border-white'}`} />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
+      <DropdownMenuContent align="end" className="w-56 sm:w-64">
         <div className="flex items-center gap-3 p-3">
-          <Avatar className="h-12 w-12">
+          <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
             <AvatarImage src={user?.avatar_url || undefined} />
             <AvatarFallback 
               className={theme === 'dark' ? 'text-[#FBE4D8]' : 'text-white'}
@@ -61,9 +61,9 @@ export function UserMenu({ primaryColor }: UserMenuProps) {
               {user?.full_name?.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div className="flex flex-col space-y-1 flex-1">
-            <p className="font-semibold text-sm">{user?.full_name}</p>
-            <p className="text-xs text-muted-foreground">{user?.email}</p>
+          <div className="flex flex-col space-y-1 flex-1 min-w-0">
+            <p className="font-semibold text-xs sm:text-sm truncate">{user?.full_name}</p>
+            <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
             <Badge variant="secondary" className="w-fit text-xs">
               {user?.role}
             </Badge>

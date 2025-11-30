@@ -149,6 +149,7 @@ export function Header({
                   mobileMenuOpen={mobileMenuOpen}
                   setMobileMenuOpen={setMobileMenuOpen}
                   primaryColor={primaryColor}
+                  hidden={true}
                 />
                 
                 <div className="hidden lg:flex items-center gap-2">

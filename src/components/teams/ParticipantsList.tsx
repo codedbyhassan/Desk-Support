@@ -87,21 +87,21 @@ export default function ParticipantsList({
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     {hasAudio ? (
-                      <div className="w-5 h-5 flex items-center justify-center rounded bg-emerald-500/20">
-                        <Mic className="w-3 h-3 text-emerald-400" />
+                      <div className="w-5 h-5 flex items-center justify-center rounded bg-success/20">
+                        <Mic className="w-3 h-3 text-success" />
                       </div>
                     ) : (
-                      <div className="w-5 h-5 flex items-center justify-center rounded bg-red-500/20">
-                        <MicOff className="w-3 h-3 text-red-400" />
+                      <div className="w-5 h-5 flex items-center justify-center rounded bg-warning/20">
+                        <MicOff className="w-3 h-3 text-warning" />
                       </div>
                     )}
                     {hasVideo ? (
-                      <div className="w-5 h-5 flex items-center justify-center rounded bg-emerald-500/20">
-                        <Video className="w-3 h-3 text-emerald-400" />
+                      <div className="w-5 h-5 flex items-center justify-center rounded bg-success/20">
+                        <Video className="w-3 h-3 text-success" />
                       </div>
                     ) : (
-                      <div className="w-5 h-5 flex items-center justify-center rounded bg-red-500/20">
-                        <VideoOff className="w-3 h-3 text-red-400" />
+                      <div className="w-5 h-5 flex items-center justify-center rounded bg-warning/20">
+                        <VideoOff className="w-3 h-3 text-warning" />
                       </div>
                     )}
                   </div>
@@ -114,7 +114,7 @@ export default function ParticipantsList({
                       onClick={() => handleMuteParticipant(participantId)}
                       className={`flex-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
                         isMuted
-                          ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
+                          ? 'bg-warning/20 text-warning hover:bg-warning/30'
                           : 'bg-slate-600/50 text-slate-200 hover:bg-slate-600/70'
                       }`}
                     >
@@ -122,7 +122,7 @@ export default function ParticipantsList({
                     </button>
                     <button
                       onClick={() => handleRemoveParticipant(participantId)}
-                      className="flex-1 px-2 py-1 rounded text-xs font-medium bg-red-500/20 text-red-300 hover:bg-red-500/30 transition-colors"
+                      className="flex-1 px-2 py-1 rounded text-xs font-medium bg-warning/20 text-warning hover:bg-warning/30 transition-colors"
                     >
                       Remove
                     </button>

@@ -8,6 +8,7 @@ import { DashboardTabProvider } from '@/context/DashboardTabContext'
 import { ToastContainer } from '@/components/ToastNotification'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
+import { MobileBottomNav } from '@/components/layout/MobileBottomNav'
 import {
   LayoutDashboard,
   Ticket,
@@ -168,12 +169,13 @@ export default function Layout({ children }: LayoutProps) {
           primaryColor={primaryColor}
         />
 
-        <main className="lg:ml-16 pt-20 lg:pt-16 px-4 lg:px-8 py-6 lg:py-8 relative">
+        <main className="lg:ml-16 pt-3 lg:pt-4 pb-28 lg:pb-0 px-4 lg:px-8 py-4 lg:py-6 relative">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>
         </main>
 
+        <MobileBottomNav />
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       </div>
     </DashboardTabProvider>

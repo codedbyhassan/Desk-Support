@@ -74,6 +74,7 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
       setMainTab(initialTab)
     }
   }, [initialTab, setMainTab])
+  
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalAssets: 0,
@@ -253,7 +254,7 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
         resolutionRate
       })
     } catch (error: any) {
-      console.error('Dashboard: Error fetching stats:', error)
+     console.error('Dashboard: Error fetching stats:', error)
       setError(error.message || 'Failed to load dashboard data')
     } finally {
       setLoading(false)
@@ -310,7 +311,7 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1 lg:space-y-2">
           <div className="flex items-center gap-2 lg:gap-3 mb-1 lg:mb-2">
-            <h1 className="text-2xl lg:text-3xl font-bold dark:text-white text-slate-900">Dashboard</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold dark:text-white text-slate-900">Dashboard</h1>
             {user?.role === 'admin' && (
               <Badge className="bg-slate-900 text-white border-0 px-2 lg:px-3 py-1 text-xs lg:text-sm">
                 <Shield className="h-3 w-3 mr-1" />
@@ -318,14 +319,14 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
               </Badge>
             )}
           </div>
-          <p className="text-sm lg:text-base dark:text-white/80 text-slate-500">
+          <p className="text-xs sm:text-sm lg:text-base dark:text-white/80 text-slate-500">
             Welcome back, <span className="font-medium dark:text-white text-slate-700">{user?.full_name}</span>
           </p>
         </div>
 
         {company && (
           <div className="text-right">
-            <p className="text-sm font-medium dark:text-white text-slate-900">{company.name}</p>
+            <p className="text-xs sm:text-sm font-medium dark:text-white text-slate-900">{company.name}</p>
             <p className="text-xs dark:text-white/70 text-slate-500 mt-1">
               {stats.totalUsers} / {company.max_users} users • {stats.totalAssets} / {company.max_assets} assets
             </p>
@@ -351,7 +352,7 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                 )}
               </div>
             </div>
-            <Button variant="outline" size="sm" className="bg-white border-amber-300 text-amber-900 hover:bg-amber-50 flex-shrink-0 h-9 lg:h-10 text-xs lg:text-sm">
+            <Button variant="outline" size="sm" className="bg-white border-amber-300 text-amber-900 hover:bg-amber-50 flex-shrink-0 h-10 md:h-9 text-xs lg:text-sm">
               Upgrade
             </Button>
           </div>
@@ -377,112 +378,50 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
 
         <TabsContent value="overview" className="space-y-6 lg:space-y-8">
           {/* Key Performance Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
             {/* Total Users Card */}
-            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 text-white">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
-              <div className="relative p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
-                    <Users className="h-6 w-6" />
-                  </div>
-                  {stats.userGrowthPercentage >= 0 ? (
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300">
-                      <TrendingUp className="h-3 w-3" />
-                      <span className="text-xs font-semibold">{stats.userGrowthPercentage}%</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/20 text-red-300">
-                      <TrendingDown className="h-3 w-3" />
-                      <span className="text-xs font-semibold">{Math.abs(stats.userGrowthPercentage)}%</span>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm dark:text-white/80 text-slate-300 font-medium">Total Users</p>
-                  <h3 className="text-3xl font-bold dark:text-white text-white">{stats.totalUsers}</h3>
+            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 text-white">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+              <div className="relative p-3 sm:p-4">
+                <div className="space-y-2">
+                  <p className="text-xs sm:text-sm dark:text-white/80 text-slate-300 font-medium">Total Users</p>
+                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.totalUsers}</h3>
                   <p className="text-xs dark:text-white/60 text-slate-400">Active team members</p>
                 </div>
               </div>
             </Card>
 
             {/* Total Assets Card */}
-            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600 dark:from-blue-700 dark:via-blue-600 dark:to-blue-700 text-white">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
-              <div className="relative p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <Package className="h-6 w-6" />
-                  </div>
-                  <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
-                    <CheckCircle2 className="h-3 w-3" />
-                    <span className="text-xs font-semibold">{stats.availableAssets} available</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm dark:text-white/80 text-blue-100 font-medium">Total Assets</p>
-                  <h3 className="text-3xl font-bold dark:text-white text-white">{stats.totalAssets}</h3>
+            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600 dark:from-blue-700 dark:via-blue-600 dark:to-blue-700 text-white">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+              <div className="relative p-3 sm:p-4">
+                <div className="space-y-2">
+                  <p className="text-xs sm:text-sm dark:text-white/80 text-blue-100 font-medium">Total Assets</p>
+                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.totalAssets}</h3>
                   <p className="text-xs dark:text-white/60 text-blue-100">{stats.assignedAssets} assigned</p>
                 </div>
               </div>
             </Card>
 
             {/* Active Tickets Card */}
-            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-amber-600 via-amber-500 to-amber-600 dark:from-amber-700 dark:via-amber-600 dark:to-amber-700 text-white">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
-              <div className="relative p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <Ticket className="h-6 w-6" />
-                  </div>
-                  {stats.openTickets > 0 ? (
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
-                      <Clock className="h-3 w-3" />
-                      <span className="text-xs font-semibold">{stats.openTickets} pending</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/30 text-white">
-                      <CheckCircle2 className="h-3 w-3" />
-                      <span className="text-xs font-semibold">All clear</span>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm dark:text-white/80 text-amber-100 font-medium">Active Tickets</p>
-                  <h3 className="text-3xl font-bold dark:text-white text-white">{stats.openTickets + stats.inProgressTickets}</h3>
+            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-amber-600 via-amber-500 to-amber-600 dark:from-amber-700 dark:via-amber-600 dark:to-amber-700 text-white">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+              <div className="relative p-3 sm:p-4">
+                <div className="space-y-2">
+                  <p className="text-xs sm:text-sm dark:text-white/80 text-amber-100 font-medium">Active Tickets</p>
+                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.openTickets + stats.inProgressTickets}</h3>
                   <p className="text-xs dark:text-white/60 text-amber-100">{stats.resolvedTickets} resolved</p>
                 </div>
               </div>
             </Card>
 
             {/* Resolution Rate Card */}
-            <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-600 dark:from-emerald-700 dark:via-emerald-600 dark:to-emerald-700 text-white">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
-              <div className="relative p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <Target className="h-6 w-6" />
-                  </div>
-                  {stats.resolutionRate >= 90 ? (
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
-                      <Award className="h-3 w-3" />
-                      <span className="text-xs font-semibold">Excellent</span>
-                    </div>
-                  ) : stats.resolutionRate >= 70 ? (
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
-                      <Zap className="h-3 w-3" />
-                      <span className="text-xs font-semibold">Good</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/30 text-white">
-                      <AlertCircle className="h-3 w-3" />
-                      <span className="text-xs font-semibold">Needs work</span>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm dark:text-white/80 text-emerald-100 font-medium">Resolution Rate</p>
-                  <h3 className="text-3xl font-bold dark:text-white text-white">{stats.resolutionRate}%</h3>
+            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-600 dark:from-emerald-700 dark:via-emerald-600 dark:to-emerald-700 text-white">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+              <div className="relative p-3 sm:p-4">
+                <div className="space-y-2">
+                  <p className="text-xs sm:text-sm dark:text-white/80 text-emerald-100 font-medium">Resolution Rate</p>
+                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.resolutionRate}%</h3>
                   <p className="text-xs dark:text-white/60 text-emerald-100">Ticket resolution efficiency</p>
                 </div>
               </div>
@@ -506,19 +445,19 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                 <div className="space-y-3">
                   <Button 
                     onClick={() => navigate('/app/users')}
-                    className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
                     variant="ghost"
                   >
                     <UserPlus className="h-4 w-4 mr-3 text-slate-600" />
                     <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-sm">Add New User</div>
+                      <div className="font-medium text-slate-900 text-xs sm:text-sm">Add New User</div>
                       <div className="text-xs text-slate-500">Invite team member</div>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
                   </Button>
                   <Button 
                     onClick={() => navigate('/app/assets')}
-                    className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
                     variant="ghost"
                   >
                     <Plus className="h-4 w-4 mr-3 text-slate-600" />
@@ -530,7 +469,7 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                   </Button>
                   <Button 
                     onClick={() => navigate('/app/tickets')}
-                    className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
                     variant="ghost"
                   >
                     <Ticket className="h-4 w-4 mr-3 text-slate-600" />
@@ -565,7 +504,7 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                         console.error('Error:', error)
                       }
                     }}
-                    className={`w-full justify-start h-auto py-3 px-4 rounded-xl border ${
+                    className={`w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl border ${
                       attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break'
                         ? 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
                         : 'hover:bg-slate-50 border-slate-200'
@@ -581,7 +520,7 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                       <div className={`font-medium text-sm ${
                         attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break'
                           ? 'text-emerald-900'
-                          : 'text-slate-900'
+                          : 'text-slate-500'
                       }`}>
                         {attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break' ? 'Clock Out' : 'Clock In'}
                       </div>
@@ -592,7 +531,7 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                       }`}>
                         {attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break'
                           ? attendanceStatus.elapsedHours 
-                            ? `Time: ${attendanceStatus.elapsedHours}`
+                            ? 'Time: ' + attendanceStatus.elapsedHours
                             : 'Currently clocked in'
                           : 'Record your attendance'}
                       </div>
@@ -605,62 +544,92 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
 
             {/* Performance Insights */}
             <Card className="border-slate-200 shadow-md hover:shadow-lg transition-shadow lg:col-span-2">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                      <LineChart className="h-5 w-5 text-white" />
+              <div className="p-3 sm:p-4 lg:p-6">
+                <div className="flex items-center justify-between gap-3 mb-4 lg:mb-6">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center flex-shrink-0">
+                      <LineChart className="h-4 sm:h-5 w-4 sm:w-5 text-white" />
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900">Performance Insights</h3>
-                      <p className="text-xs text-slate-500">Key metrics at a glance</p>
+                    <div className="min-w-0">
+                      <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900 dark:text-white truncate">Performance Insights</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Key metrics at a glance</p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="rounded-lg">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                </Button>
+                  <Button 
+                    size="sm"
+                    className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 dark:bg-blue-900 dark:hover:bg-blue-800 text-white border-0 h-9 px-2 sm:px-3"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-1 text-xs">Export</span>
+                  </Button>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <PieChart className="h-4 w-4 text-blue-600" />
-                      <span className="text-xs font-medium text-slate-600">Asset Utilization</span>
+                <div className="space-y-3 lg:space-y-4">
+                  {/* First Row */}
+                  <div className="flex items-center gap-3 p-3 lg:p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/30">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
+                        <PieChart className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">Asset Utilization</p>
+                        <p className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white">
+                          {stats.totalAssets > 0 ? Math.round((stats.assignedAssets / stats.totalAssets) * 100) : 0}%
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-2xl font-bold text-slate-900 mb-1">
-                      {stats.totalAssets > 0 ? Math.round((stats.assignedAssets / stats.totalAssets) * 100) : 0}%
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      {stats.assignedAssets} of {stats.totalAssets} assets in use
-                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 text-right whitespace-nowrap flex-shrink-0">
+                      {stats.assignedAssets}/{stats.totalAssets}
+                    </p>
                   </div>
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Activity className="h-4 w-4 text-emerald-600" />
-                      <span className="text-xs font-medium text-slate-600">Ticket Activity</span>
+
+                  {/* Second Row */}
+                  <div className="flex items-center gap-3 p-3 lg:p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/30">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex-shrink-0">
+                        <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">Ticket Activity</p>
+                        <p className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white">{stats.totalTickets}</p>
+                      </div>
                     </div>
-                    <div className="text-2xl font-bold text-slate-900 mb-1">{stats.totalTickets}</div>
-                    <div className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 text-right whitespace-nowrap flex-shrink-0">
                       {stats.inProgressTickets} in progress
-                    </div>
+                    </p>
                   </div>
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Users className="h-4 w-4 text-purple-600" />
-                      <span className="text-xs font-medium text-slate-600">Team Growth</span>
+
+                  {/* Third Row */}
+                  <div className="flex items-center gap-3 p-3 lg:p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/30">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
+                        <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">Team Growth</p>
+                        <p className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white">
+                          {stats.userGrowthPercentage >= 0 ? '+' : ''}{stats.userGrowthPercentage}%
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-2xl font-bold text-slate-900 mb-1">
-                      {stats.userGrowthPercentage >= 0 ? '+' : ''}{stats.userGrowthPercentage}%
-                    </div>
-                    <div className="text-xs text-slate-500">vs last 30 days</div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 text-right whitespace-nowrap flex-shrink-0">
+                      vs last 30 days
+                    </p>
                   </div>
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Target className="h-4 w-4 text-amber-600" />
-                      <span className="text-xs font-medium text-slate-600">Efficiency</span>
+
+                  {/* Fourth Row */}
+                  <div className="flex items-center gap-3 p-3 lg:p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/30">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex-shrink-0">
+                        <Target className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">Efficiency</p>
+                        <p className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white">{stats.resolutionRate}%</p>
+                      </div>
                     </div>
-                    <div className="text-2xl font-bold text-slate-900 mb-1">{stats.resolutionRate}%</div>
-                    <div className="text-xs text-slate-500">Resolution success rate</div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 text-right whitespace-nowrap flex-shrink-0">
+                      Success rate
+                    </p>
                   </div>
                 </div>
               </div>
@@ -670,48 +639,54 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
           {/* Reports & Asset Distribution */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="border-slate-200 shadow-md">
-              <div className="p-6 border-b border-slate-200">
+              <div className="p-4 lg:p-6 border-b border-slate-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center">
                       <FileText className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">Reports & Export</h3>
-                      <p className="text-xs text-slate-500">Generate comprehensive reports</p>
+                      <h3 className="text-base lg:text-lg font-semibold text-slate-900 dark:text-white">Reports & Export</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Generate comprehensive reports</p>
                     </div>
                   </div>
+                  <Button 
+                    size="sm"
+                    className="ml-2 flex-shrink-0 bg-blue-600 hover:bg-blue-700 dark:bg-blue-900 dark:hover:bg-blue-800 text-white border-0"
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    <span className="hidden sm:inline text-sm">Export</span>
+                  </Button>
                 </div>
               </div>
-              <div className="p-6">
+              <div className="p-4 lg:p-6">
                 <ReportsPanel noCard />
               </div>
             </Card>
 
             <Card className="border-slate-200 shadow-md">
-              <div className="p-6 border-b border-slate-200">
+              <div className="p-4 lg:p-6 border-b border-slate-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 dark:from-emerald-900 dark:to-emerald-800 flex items-center justify-center">
                       <Package className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">Asset Distribution</h3>
-                      <p className="text-xs text-slate-500">Overview of asset status</p>
+                      <h3 className="text-base lg:text-lg font-semibold text-slate-900 dark:text-white">Asset Distribution</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Overview of asset status</p>
                     </div>
                   </div>
                   <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="rounded-lg"
+                    size="sm"
+                    className="ml-2 flex-shrink-0 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-900 dark:hover:bg-emerald-800 text-white border-0"
                     onClick={() => navigate('/app/assets')}
                   >
-                    <Package className="h-4 w-4 mr-2" />
-                    Manage
-                </Button>
+                    <Package className="h-4 w-4 mr-1" />
+                    <span className="hidden sm:inline text-sm">Manage</span>
+                  </Button>
                 </div>
               </div>
-              <div className="p-6">
+              <div className="p-4 lg:p-6">
                 <AssetsInventory noCard />
               </div>
             </Card>
@@ -720,16 +695,16 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
 
         <TabsContent value="users" className="mt-4">
           <Card className="border-slate-200">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 lg:p-6 border-b border-slate-200">
-              <div className="space-y-1">
-                <h3 className="text-base lg:text-lg font-semibold text-slate-900">Users Management</h3>
-                <p className="text-xs lg:text-sm text-slate-500">
+            <div className="p-3 sm:p-4 lg:p-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="space-y-1 min-w-0">
+                <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900 dark:text-white truncate">Users Management</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                   {stats.totalUsers} users in {company?.name}
                 </p>
               </div>
-              <Button className="bg-slate-900 hover:bg-slate-800 rounded-lg h-11 lg:h-10 w-full lg:w-auto">
-                <UserPlus className="h-4 w-4 mr-1 lg:mr-2" />
-                <span className="text-sm">Add User</span>
+              <Button className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 dark:bg-blue-900 dark:hover:bg-blue-800 text-white border-0 h-9 px-2 sm:px-3 w-full sm:w-auto">
+                <UserPlus className="h-4 w-4" />
+                <span className="hidden sm:inline ml-1 text-xs">Add User</span>
               </Button>
             </div>
             <UsersTable />
@@ -738,16 +713,16 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
 
         <TabsContent value="assets" className="mt-4">
           <Card className="border-slate-200">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 lg:p-6 border-b border-slate-200">
-              <div className="space-y-1">
-                <h3 className="text-base lg:text-lg font-semibold text-slate-900">Assets Inventory</h3>
-                <p className="text-xs lg:text-sm text-slate-500">
+            <div className="p-3 sm:p-4 lg:p-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="space-y-1 min-w-0">
+                <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900 dark:text-white truncate">Assets Inventory</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                   {stats.totalAssets} assets • {stats.availableAssets} available • {stats.assignedAssets} assigned
                 </p>
               </div>
-              <Button className="bg-slate-900 hover:bg-slate-800 rounded-lg h-11 lg:h-10 w-full lg:w-auto">
-                <Plus className="h-4 w-4 mr-1 lg:mr-2" />
-                <span className="text-sm">Add Asset</span>
+              <Button className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 dark:bg-blue-900 dark:hover:bg-blue-800 text-white border-0 h-9 px-2 sm:px-3 w-full sm:w-auto">
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline ml-1 text-xs">Add Asset</span>
               </Button>
             </div>
             <AssetsInventory fullView />
