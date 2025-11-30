@@ -31,6 +31,24 @@ type Notification = {
   entity_type?: string
 }
 
+// ✅ Helper function to generate navigation links from notification data
+const generateNotificationLink = (entityType?: string, entityId?: string): string | undefined => {
+  if (!entityType || !entityId) return undefined
+  
+  switch (entityType) {
+    case 'ticket':
+      return `/app/tickets/${entityId}`
+    case 'team':
+      return `/app/teams/${entityId}`
+    case 'asset':
+      return `/app/assets/${entityId}`
+    case 'department':
+      return `/app/departments/${entityId}`
+    default:
+      return undefined
+  }
+}
+
 export function NotificationBell() {
   const navigate = useNavigate()
   const {
@@ -75,36 +93,30 @@ export function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read if not already read
     if (!notification.read) {
-      markAsRead(notification.id)
-    }
-
-    // Generate link if not provided based on entity type
-    let link = notification.link
-    if (!link && (notification as any).entity_type && (notification as any).entity_id) {
-      const entityType = (notification as any).entity_type
-      const entityId = (notification as any).entity_id
-      
-      switch (entityType) {
-        case 'ticket':
-          link = `/app/tickets/${entityId}`
-          break
-        case 'team':
-          link = `/app/teams/${entityId}`
-          break
-        case 'asset':
-          link = `/app/assets/${entityId}`
-          break
-        case 'department':
-          link = `/app/departments/${entityId}`
-          break
+      try {
+        await markAsRead(notification.id)
+      } catch (error) {
+        console.error('Error marking notification as read:', error)
       }
     }
 
+    // Generate link using the helper function
+    const link = notification.link || generateNotificationLink(notification.entity_type, notification.entity_id)
+
     if (link) {
+      console.log('🔗 Navigating to:', link, 'from notification:', notification.title)
       navigate(link)
       setIsOpen(false)
+    } else {
+      console.warn('⚠️ No link available for notification:', {
+        id: notification.id,
+        type: notification.type,
+        entity_type: notification.entity_type,
+        entity_id: notification.entity_id,
+      })
     }
   }
 

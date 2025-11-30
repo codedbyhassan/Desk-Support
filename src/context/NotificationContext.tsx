@@ -19,6 +19,24 @@ type Notification = {
   sender_avatar?: string
 }
 
+// ✅ Helper function to generate navigation links from notification data
+const generateNotificationLink = (entityType?: string, entityId?: string): string | undefined => {
+  if (!entityType || !entityId) return undefined
+  
+  switch (entityType) {
+    case 'ticket':
+      return `/app/tickets/${entityId}`
+    case 'team':
+      return `/app/teams/${entityId}`
+    case 'asset':
+      return `/app/assets/${entityId}`
+    case 'department':
+      return `/app/departments/${entityId}`
+    default:
+      return undefined
+  }
+}
+
 type NotificationContextType = {
   notifications: Notification[]
   unreadCount: number
@@ -149,24 +167,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       department_ticket: 'info',
     }
 
-    // Generate link if not provided based on entity type
-    let link = notification.link
-    if (!link && notification.entity_type && notification.entity_id) {
-      switch (notification.entity_type) {
-        case 'ticket':
-          link = `/app/tickets/${notification.entity_id}`
-          break
-        case 'team':
-          link = `/app/teams/${notification.entity_id}`
-          break
-        case 'asset':
-          link = `/app/assets/${notification.entity_id}`
-          break
-        case 'department':
-          link = `/app/departments/${notification.entity_id}`
-          break
-      }
-    }
+    // Generate link using the helper function
+    const link = notification.link || generateNotificationLink(notification.entity_type, notification.entity_id)
 
     return {
       id: notification.id,
