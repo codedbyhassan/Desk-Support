@@ -32,7 +32,6 @@ type NotificationContextType = {
   deleteAllRead: () => Promise<void>
   refreshNotifications: () => Promise<void>
   dismissToast: (id: string) => void
-  fetchError: string | null
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
@@ -45,9 +44,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const [companyId, setCompanyId] = useState<string | null>(null)
-  const [fetchError, setFetchError] = useState<string | null>(null)
   const initialLoadCompleteRef = useRef(false)
-  const earlyNotificationsBufferRef = useRef<Notification[]>([])
   const processedMessageIdsRef = useRef<Set<string>>(new Set())
   const processedNotificationIdsRef = useRef<Set<string>>(new Set())
 
@@ -226,12 +223,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (!userId) {
         setNotifications([])
         setLoading(false)
-        setFetchError(null)
         return
       }
 
       console.log('📥 Fetching notifications for userId:', userId)
-      setFetchError(null)
 
       const { data, error } = await supabase
         .from('notifications')
@@ -240,22 +235,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('❌ Error fetching notifications:', error)
-        const errorMsg = error.message?.includes('permission') || error.message?.includes('row-level security')
-          ? 'Permission Error: Contact support if issue persists'
-          : `Failed to load notifications: ${error.message}`
-        setFetchError(errorMsg)
+        console.error('Error fetching notifications:', error)
         setNotifications([])
       } else {
         console.log('✅ Fetched notifications:', data?.length || 0)
-        setFetchError(null)
+        // Map the data to handle null values
         const mappedData = (data || []).map(n => ({
           ...n,
           link: n.link || undefined,
           entity_id: n.entity_id || undefined,
           entity_type: n.entity_type || undefined,
+          sender_name: n.sender_name || undefined,
+          sender_avatar: n.sender_avatar || undefined
         }))
         setNotifications(mappedData)
+        // Track processed notification IDs to prevent duplicates - only track existing ones
         if (data && data.length > 0) {
           const ids = new Set(data.map(n => n.id))
           processedNotificationIdsRef.current = ids
@@ -264,8 +258,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (error) {
-      console.error('❌ Exception fetching notifications:', error)
-      setFetchError('Network Error: Check your connection and try again')
+      console.error('Failed to fetch notifications:', error)
       setNotifications([])
     } finally {
       setLoading(false)
@@ -310,24 +303,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         clearTimeout(timeoutId)
         initialLoadCompleteRef.current = true
         console.log('✅ Initial load complete, subscriptions ready')
-        
-        // ✅ Process any notifications that arrived during initial load
-        if (earlyNotificationsBufferRef.current.length > 0) {
-          console.log('📦 Processing buffered early notifications:', earlyNotificationsBufferRef.current.length)
-          const bufferedNotifications = [...earlyNotificationsBufferRef.current]
-          earlyNotificationsBufferRef.current = []
-          
-          // Add buffered notifications to state
-          setNotifications(prev => {
-            const newNotifications = [...bufferedNotifications, ...prev]
-            const uniqueIds = new Set<string>()
-            return newNotifications.filter(n => {
-              if (uniqueIds.has(n.id)) return false
-              uniqueIds.add(n.id)
-              return true
-            })
-          })
-        }
       } catch (error) {
         console.error('❌ Error setting up subscriptions:', error)
         setLoading(false) // ✅ Ensure loading is set to false on error
@@ -362,13 +337,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           }
           
           processedNotificationIdsRef.current.add(newNotification.id)
-          
-          // ✅ Buffer notifications that arrive before initial load is complete
-          if (!initialLoadCompleteRef.current) {
-            console.log('⏸️ Buffering early notification (initial load not complete):', newNotification.id)
-            earlyNotificationsBufferRef.current.push(newNotification)
-            return
-          }
           
           // Only add notification if user is not currently viewing that entity
           console.log('🔍 Checking if should show notification, ref exists:', !!shouldShowNotificationRef.current)
@@ -482,35 +450,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             }
 
             // Get sender and team info in parallel (no RLS issues)
-            const [senderResult, teamResult] = await Promise.all([
-              (async () => {
-                try {
-                  const result = await supabase
-                    .from('users')
-                    .select('full_name, email')
-                    .eq('id', message.sender_id)
-                    .single()
-                  return result
-                } catch {
-                  return { data: null }
-                }
-              })(),
-              (async () => {
-                try {
-                  const result = await supabase
-                    .from('teams')
-                    .select('id, name')
-                    .eq('id', message.team_id)
-                    .single()
-                  return result
-                } catch {
-                  return { data: null }
-                }
-              })(),
+            const [{ data: senderData }, { data: teamData }] = await Promise.all([
+              supabase
+                .from('users')
+                .select('full_name, email')
+                .eq('id', message.sender_id)
+                .single()
+                .catch(() => ({ data: null })),
+              supabase
+                .from('teams')
+                .select('id, name')
+                .eq('id', message.team_id)
+                .single()
+                .catch(() => ({ data: null })),
             ])
-            
-            const { data: senderData } = senderResult
-            const { data: teamData } = teamResult
 
             // Only proceed if we have team data (means user can see it via RLS on teams table)
             if (!teamData) {
@@ -717,7 +670,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         deleteAllRead,
         refreshNotifications: fetchNotifications,
         dismissToast,
-        fetchError,
       }}
     >
       {children}

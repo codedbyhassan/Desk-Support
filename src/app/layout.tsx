@@ -18,6 +18,7 @@ import {
   User,
   Settings,
   FileText,
+  Bell,
 } from 'lucide-react'
 import { NavItem } from '@/components/layout/types'
 
@@ -134,6 +135,13 @@ export default function Layout({ children }: LayoutProps) {
       href: '/app/working-area', 
       icon: FileText,
       description: 'File management and storage'
+    },
+    { 
+      id: 'notifications',
+      name: 'Notifications', 
+      href: '/app/notifications', 
+      icon: Bell,
+      description: 'View all notifications'
     },
     { 
       id: 'users',

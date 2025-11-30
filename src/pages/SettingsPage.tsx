@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDashboardTab } from '@/context/DashboardTabContext'
+import { NotificationSettingsTab } from '@/components/NotificationSettingsTab'
 import { Switch } from '@/components/ui/switch'
 import { Settings, Bell, User, Building2, Palette, Shield, Loader2, Sparkles } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
@@ -314,6 +315,12 @@ export default function SettingsPage() {
 
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedPalette, setSelectedPalette] = useState('')
+
+  // Password editing state (security tab)
+  const [editingPassword, setEditingPassword] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
 
   // Initialize form values when data loads
   useEffect(() => {
@@ -1369,53 +1376,7 @@ export default function SettingsPage() {
 
           {/* Notifications Tab */}
           <TabsContent value="notifications" className="space-y-3 sm:space-y-4 mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg sm:text-xl">Notification Preferences</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
-                  Manage how you receive notifications
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4">
-                <div className="flex items-center justify-between gap-3 py-2 sm:py-3">
-                  <div className="space-y-0.5 min-w-0">
-                    <Label className="text-xs sm:text-sm">Email Notifications</Label>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">
-                      Receive email updates about your tickets
-                    </p>
-                  </div>
-                  <Switch className="flex-shrink-0" />
-                </div>
-                <div className="flex items-center justify-between gap-3 py-2 sm:py-3">
-                  <div className="space-y-0.5 min-w-0">
-                    <Label className="text-xs sm:text-sm">Push Notifications</Label>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">
-                      Receive push notifications in your browser
-                    </p>
-                  </div>
-                  <Switch className="flex-shrink-0" />
-                </div>
-                <div className="flex items-center justify-between gap-3 py-2 sm:py-3">
-                  <div className="space-y-0.5 min-w-0">
-                    <Label className="text-xs sm:text-sm">Ticket Updates</Label>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">
-                      Get notified when tickets are updated
-                    </p>
-                  </div>
-                  <Switch defaultChecked className="flex-shrink-0" />
-                </div>
-                <div className="flex items-center justify-between gap-3 py-2 sm:py-3">
-                  <div className="space-y-0.5 min-w-0">
-                    <Label className="text-xs sm:text-sm">New Comments</Label>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">
-                      Notifications for new ticket comments
-                    </p>
-                  </div>
-                  <Switch defaultChecked className="flex-shrink-0" />
-                </div>
-                <Button className="h-10 sm:h-11 text-xs sm:text-sm w-full sm:w-auto mt-4">Save Preferences</Button>
-              </CardContent>
-            </Card>
+            <NotificationSettingsTab />
           </TabsContent>
 
           {/* Security Tab */}
@@ -1428,24 +1389,83 @@ export default function SettingsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4">
-                <Alert>
-                  <AlertDescription className="text-xs sm:text-sm">
-                    Password changes are handled through Supabase authentication. Contact your administrator for password reset.
-                  </AlertDescription>
-                </Alert>
-                <div className="space-y-2">
-                  <Label htmlFor="current-password" className="text-xs sm:text-sm">Current Password</Label>
-                  <Input id="current-password" type="password" placeholder="Enter current password" className="h-10 sm:h-11 text-xs sm:text-sm" />
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <Alert>
+                      <AlertDescription className="text-xs sm:text-sm">
+                        Password changes are handled through Supabase authentication. Contact your administrator for password reset.
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                  <div className="ml-4 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingPassword((v) => !v)}
+                      className="h-9"
+                    >
+                      {editingPassword ? 'Cancel' : 'Change Password'}
+                    </Button>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-password" className="text-xs sm:text-sm">New Password</Label>
-                  <Input id="new-password" type="password" placeholder="Enter new password" className="h-10 sm:h-11 text-xs sm:text-sm" />
+
+                <div className={`${!editingPassword ? 'opacity-60 pointer-events-none' : ''} space-y-2 mt-2`}>
+                  <div className="space-y-2">
+                    <Label htmlFor="current-password" className="text-xs sm:text-sm">Current Password</Label>
+                    <Input
+                      id="current-password"
+                      type="password"
+                      placeholder="Enter current password"
+                      className="h-10 sm:h-11 text-xs sm:text-sm"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      disabled={!editingPassword}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password" className="text-xs sm:text-sm">New Password</Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      placeholder="Enter new password"
+                      className="h-10 sm:h-11 text-xs sm:text-sm"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      disabled={!editingPassword}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password" className="text-xs sm:text-sm">Confirm Password</Label>
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      placeholder="Confirm new password"
+                      className="h-10 sm:h-11 text-xs sm:text-sm"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={!editingPassword}
+                    />
+                  </div>
+                  <Button
+                    className="h-10 sm:h-11 text-xs sm:text-sm w-full sm:w-auto"
+                    disabled={!editingPassword}
+                    onClick={() => {
+                      // Minimal client-side validation; actual password change handled externally
+                      if (!editingPassword) return
+                      if (newPassword !== confirmPassword) {
+                        toast({ title: 'Passwords do not match', description: 'Please confirm your new password.' })
+                        return
+                      }
+                      toast({ title: 'Password update', description: 'Password update is managed via Supabase auth.' })
+                      setEditingPassword(false)
+                      setCurrentPassword('')
+                      setNewPassword('')
+                      setConfirmPassword('')
+                    }}
+                  >
+                    Update Password
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password" className="text-xs sm:text-sm">Confirm Password</Label>
-                  <Input id="confirm-password" type="password" placeholder="Confirm new password" className="h-10 sm:h-11 text-xs sm:text-sm" />
-                </div>
-                <Button className="h-10 sm:h-11 text-xs sm:text-sm w-full sm:w-auto">Update Password</Button>
                 
                 <div className="pt-4 sm:pt-6 space-y-3 sm:space-y-4 border-t">
                   <h3 className="text-sm sm:text-base font-semibold">Two-Factor Authentication</h3>

@@ -29,6 +29,7 @@ import CallPage from './pages/CallPage'
 import SettingsPage from './pages/SettingsPage'
 import QRScannerPage from './pages/QRScannerPage'
 import WorkingAreaPage from './pages/WorkingArea'
+import NotificationsPage from './pages/NotificationsPage'
 
 import Layout from './app/layout'
 
@@ -299,6 +300,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <WorkingAreaPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 🔔 Notifications */}
+      <Route
+        path="/app/notifications"
+        element={
+          <ProtectedRoute>
+            <NotificationsPage />
           </ProtectedRoute>
         }
       />
