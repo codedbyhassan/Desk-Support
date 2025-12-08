@@ -1,13 +1,16 @@
 import { useNotifications } from '@/context/NotificationContext'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Bell } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Bell, AlertTriangle, CheckCircle2 } from 'lucide-react'
 
 export function NotificationSettingsTab() {
   const { preferences, updatePreferences } = useNotifications()
+  const { status, loading, initialize, disable, isSupported } = usePushNotifications()
 
   return (
     <Card>
@@ -68,8 +71,75 @@ export function NotificationSettingsTab() {
             checked={preferences.enablePushNotifications}
             onCheckedChange={(checked) => updatePreferences({ enablePushNotifications: checked })}
             className="flex-shrink-0" 
+            disabled={!isSupported}
           />
         </div>
+
+        {/* Push Notification Management */}
+        {isSupported && (
+          <div className="border-t pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-foreground">Push Notification Status</h4>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                  Browser support: {status.supported ? '✅' : '❌'} | 
+                  Service Worker: {status.registered ? '✅' : '❌'} | 
+                  Subscribed: {status.subscribed ? '✅' : '❌'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-2 flex-wrap">
+              {status.subscribed ? (
+                <Button
+                  onClick={disable}
+                  disabled={loading}
+                  size="sm"
+                  variant="outline"
+                  className="text-xs"
+                >
+                  {loading ? 'Disabling...' : 'Disable Push Notifications'}
+                </Button>
+              ) : (
+                <Button
+                  onClick={initialize}
+                  disabled={loading || status.permission === 'denied'}
+                  size="sm"
+                  className="text-xs bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                >
+                  {loading ? 'Enabling...' : 'Enable Push Notifications'}
+                </Button>
+              )}
+            </div>
+
+            {status.permission === 'denied' && (
+              <Alert className="bg-amber-50 border-amber-200">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-xs text-amber-800">
+                  You have blocked notifications in your browser settings. Check browser permissions to re-enable.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {status.subscribed && (
+              <Alert className="bg-green-50 border-green-200">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-xs text-green-800">
+                  Push notifications are enabled. You'll receive notifications for important updates.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        )}
+
+        {!isSupported && (
+          <Alert className="bg-amber-50 border-amber-200 mt-4">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-xs text-amber-800">
+              Push notifications are not supported in your browser. Please use a modern browser like Chrome, Firefox, or Edge.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Notification Mute Duration */}
         <div className="space-y-2 pt-2 border-t">

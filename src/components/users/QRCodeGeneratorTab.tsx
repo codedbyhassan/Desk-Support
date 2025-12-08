@@ -64,6 +64,7 @@ import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { format, formatDistanceToNow } from 'date-fns'
 import QRCodeLib from 'qrcode'
+import { colors, statusStyles, components } from '@/lib/theme'
 
 // Types
 type QRCodeType = 'location' | 'individual'
@@ -115,17 +116,17 @@ const actionConfig = {
   clock_in: {
     icon: ArrowDown,
     label: 'Clock In Only',
-    color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    color: `bg-[${colors.success.light}] text-[${colors.success.text}] border-[${colors.success.border}]`,
   },
   clock_out: {
     icon: ArrowUp,
     label: 'Clock Out Only',
-    color: 'bg-red-50 text-red-700 border-red-200',
+    color: `bg-[${colors.danger.light}] text-[${colors.danger.text}] border-[${colors.danger.border}]`,
   },
   toggle: {
     icon: RefreshCw,
     label: 'Smart Toggle',
-    color: 'bg-blue-50 text-blue-700 border-blue-200',
+    color: `bg-[${colors.primary.light}] text-[${colors.primary.text}] border-[${colors.primary.border}]`,
   },
 }
 
@@ -384,12 +385,12 @@ export default function QRCodeGeneratorTab() {
 
   const getStatus = (qr: QRCodeRecord) => {
     if (qr.expires_at && new Date(qr.expires_at) < new Date()) {
-      return { label: 'Expired', color: 'bg-amber-50 text-amber-700 border-amber-200' }
+      return { label: 'Expired', color: `bg-[${colors.warning.light}] text-[${colors.warning.text}] border-[${colors.warning.border}]` }
     }
     if (!qr.is_active) {
-      return { label: 'Inactive', color: 'bg-slate-50 text-slate-700 border-slate-200' }
+      return { label: 'Inactive', color: `bg-[${colors.neutral.light}] text-[${colors.neutral.text}] border-[${colors.neutral.border}]` }
     }
-    return { label: 'Active', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+    return { label: 'Active', color: `bg-[${colors.success.light}] text-[${colors.success.text}] border-[${colors.success.border}]` }
   }
 
   const filteredQRCodes = qrCodes.filter((qr) => {
@@ -422,11 +423,11 @@ export default function QRCodeGeneratorTab() {
 
       {/* Generated QR Preview - Show at top if exists */}
         {generatedQR && qrCodeUrl && (
-        <Card id="qr-preview" className="border-2 border-blue-200 shadow-lg bg-gradient-to-br from-blue-50/50 to-white">
+        <Card id="qr-preview" className={`border-2 border-[${colors.primary.border}] shadow-lg bg-gradient-to-br from-[${colors.primary.lighter}]/50 to-white`}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center">
+                <div className={`w-10 h-10 rounded-lg bg-[${colors.success.main}] flex items-center justify-center`}>
                   <Check className="h-5 w-5 text-white" />
                 </div>
           <div>
@@ -449,7 +450,7 @@ export default function QRCodeGeneratorTab() {
                     ID: <span className="font-semibold text-slate-900">#{generatedQR.qr_code_id}</span>
                   </p>
                   <div className="flex items-center justify-center gap-2 flex-wrap">
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    <Badge variant="outline" className={`bg-[${colors.primary.light}] text-[${colors.primary.text}] border-[${colors.primary.border}]`}>
                       <MapPin className="h-3 w-3 mr-1" />
                       {generatedQR.location_name}
                     </Badge>
@@ -521,8 +522,8 @@ export default function QRCodeGeneratorTab() {
                     className={cn(
                       'cursor-pointer transition-all border-2',
                       qrType === 'location'
-                        ? 'border-blue-500 bg-blue-50/50'
-                        : 'border-slate-200 hover:border-blue-300'
+                        ? `border-[${colors.primary.main}] bg-[${colors.primary.lighter}]`
+                        : `border-[${colors.neutral.border}] hover:border-[${colors.primary.lighter}]`
                     )}
                     onClick={() => setQrType('location')}
                   >
@@ -531,13 +532,13 @@ export default function QRCodeGeneratorTab() {
                         <RadioGroupItem value="location" id="location" className="mt-1" />
                         <Label htmlFor="location" className="cursor-pointer flex-1">
                           <div className="flex items-start gap-3">
-                            <div className="p-2 bg-blue-100 rounded-lg">
+                            <div className={`p-2 bg-[${colors.primary.light}] rounded-lg`}>
                               <MapPin className="h-5 w-5 text-blue-600" />
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="font-semibold text-sm">Location-Based</span>
-                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
+                                <Badge variant="outline" className={`bg-[${colors.success.light}] text-[${colors.success.text}] border-[${colors.success.border}] text-xs`}>
                                   Recommended
                                 </Badge>
                               </div>
@@ -555,7 +556,7 @@ export default function QRCodeGeneratorTab() {
                     className={cn(
                       'cursor-pointer transition-all border-2',
                       qrType === 'individual'
-                        ? 'border-purple-500 bg-purple-50/50'
+                        ? `border-[${colors.purple.main}] bg-[${colors.purple.lighter}]`
                         : 'border-slate-200 hover:border-purple-300'
                     )}
                     onClick={() => setQrType('individual')}
@@ -565,7 +566,7 @@ export default function QRCodeGeneratorTab() {
                         <RadioGroupItem value="individual" id="individual" className="mt-1" />
                         <Label htmlFor="individual" className="cursor-pointer flex-1">
                           <div className="flex items-start gap-3">
-                            <div className="p-2 bg-purple-100 rounded-lg">
+                            <div className={`p-2 bg-[${colors.purple.light}] rounded-lg`}>
                               <User className="h-5 w-5 text-purple-600" />
                             </div>
                             <div className="flex-1">
@@ -627,15 +628,15 @@ export default function QRCodeGeneratorTab() {
                             className={cn(
                               'block cursor-pointer transition-all border-2 rounded-lg p-4',
                               formData.action === value
-                                ? 'border-blue-500 bg-blue-50/50'
-                                : 'border-slate-200 hover:border-slate-300'
+                                ? `border-[${colors.primary.main}] bg-[${colors.primary.lighter}]`
+                                : `border-[${colors.neutral.border}] hover:border-[${colors.neutral.light}]`
                             )}
                           >
                             <div className="flex items-center gap-3">
                               <Icon className="h-4 w-4" />
                               <span className="text-sm">{config.label}</span>
                               {value === 'toggle' && (
-                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs ml-auto">
+                                <Badge variant="outline" className={`bg-[${colors.success.light}] text-[${colors.success.text}] border-[${colors.success.border}] text-xs ml-auto`}>
                                   Recommended
                                 </Badge>
                               )}
@@ -648,7 +649,7 @@ export default function QRCodeGeneratorTab() {
       </div>
 
                 {/* Active Hours */}
-                <div className="space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                <div className={`space-y-3 p-4 bg-[${colors.neutral.light}] rounded-lg border border-[${colors.neutral.border}]`}>
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium flex items-center gap-2">
                       <Clock className="h-4 w-4" />
@@ -698,7 +699,7 @@ export default function QRCodeGeneratorTab() {
                 </div>
 
                 {/* Expiry Settings */}
-                <div className="space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                <div className={`space-y-3 p-4 bg-[${colors.neutral.light}] rounded-lg border border-[${colors.neutral.border}]`}>
                   <Label className="text-sm font-medium flex items-center gap-2">
                     <CalendarIcon className="h-4 w-4" />
                     Expiry Settings
@@ -755,7 +756,7 @@ export default function QRCodeGeneratorTab() {
                 </div>
 
                 {/* Security Options */}
-                <div className="space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                <div className={`space-y-3 p-4 bg-[${colors.neutral.light}] rounded-lg border border-[${colors.neutral.border}]`}>
                   <Label className="text-sm font-medium flex items-center gap-2">
                     <Shield className="h-4 w-4" />
                     Security Options
@@ -825,28 +826,28 @@ export default function QRCodeGeneratorTab() {
               <CardTitle className="text-lg">Quick Stats</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+              <div className={`p-4 rounded-lg bg-[${colors.primary.light}] border border-[${colors.primary.border}]`}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-blue-900">Total QR Codes</span>
-                  <QrCode className="h-4 w-4 text-blue-600" />
+                  <span className={`text-sm font-medium text-[${colors.primary.text}]`}>Total QR Codes</span>
+                  <QrCode className={`h-4 w-4 text-[${colors.primary.main}]`} />
                 </div>
-                <p className="text-2xl font-bold text-blue-900">{qrCodes.length}</p>
+                <p className={`text-2xl font-bold text-[${colors.primary.text}]`}>{qrCodes.length}</p>
               </div>
-              <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200">
+              <div className={`p-4 rounded-lg bg-[${colors.success.light}] border border-[${colors.success.border}]`}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-emerald-900">Active</span>
-                  <Check className="h-4 w-4 text-emerald-600" />
+                  <span className={`text-sm font-medium text-[${colors.success.text}]`}>Active</span>
+                  <Check className={`h-4 w-4 text-[${colors.success.main}]`} />
                 </div>
-                <p className="text-2xl font-bold text-emerald-900">
+                <p className={`text-2xl font-bold text-[${colors.success.text}]`}>
                   {qrCodes.filter((q) => q.is_active && (!q.expires_at || new Date(q.expires_at) > new Date())).length}
                 </p>
               </div>
-              <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
+              <div className={`p-4 rounded-lg bg-[${colors.warning.light}] border border-[${colors.warning.border}]`}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-amber-900">Total Uses</span>
-                  <RefreshCw className="h-4 w-4 text-amber-600" />
+                  <span className={`text-sm font-medium text-[${colors.warning.text}]`}>Total Uses</span>
+                  <RefreshCw className={`h-4 w-4 text-[${colors.warning.main}]`} />
                 </div>
-                <p className="text-2xl font-bold text-amber-900">
+                <p className={`text-2xl font-bold text-[${colors.warning.text}]`}>
                   {qrCodes.reduce((sum, q) => sum + q.usage_count, 0)}
                 </p>
               </div>
@@ -924,7 +925,7 @@ export default function QRCodeGeneratorTab() {
               <div className="hidden md:block rounded-lg border overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50">
+                    <TableRow className={`bg-[${colors.neutral.light}]`}>
                       <TableHead className="text-xs font-semibold">Location</TableHead>
                       <TableHead className="text-xs font-semibold">Type</TableHead>
                       <TableHead className="text-xs font-semibold">Action</TableHead>
@@ -939,7 +940,7 @@ export default function QRCodeGeneratorTab() {
                       const status = getStatus(qr)
                       const ActionIcon = actionConfig[qr.action].icon
                       return (
-                        <TableRow key={qr.id} className="hover:bg-slate-50/50">
+                        <TableRow key={qr.id} className={`hover:bg-[${colors.neutral.lighter}]`}>
                           <TableCell className="font-medium text-sm">{qr.location_name}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className="text-xs">
@@ -1098,7 +1099,7 @@ export default function QRCodeGeneratorTab() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={confirmDelete} className={`bg-[${colors.danger.main}] hover:bg-[${colors.danger.dark}]`}>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

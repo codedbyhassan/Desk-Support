@@ -1,13 +1,9 @@
-
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [react({
-    fastRefresh: true,
-    jsxRuntime: 'automatic',
-  })],
+  plugins: [react()],
   base: './',
   resolve: {
     alias: {
@@ -17,15 +13,19 @@ export default defineConfig({
   server: {
     port: 4000,
     strictPort: true,
-    host: 'localhost',
+    host: '0.0.0.0',
     open: true,
-    middlewareMode: false,
-    warmupEntry: ['./src/main.tsx'],
     hmr: {
       protocol: 'ws',
       host: 'localhost',
       port: 4000,
     }
+  },
+  preview: {
+    port: 4000,
+    strictPort: true,
+    host: '0.0.0.0',
+    allowedHosts: true,
   },
   build: {
     minify: 'terser',

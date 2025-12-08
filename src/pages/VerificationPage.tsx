@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
+import Loader from '@/components/Loader'
 import { supabase } from '@/lib/supabase'
 import { Mail, CheckCircle2, AlertCircle, Clock, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'

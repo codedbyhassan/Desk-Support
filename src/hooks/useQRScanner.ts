@@ -27,21 +27,41 @@ export function useQRScanner({
   // Start camera stream
   const startCamera = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      console.log('[QR Scanner] Requesting camera access...')
+      
+      // Check if running in native app (no mediaDevices API)
+      if (!navigator.mediaDevices?.getUserMedia) {
+        console.warn('[QR Scanner] getUserMedia not available - likely running in native app')
+        setError('Running in native app - use native camera button instead')
+        stopScanning()
+        return
+      }
+
+      const constraints = {
         video: {
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          facingMode: { ideal: 'environment' },
+          width: { min: 640, ideal: 1280, max: 1920 },
+          height: { min: 480, ideal: 720, max: 1080 },
         },
-      })
+        audio: false,
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints as any)
+      console.log('[QR Scanner] ✓ Camera stream obtained')
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         streamRef.current = stream
         scanningRef.current = true
+        
+        // Force video to play
+        videoRef.current.play().catch((error) => {
+          console.error('[QR Scanner] Play error:', error)
+        })
       }
     } catch (error: any) {
-      const errorMessage = error.message || 'Could not access camera'
+      const errorMessage = error?.message || error?.name || 'Could not access camera'
+      console.error('[QR Scanner] Camera error:', error)
       setError(errorMessage)
       onScanError?.(errorMessage)
       toast({
@@ -77,49 +97,61 @@ export function useQRScanner({
 
     const video = videoRef.current
     const canvas = canvasRef.current
-    const context = canvas.getContext('2d', { willReadFrequently: true });
+    
+    try {
+      // Check if video has data
+      if (video.readyState < video.HAVE_CURRENT_DATA) {
+        if (scanningRef.current) {
+          animationFrameRef.current = requestAnimationFrame(scanFrame)
+        }
+        return
+      }
 
-    if (!context || video.readyState !== video.HAVE_ENOUGH_DATA) {
-      if (continuous && scanningRef.current && isScanning) {
+      const context = canvas.getContext('2d', { willReadFrequently: true })
+      if (!context) return
+
+      // Set canvas to video dimensions
+      canvas.width = video.videoWidth || 640
+      canvas.height = video.videoHeight || 480
+
+      // Draw video to canvas
+      context.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+      // Try to get image data
+      try {
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
+        
+        // Decode QR code
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: 'dontInvert',
+        })
+
+        if (code) {
+          console.log('[QR Scanner] ✓ QR code found:', code.data)
+          setScannedData(code.data)
+          scanningRef.current = false
+          onScanSuccess?.(code.data)
+          return
+        }
+      } catch (error) {
+        console.error('[QR Scanner] Canvas error:', error)
+      }
+
+      // Continue scanning
+      if (scanningRef.current) {
         animationFrameRef.current = requestAnimationFrame(scanFrame)
       }
-      return
-    }
-
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-
-    // Draw video frame to canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-    // Get image data
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
-
-    // Decode QR code
-    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: 'dontInvert',
-    })
-
-    if (code) {
-      const qrData = code.data
-      setScannedData(qrData)
-      // Stop scanning immediately when QR code is detected
-      scanningRef.current = false
-      onScanSuccess?.(qrData)
-      
-      if (!continuous) {
-        stopCamera()
-        stopScanning()
+    } catch (error) {
+      console.error('[QR Scanner] Frame scan error:', error)
+      if (scanningRef.current) {
+        animationFrameRef.current = requestAnimationFrame(scanFrame)
       }
-    } else if (continuous && scanningRef.current && isScanning) {
-      // Continue scanning only if still scanning
-      animationFrameRef.current = requestAnimationFrame(scanFrame)
     }
-  }, [videoRef, canvasRef, continuous, isScanning, setScannedData, onScanSuccess, stopCamera, stopScanning])
+  }, [videoRef, canvasRef, setScannedData, onScanSuccess])
 
   // Start scanning when isScanning becomes true
   useEffect(() => {
+    console.log('[QR Scanner] isScanning changed:', isScanning)
     if (isScanning) {
       startCamera()
     } else {
@@ -135,22 +167,41 @@ export function useQRScanner({
   useEffect(() => {
     if (isScanning && videoRef.current && canvasRef.current) {
       const video = videoRef.current
+      let isMounted = true
       
-      const handleLoadedMetadata = () => {
-        if (scanningRef.current) {
+      const startScanningLoop = () => {
+        if (isMounted && scanningRef.current) {
+          console.log('[QR Scanner] Starting scan loop...')
           scanFrame()
         }
       }
 
-      video.addEventListener('loadedmetadata', handleLoadedMetadata)
-      
-      // Start scanning immediately if video is already loaded
-      if (video.readyState >= video.HAVE_METADATA) {
-        scanFrame()
+      // Try to start immediately if video is ready
+      if (video.readyState >= video.HAVE_CURRENT_DATA) {
+        console.log('[QR Scanner] Video already ready, starting scan immediately')
+        setTimeout(startScanningLoop, 100)
+      } else {
+        // Wait for video to be ready
+        const onLoadedMetadata = () => {
+          console.log('[QR Scanner] Video loadedmetadata')
+          if (isMounted) startScanningLoop()
+        }
+        const onCanPlay = () => {
+          console.log('[QR Scanner] Video canplay')
+          if (isMounted) startScanningLoop()
+        }
+        
+        video.addEventListener('loadedmetadata', onLoadedMetadata, { once: true })
+        video.addEventListener('canplay', onCanPlay, { once: true })
+        
+        return () => {
+          video.removeEventListener('loadedmetadata', onLoadedMetadata)
+          video.removeEventListener('canplay', onCanPlay)
+        }
       }
 
       return () => {
-        video.removeEventListener('loadedmetadata', handleLoadedMetadata)
+        isMounted = false
       }
     }
   }, [isScanning, videoRef, canvasRef, scanFrame])

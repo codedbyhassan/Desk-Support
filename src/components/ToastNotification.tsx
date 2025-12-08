@@ -1,6 +1,6 @@
 // src/components/ToastNotification.tsx
 import { useEffect, useState } from 'react'
-import { X, Bell, FileText, MessageSquare, Users, Package, Activity, CheckCheck } from 'lucide-react'
+import { X, Bell, FileText, MessageSquare, Users, Package, Activity, CheckCircle2, AlertCircle, Info, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export type ToastType = 'info' | 'success' | 'warning' | 'error'
@@ -71,96 +71,121 @@ export function ToastNotification({ toast, onDismiss }: ToastNotificationProps) 
     switch (toast.type) {
       case 'success':
         return {
-          gradient: 'from-emerald-500 to-teal-500',
-          iconBg: 'bg-emerald-500',
-          textColor: 'text-emerald-900 dark:text-emerald-100',
-          progress: 'bg-gradient-to-r from-emerald-400 to-teal-400',
+          container: 'bg-white dark:bg-slate-900 border-l-4 border-emerald-500',
+          iconContainer: 'bg-emerald-50 dark:bg-emerald-950/50',
+          icon: 'text-emerald-600 dark:text-emerald-400',
+          title: 'text-slate-900 dark:text-slate-100',
+          message: 'text-slate-600 dark:text-slate-400',
+          progress: 'bg-emerald-500 dark:bg-emerald-600',
+          progressBg: 'bg-emerald-100 dark:bg-emerald-950/30',
+          StatusIcon: CheckCircle2,
         }
       case 'warning':
         return {
-          gradient: 'from-amber-500 to-orange-500',
-          iconBg: 'bg-amber-500',
-          textColor: 'text-amber-900 dark:text-amber-100',
-          progress: 'bg-gradient-to-r from-amber-400 to-orange-400',
+          container: 'bg-white dark:bg-slate-900 border-l-4 border-amber-500',
+          iconContainer: 'bg-amber-50 dark:bg-amber-950/50',
+          icon: 'text-amber-600 dark:text-amber-400',
+          title: 'text-slate-900 dark:text-slate-100',
+          message: 'text-slate-600 dark:text-slate-400',
+          progress: 'bg-amber-500 dark:bg-amber-600',
+          progressBg: 'bg-amber-100 dark:bg-amber-950/30',
+          StatusIcon: AlertTriangle,
         }
       case 'error':
         return {
-          gradient: 'from-red-500 to-rose-500',
-          iconBg: 'bg-red-500',
-          textColor: 'text-red-900 dark:text-red-100',
-          progress: 'bg-gradient-to-r from-red-400 to-rose-400',
+          container: 'bg-white dark:bg-slate-900 border-l-4 border-red-500',
+          iconContainer: 'bg-red-50 dark:bg-red-950/50',
+          icon: 'text-red-600 dark:text-red-400',
+          title: 'text-slate-900 dark:text-slate-100',
+          message: 'text-slate-600 dark:text-slate-400',
+          progress: 'bg-red-500 dark:bg-red-600',
+          progressBg: 'bg-red-100 dark:bg-red-950/30',
+          StatusIcon: AlertCircle,
         }
       default: // info
         return {
-          gradient: 'from-blue-500 to-indigo-500',
-          iconBg: 'bg-blue-500',
-          textColor: 'text-blue-900 dark:text-blue-100',
-          progress: 'bg-gradient-to-r from-blue-400 to-indigo-400',
+          container: 'bg-white dark:bg-slate-900 border-l-4 border-blue-500',
+          iconContainer: 'bg-blue-50 dark:bg-blue-950/50',
+          icon: 'text-blue-600 dark:text-blue-400',
+          title: 'text-slate-900 dark:text-slate-100',
+          message: 'text-slate-600 dark:text-slate-400',
+          progress: 'bg-blue-500 dark:bg-blue-600',
+          progressBg: 'bg-blue-100 dark:bg-blue-950/30',
+          StatusIcon: Info,
         }
     }
   }
 
   const getNotificationIcon = () => {
-    const iconClass = 'h-5 w-5 text-white'
-    
     switch (toast.notificationType) {
       case 'ticket_assigned':
       case 'ticket_status_changed':
-        return <FileText className={iconClass} />
+        return FileText
       case 'ticket_commented':
-        return <MessageSquare className={iconClass} />
+        return MessageSquare
       case 'team_message':
-        return <Users className={iconClass} />
+        return Users
       case 'asset_assigned':
       case 'asset_updated':
-        return <Package className={iconClass} />
+        return Package
       case 'department_ticket':
-        return <Activity className={iconClass} />
+        return Activity
       default:
-        return <Bell className={iconClass} />
+        return Bell
     }
   }
 
   const styles = getTypeStyles()
+  const NotificationIcon = getNotificationIcon()
+  const StatusIcon = styles.StatusIcon
 
   return (
     <div
       className={`
         toast-notification
         ${isExiting ? 'toast-exit' : 'toast-enter'}
-        w-[calc(100vw-2rem)] sm:w-[400px] max-w-[400px] rounded-2xl
-        bg-white dark:bg-gray-900 
-        shadow-2xl
+        w-[calc(100vw-2rem)] sm:w-[420px] max-w-[420px]
+        ${styles.container}
+        shadow-lg hover:shadow-xl
+        border-r border-t border-b border-slate-200 dark:border-slate-800
+        transition-all duration-200
         overflow-hidden
-        backdrop-blur-xl
-        border border-gray-200 dark:border-gray-700
       `}
       onClick={toast.onClick ? handleClick : undefined}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{ cursor: toast.onClick ? 'pointer' : 'default' }}
     >
-      {/* Gradient Top Bar */}
-      <div className={`h-1 bg-gradient-to-r ${styles.gradient}`} />
-
       <div className="p-3 sm:p-4">
         <div className="flex items-start gap-2 sm:gap-3">
-          {/* Icon with Gradient Background */}
-          <div className={`
-            flex-shrink-0 h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl 
-            ${styles.iconBg}
-            shadow-lg
-            flex items-center justify-center
-            transform transition-transform duration-200
-            ${isHovered ? 'scale-110' : 'scale-100'}
-          `}>
-            {getNotificationIcon()}
+          {/* Icon Container with Status Badge */}
+          <div className="flex-shrink-0 relative">
+            {/* Main notification icon */}
+            <div className={`
+              ${styles.iconContainer}
+              h-10 w-10 sm:h-11 sm:w-11 rounded-lg
+              flex items-center justify-center
+              ring-1 ring-slate-200 dark:ring-slate-700
+            `}>
+              <NotificationIcon className={`h-5 w-5 ${styles.icon}`} />
+            </div>
+            
+            {/* Status badge overlay */}
+            <div className={`
+              absolute -bottom-1 -right-1
+              ${styles.iconContainer}
+              h-5 w-5 rounded-full
+              flex items-center justify-center
+              ring-2 ring-white dark:ring-slate-900
+            `}>
+              <StatusIcon className={`h-3 w-3 ${styles.icon}`} />
+            </div>
           </div>
 
           {/* Content */}
           <div className="flex-1 min-w-0 pt-0.5 sm:pt-1">
             <div className="flex items-start justify-between gap-2">
-              <h4 className={`font-semibold text-xs sm:text-sm ${styles.textColor} mb-0.5 sm:mb-1`}>
+              <h4 className={`font-semibold text-xs sm:text-sm ${styles.title} mb-0.5 sm:mb-1 leading-tight`}>
                 {toast.title}
               </h4>
               
@@ -172,31 +197,38 @@ export function ToastNotification({ toast, onDismiss }: ToastNotificationProps) 
                   e.stopPropagation()
                   handleDismiss()
                 }}
-                className="h-6 w-6 sm:h-7 sm:w-7 rounded-full flex-shrink-0 hover:bg-gray-100 dark:hover:bg-gray-800 -mt-0.5 sm:-mt-1 -mr-0.5 sm:-mr-1 opacity-60 hover:opacity-100 transition-opacity"
+                className="
+                  h-6 w-6 sm:h-7 sm:w-7 rounded-md flex-shrink-0
+                  text-slate-400 hover:text-slate-600
+                  dark:text-slate-500 dark:hover:text-slate-300
+                  hover:bg-slate-100 dark:hover:bg-slate-800
+                  transition-colors duration-150
+                  -mt-0.5 sm:-mt-1 -mr-0.5 sm:-mr-1
+                "
               >
                 <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
             </div>
             
-            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
+            <p className={`text-xs sm:text-sm ${styles.message} leading-relaxed line-clamp-2`}>
               {toast.message}
             </p>
 
-            {/* Time indicator */}
-            <div className="flex items-center gap-1 mt-1.5 sm:mt-2">
-              <div className="flex items-center gap-1 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
-                <CheckCheck className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                <span>Just now</span>
-              </div>
+            {/* Timestamp indicator */}
+            <div className="flex items-center gap-1.5 mt-1.5 sm:mt-2">
+              <div className="h-1 w-1 rounded-full bg-slate-400 dark:bg-slate-600"></div>
+              <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
+                Just now
+              </span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="h-1 bg-gray-100 dark:bg-gray-800">
+      <div className={`h-1 ${styles.progressBg}`}>
         <div
-          className={`h-full ${styles.progress} transition-all duration-100 ease-linear shadow-sm`}
+          className={`h-full ${styles.progress} transition-all duration-100 ease-linear`}
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -206,7 +238,7 @@ export function ToastNotification({ toast, onDismiss }: ToastNotificationProps) 
         @keyframes toastEnter {
           from {
             opacity: 0;
-            transform: translateX(100%) scale(0.9);
+            transform: translateX(100%) scale(0.95);
           }
           to {
             opacity: 1;
@@ -221,21 +253,16 @@ export function ToastNotification({ toast, onDismiss }: ToastNotificationProps) 
           }
           to {
             opacity: 0;
-            transform: translateX(100%) scale(0.9);
+            transform: translateX(100%) scale(0.95);
           }
         }
 
         .toast-enter {
-          animation: toastEnter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+          animation: toastEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .toast-exit {
           animation: toastExit 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
-        }
-
-        .toast-notification:hover {
-          transform: translateY(-2px);
-          transition: transform 0.2s ease;
         }
       `}</style>
     </div>

@@ -7,6 +7,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { Toaster } from 'react-hot-toast'
 import { NotificationProvider, useNotifications } from './context/NotificationContext'
 import { QRCodeProvider } from './context/QRCodeContext'
+import { ThemeProvider } from './context/ThemeContext'
 import { ToastContainer } from '@/components/ToastNotification'
 
 // ✅ Pages
@@ -339,12 +340,13 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <NotificationProvider>
-          <QRCodeProvider>
-            <HashRouter>
-              <ToastWrapper />
-              <AppRoutes />
-              <Toaster
+        <ThemeProvider>
+          <NotificationProvider>
+            <QRCodeProvider>
+              <HashRouter>
+                <ToastWrapper />
+                <AppRoutes />
+                <Toaster
                 position="bottom-right"
                 toastOptions={{
                   duration: 5000,
@@ -362,6 +364,7 @@ export default function App() {
             </HashRouter>
           </QRCodeProvider>
         </NotificationProvider>
+        </ThemeProvider>
       </AuthProvider>
     </ErrorBoundary>
   )

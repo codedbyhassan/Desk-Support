@@ -54,6 +54,7 @@ import {
 import { useAuth } from '@/lib/auth'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { colors, statusStyles } from '@/lib/theme'
 
 // Types
 type AttendanceStatus = 'clocked_in' | 'clocked_out' | 'not_started' | 'on_break'
@@ -87,12 +88,12 @@ const statusConfig = {
   clocked_in: {
     label: 'Clocked In',
     icon: '🟢',
-    className: 'bg-green-100 text-green-800 border-green-200',
+    className: statusStyles.attendance.present.badge,
   },
   clocked_out: {
     label: 'Clocked Out',
     icon: '🔴',
-    className: 'bg-red-100 text-red-800 border-red-200',
+    className: statusStyles.attendance.absent.badge,
   },
   not_started: {
     label: 'Not Started',
@@ -102,7 +103,7 @@ const statusConfig = {
   on_break: {
     label: 'On Break',
     icon: '🟡',
-    className: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    className: `bg-[${colors.warning.light}] text-[${colors.warning.text}] border-[${colors.warning.border}]`,
   },
 }
 
@@ -160,9 +161,9 @@ function StatCard({
 }) {
   const variantStyles = {
     default: 'bg-primary/10 text-primary',
-    success: 'bg-green-100 text-green-600',
-    warning: 'bg-yellow-100 text-yellow-600',
-    destructive: 'bg-red-100 text-red-600',
+    success: statusStyles.attendance.present.badge,
+    warning: `bg-[${colors.warning.light}] text-[${colors.warning.main}]`,
+    destructive: statusStyles.attendance.absent.badge,
     muted: 'bg-gray-100 text-gray-600',
   }
 

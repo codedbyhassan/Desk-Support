@@ -1,8 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { App } from '@capacitor/app'
+import jsQR from 'jsqr'
 import { useAuth } from '@/lib/auth'
 import { useQRCode } from '@/context/QRCodeContext'
 import { useQRScanner } from '@/hooks/useQRScanner'
+import { useNativeQRScanner } from '@/hooks/useNativeQRScanner'
 import { useAttendance } from '@/hooks/useAttendance'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
@@ -36,9 +39,10 @@ export default function QRScannerPage() {
   const { toast } = useToast()
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // QR Code and Attendance hooks
-  const { isScanning, startScanning, stopScanning } = useQRCode()
+  const { isScanning, startScanning, stopScanning, error: qrError } = useQRCode()
   const { attendanceStatus, fetchAttendanceStatus, registerAttendance, loading: attendanceLoading } = useAttendance()
 
   // QR Scanner hook
@@ -79,11 +83,53 @@ export default function QRScannerPage() {
     year: { present: 0, total: 365, hours: 0 },
   })
   const [attendanceLoadingHistory, setAttendanceLoadingHistory] = useState(false)
+  const [manualQRCode, setManualQRCode] = useState('')
+  const [showManualEntry, setShowManualEntry] = useState(false)
+  const [isNativeApp, setIsNativeApp] = useState(false)
+
+  // Native QR Scanner
+  const { scanQRCode, canvasRef: nativeCanvasRef } = useNativeQRScanner({
+    onSuccess: async (data) => {
+      try {
+        const currentStatus = attendanceStatus.status
+        await registerAttendance(data)
+        const action = currentStatus === 'clocked_in' || currentStatus === 'on_break' ? 'out' : 'in'
+        toast({
+          title: '✓ Success',
+          description: `Successfully clocked ${action}! Timer started.`,
+        })
+        await fetchAttendanceStatus()
+        await fetchAttendanceHistory()
+      } catch (error) {
+        console.error('Error registering attendance:', error)
+        toast({
+          title: 'Error',
+          description: 'Failed to register attendance',
+          variant: 'destructive'
+        })
+      }
+    }
+  })
 
   useEffect(() => {
+    // Only fetch on mount, not on every render
     fetchAttendanceStatus()
     fetchAttendanceHistory()
-  }, [fetchAttendanceStatus])
+    
+    // Check if running in native app
+    App.getInfo().then(() => {
+      setIsNativeApp(true)
+      console.log('[QR Scanner] Running in native app')
+    }).catch(() => {
+      setIsNativeApp(false)
+      console.log('[QR Scanner] Running in web browser')
+    })
+    
+    // Return cleanup - stop scanning if component unmounts
+    return () => {
+      stopScanning()
+    }
+  }, []) // Empty dependency array - run only once on mount
 
   const fetchAttendanceHistory = async () => {
     if (!user?.id) return
@@ -116,6 +162,114 @@ export default function QRScannerPage() {
       console.error('Error fetching attendance history:', error)
     } finally {
       setAttendanceLoadingHistory(false)
+    }
+  }
+
+  // Handle manual QR code submission
+  const handleManualQRSubmit = async () => {
+    if (!manualQRCode.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a QR code value',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    try {
+      const currentStatus = attendanceStatus.status
+      await registerAttendance(manualQRCode)
+      const action = currentStatus === 'clocked_in' || currentStatus === 'on_break' ? 'out' : 'in'
+      toast({
+        title: '✓ Success',
+        description: `Successfully clocked ${action}!`,
+      })
+      setManualQRCode('')
+      setShowManualEntry(false)
+      await fetchAttendanceStatus()
+      await fetchAttendanceHistory()
+    } catch (error) {
+      console.error('Error registering attendance:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to register attendance',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  // Handle file upload for QR code image
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      toast({
+        title: 'Processing...',
+        description: 'Scanning QR code from image...',
+      })
+
+      const canvas = canvasRef.current
+      if (!canvas) return
+
+      const img = new Image()
+      img.onload = async () => {
+        try {
+          const context = canvas.getContext('2d')
+          if (!context) return
+
+          canvas.width = img.width
+          canvas.height = img.height
+          context.drawImage(img, 0, 0)
+
+          const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
+          const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'dontInvert',
+          })
+
+          if (code) {
+            console.log('[QR Scanner] ✓ QR code found:', code.data)
+            const currentStatus = attendanceStatus.status
+            await registerAttendance(code.data)
+            const action = currentStatus === 'clocked_in' || currentStatus === 'on_break' ? 'out' : 'in'
+            toast({
+              title: '✓ Success',
+              description: `Successfully clocked ${action}!`,
+            })
+            await fetchAttendanceStatus()
+            await fetchAttendanceHistory()
+          } else {
+            console.log('[QR Scanner] No QR code found in image')
+            toast({
+              title: 'No QR Code Found',
+              description: 'Could not detect QR code in image. Try again with a clearer photo.',
+              variant: 'destructive'
+            })
+          }
+        } catch (error) {
+          console.error('[QR Scanner] Error processing image:', error)
+          toast({
+            title: 'Error',
+            description: 'Failed to process image',
+            variant: 'destructive'
+          })
+        }
+      }
+      img.onerror = () => {
+        toast({
+          title: 'Error',
+          description: 'Failed to load image',
+          variant: 'destructive'
+        })
+      }
+      img.src = URL.createObjectURL(file)
+    } catch (error) {
+      console.error('Error processing image:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to process image',
+        variant: 'destructive'
+      })
     }
   }
 
@@ -324,29 +478,156 @@ export default function QRScannerPage() {
                 </div>
               </div>
 
-              {!isScanning ? (
-                <Button
-                  onClick={startScanning}
-                  disabled={attendanceLoading}
-                  className="w-full h-11 sm:h-12 lg:h-14 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
-                  size="lg"
-                >
-                  <QrCode className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                  {attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break' ? 'Clock Out' : 'Clock In'}
-                </Button>
+              {!isScanning && !showManualEntry ? (
+                <div className="space-y-3">
+                  {qrError && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 sm:p-4 text-xs sm:text-sm text-amber-800 flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold">Camera Setup</p>
+                        <p className="mt-1 break-words text-xs">Use the buttons below to scan</p>
+                      </div>
+                    </div>
+                  )}
+                  {isNativeApp ? (
+                    <Button
+                      onClick={scanQRCode}
+                      disabled={attendanceLoading}
+                      className="w-full h-11 sm:h-12 lg:h-14 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
+                      size="lg"
+                    >
+                      <Camera className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                      📸 Native Camera Scanner
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={startScanning}
+                      disabled={attendanceLoading}
+                      className="w-full h-11 sm:h-12 lg:h-14 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
+                      size="lg"
+                    >
+                      <Camera className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                      Open Live Scanner
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => {
+                      const input = fileInputRef.current
+                      if (input) {
+                        input.accept = 'image/*'
+                        if ('capture' in input) {
+                          (input as any).capture = false
+                        }
+                        input.click()
+                      }
+                    }}
+                    disabled={attendanceLoading}
+                    variant="outline"
+                    className="w-full h-10 sm:h-11 text-sm sm:text-base"
+                    size="lg"
+                  >
+                    <QrCode className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                    Upload from Library
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    onClick={() => setShowManualEntry(true)}
+                    disabled={attendanceLoading}
+                    variant="outline"
+                    className="w-full h-10 sm:h-11 text-sm sm:text-base"
+                    size="lg"
+                  >
+                    <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                    Enter Code Manually
+                  </Button>
+                  {isNativeApp && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-2 sm:p-3 text-xs text-green-700">
+                      ✓ Native app detected - Using native camera
+                    </div>
+                  )}
+                </div>
+              ) : showManualEntry ? (
+                <div className="space-y-3">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 text-xs sm:text-sm text-blue-800">
+                    <p className="font-semibold mb-2">Enter QR Code Value</p>
+                    <p>Paste or type the QR code text value below</p>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Enter QR code value..."
+                    value={manualQRCode}
+                    onChange={(e) => setManualQRCode(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleManualQRSubmit}
+                      disabled={attendanceLoading || !manualQRCode.trim()}
+                      className="flex-1 h-10 sm:h-11 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white text-sm sm:text-base"
+                    >
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Submit
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setShowManualEntry(false)
+                        setManualQRCode('')
+                      }}
+                      variant="outline"
+                      className="flex-1 h-10 sm:h-11 text-sm sm:text-base"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="relative w-full rounded-lg bg-black aspect-square overflow-hidden shadow-lg border-4 border-blue-500">
+                  {qrError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 text-xs sm:text-sm text-red-800 flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold">Camera Error</p>
+                        <p className="mt-1 break-words">{qrError}</p>
+                        <p className="mt-2 text-xs text-red-700">💡 Tip: Use the other options below to clock in</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="relative w-full bg-black rounded-lg overflow-hidden shadow-lg border-4 border-blue-500" style={{ minHeight: '300px', maxWidth: '100%' }}>
                     <video
                       ref={videoRef}
                       autoPlay
                       playsInline
                       muted
-                      className="w-full h-full object-cover"
+                      webkit-playsinline="true"
+                      className="w-full h-full object-cover absolute top-0 left-0"
+                      style={{ 
+                        WebkitPlaysinline: 'true',
+                        transform: 'scaleX(-1)',
+                        display: 'block'
+                      } as any}
+                      onLoadedMetadata={() => console.log('[QR Scanner] onLoadedMetadata fired')}
+                      onCanPlay={() => console.log('[QR Scanner] onCanPlay fired')}
+                      onError={(e) => console.error('[QR Scanner] Video error:', e.currentTarget.error)}
                     />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="border-3 border-blue-400 rounded-lg w-32 h-32 animate-pulse shadow-xl" />
-                    </div>
+                    {!qrError && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="border-3 border-blue-400 rounded-lg w-24 h-24 sm:w-32 sm:h-32 animate-pulse shadow-xl" />
+                      </div>
+                    )}
+                    {qrError && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                        <div className="text-center">
+                          <Camera className="h-12 w-12 text-red-500 mx-auto mb-2" />
+                          <p className="text-white text-sm font-semibold">Camera Unavailable</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <canvas ref={canvasRef} className="hidden" />
                   <Button
@@ -398,6 +679,10 @@ export default function QRScannerPage() {
             {status.label.toUpperCase()}
           </Badge>
         </div>
+
+        {/* Hidden canvases for QR processing */}
+        <canvas ref={canvasRef} className="hidden" />
+        <canvas ref={nativeCanvasRef} className="hidden" />
       </div>
     </div>
   )

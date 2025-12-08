@@ -5,12 +5,19 @@
  */
 
 import React, { useState, useEffect, useCallback, createContext, useContext, useRef } from 'react';
-import { ChevronRight, Upload, Plus, Grid3X3, List, Search, Trash2, Star, FolderOpen, X, Home, Eye, Download as DownloadIcon, File as FileIcon, ArrowUpDown, FileText, FileSpreadsheet, Presentation, Image as ImageIcon, Archive, Code, Edit2, Save, Filter } from 'lucide-react';
+import { ChevronRight, Upload, Plus, Grid3X3, List, Search, Trash2, Star, FolderOpen, X, Home, Eye, Download as DownloadIcon, File as FileIcon, ArrowUpDown, FileText, FileSpreadsheet, Presentation, Image as ImageIcon, Archive, Code, Edit2, Save, Filter, Edit3 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import { getFileTypeConfig, isPreviewable, getPreviewType } from '@/lib/fileTypeConfig';
 import { PreviewModal } from '@/components/PreviewModal';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import type {
   WorkingAreaContextType,
   WorkingAreaState,
@@ -126,6 +133,58 @@ export const WorkingAreaPage: React.FC<WorkingAreaPageProps> = ({ onFolderSelect
         ...prev,
         current_folder_id: null,
         breadcrumbs: [{ id: '', name: 'My Files' }],
+        items,
+        is_loading: false
+      }));
+    } catch (error) {
+      const message = (error as Error).message;
+      setState(prev => ({
+        ...prev,
+        is_loading: false,
+        error: message
+      }));
+      toast.error(message);
+    }
+  }, [user?.id, user?.company_id]);
+
+  const fetchTrashItems = useCallback(async () => {
+    if (!user?.id || !user?.company_id) return;
+
+    setState(prev => ({ ...prev, is_loading: true, error: null }));
+
+    try {
+      // Fetch deleted folders
+      const { data: folders, error: foldersError } = await supabase
+        .from('working_area_folders')
+        .select('*')
+        .eq('company_id', user.company_id)
+        .eq('owner_id', user.id)
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false });
+
+      if (foldersError) throw foldersError;
+
+      // Fetch deleted files
+      const { data: files, error: filesError } = await supabase
+        .from('working_area_files')
+        .select('*')
+        .eq('company_id', user.company_id)
+        .eq('owner_id', user.id)
+        .eq('is_current_version', true)
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false });
+
+      if (filesError) throw filesError;
+
+      const items = [
+        ...(folders || []).map(f => ({ ...f, is_folder: true })),
+        ...(files || []).map(f => ({ ...f, is_folder: false }))
+      ];
+
+      setState(prev => ({
+        ...prev,
+        current_folder_id: null,
+        breadcrumbs: [{ id: '', name: 'Trash' }],
         items,
         is_loading: false
       }));
@@ -414,6 +473,36 @@ export const WorkingAreaPage: React.FC<WorkingAreaPageProps> = ({ onFolderSelect
     }
   }, [user?.id, user?.company_id, state.current_folder_id, navigateToFolder, fetchRootFolders]);
 
+  const renameFolder = useCallback(async (folderId: string, newName: string) => {
+    if (!user?.id || !user?.company_id) return;
+    
+    if (!newName.trim()) {
+      toast.error('Folder name cannot be empty');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('working_area_folders')
+        .update({ name: newName.trim() })
+        .eq('id', folderId);
+
+      if (error) throw error;
+
+      toast.success('Folder renamed successfully');
+
+      // Refresh
+      if (state.current_folder_id) {
+        await navigateToFolder(state.current_folder_id);
+      } else {
+        await fetchRootFolders();
+      }
+    } catch (error) {
+      const message = (error as Error).message;
+      toast.error(`Rename failed: ${message}`);
+    }
+  }, [user?.id, user?.company_id, state.current_folder_id, navigateToFolder, fetchRootFolders]);
+
   const downloadFile = useCallback(async (item: any) => {
     if (!item.storage_path) return;
 
@@ -497,6 +586,14 @@ export const WorkingAreaPage: React.FC<WorkingAreaPageProps> = ({ onFolderSelect
   useEffect(() => {
     fetchRootFolders();
   }, [fetchRootFolders]);
+
+  useEffect(() => {
+    if (showTrash) {
+      fetchTrashItems();
+    } else {
+      fetchRootFolders();
+    }
+  }, [showTrash, fetchTrashItems, fetchRootFolders]);
 
   // ============================================================================
   // CONTEXT VALUE
@@ -700,6 +797,14 @@ export const WorkingAreaPage: React.FC<WorkingAreaPageProps> = ({ onFolderSelect
               >
                 {viewMode === 'grid' ? <List size={18} /> : <Grid3X3 size={18} />}
               </button>
+
+              <button
+                onClick={() => setShowTrash(!showTrash)}
+                className={`p-2 sm:p-2.5 rounded-lg transition-all shadow-sm flex-1 sm:flex-none ${showTrash ? 'bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800' : 'bg-white dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                title="Trash"
+              >
+                <Trash2 size={18} />
+              </button>
               
               {state.current_folder_id && (
                 <button
@@ -864,6 +969,7 @@ export const WorkingAreaPage: React.FC<WorkingAreaPageProps> = ({ onFolderSelect
                 onDownload={downloadFile}
                 onPreview={previewFile}
                 onEdit={openForEditing}
+                onRename={renameFolder}
                 isEditable={isEditable}
                 searchQuery={searchQuery}
               />
@@ -879,6 +985,7 @@ export const WorkingAreaPage: React.FC<WorkingAreaPageProps> = ({ onFolderSelect
                 onDownload={downloadFile}
                 onPreview={previewFile}
                 onEdit={openForEditing}
+                onRename={renameFolder}
                 isEditable={isEditable}
                 searchQuery={searchQuery}
               />
@@ -1332,7 +1439,7 @@ const WorkingAreaHeader: React.FC<{
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <button
               onClick={() => actions.setViewMode(state.view_mode === 'grid' ? 'list' : 'grid')}
               className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-slate-600 dark:text-slate-400"
@@ -1352,24 +1459,24 @@ const WorkingAreaHeader: React.FC<{
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={!state.current_folder_id}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md transition ${state.current_folder_id ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer' : 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed'}`}
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md transition text-sm sm:text-base ${state.current_folder_id ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer' : 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed'}`}
               title={state.current_folder_id ? "Upload" : "Create or select a folder first"}
             >
-              <Upload size={20} />
-              Upload
+              <Upload size={18} className="sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">Upload</span>
             </button>
 
             {!showNewFolderInput ? (
               <button
                 onClick={() => setShowNewFolderInput(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-700 text-slate-700 dark:text-slate-300 hover:from-slate-200 hover:to-slate-100 dark:hover:from-slate-700 dark:hover:to-slate-600 rounded-md transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+                className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-700 text-slate-700 dark:text-slate-300 hover:from-slate-200 hover:to-slate-100 dark:hover:from-slate-700 dark:hover:to-slate-600 rounded-md transition-all duration-200 font-medium shadow-sm hover:shadow-md text-sm sm:text-base"
                 title="New Folder"
               >
-                <Plus size={20} />
-                New Folder
+                <Plus size={18} className="sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">New Folder</span>
               </button>
             ) : (
-              <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+              <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2 sm:p-3 w-full sm:w-auto">
                 <input
                   type="text"
                   placeholder="Folder name..."
@@ -1383,12 +1490,12 @@ const WorkingAreaHeader: React.FC<{
                       setNewFolderName('');
                     }
                   }}
-                  className="flex-1 px-3 py-2 border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-md text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  className="flex-1 px-2 sm:px-3 py-1.5 sm:py-2 border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-md text-xs sm:text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                   autoFocus
                 />
                 <button
                   onClick={handleCreateFolder}
-                  className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-md text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="px-2 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-md text-xs sm:text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md whitespace-nowrap"
                 >
                   Create
                 </button>
@@ -1419,15 +1526,16 @@ const GridView: React.FC<{
   onDownload: (item: any) => void;
   onPreview: (item: any) => void;
   onEdit?: (item: any) => void;
+  onRename?: (folderId: string, newName: string) => void;
   isEditable?: (item: any) => boolean;
   searchQuery: string;
-}> = ({ items, onSelect, selected, onDelete, onNavigateFolder, onDownload, onPreview, onEdit, isEditable, searchQuery }) => {
+}> = ({ items, onSelect, selected, onDelete, onNavigateFolder, onDownload, onPreview, onEdit, onRename, isEditable, searchQuery }) => {
   const filteredItems = items.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
+    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
       {filteredItems.map(item => (
         <FileGridItem 
           key={item.id} 
@@ -1439,6 +1547,7 @@ const GridView: React.FC<{
           onDownload={onDownload}
           onPreview={onPreview}
           onEdit={onEdit}
+          onRename={onRename}
           isEditable={isEditable}
         />
       ))}
@@ -1455,9 +1564,10 @@ const ListView: React.FC<{
   onDownload: (item: any) => void;
   onPreview: (item: any) => void;
   onEdit?: (item: any) => void;
+  onRename?: (folderId: string, newName: string) => void;
   isEditable?: (item: any) => boolean;
   searchQuery: string;
-}> = ({ items, onSelect, selected, onDelete, onNavigateFolder, onDownload, onPreview, onEdit, isEditable, searchQuery }) => {
+}> = ({ items, onSelect, selected, onDelete, onNavigateFolder, onDownload, onPreview, onEdit, onRename, isEditable, searchQuery }) => {
   const filteredItems = items.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -1476,6 +1586,7 @@ const ListView: React.FC<{
           onDownload={onDownload}
           onPreview={onPreview}
           onEdit={onEdit}
+          onRename={onRename}
           isEditable={isEditable}
         />
       ))}
@@ -1492,8 +1603,11 @@ const FileGridItem: React.FC<{
   onDownload: (item: any) => void;
   onPreview: (item: any) => void;
   onEdit?: (item: any) => void;
+  onRename?: (folderId: string, newName: string) => void;
   isEditable?: (item: any) => boolean;
-}> = ({ item, selected, onSelect, onDelete, onNavigateFolder, onDownload, onPreview, onEdit, isEditable }) => {
+}> = ({ item, selected, onSelect, onDelete, onNavigateFolder, onDownload, onPreview, onEdit, onRename, isEditable }) => {
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameValue, setRenameValue] = useState(item.name);
   const isFolder = item.is_folder;
 
   const handleClick = (e: React.MouseEvent) => {
@@ -1514,7 +1628,7 @@ const FileGridItem: React.FC<{
         className="relative group flex flex-col items-center justify-center cursor-pointer w-full"
         onClick={handleClick}
       >
-        <div className="file relative w-full max-w-[240px] h-40 sm:h-44 cursor-pointer origin-bottom [perspective:1500px] z-50">
+        <div className="file relative w-full max-w-[160px] sm:max-w-[200px] md:max-w-[240px] h-32 sm:h-40 md:h-44 cursor-pointer origin-bottom [perspective:1500px] z-50">
           {/* Work 5 - Back layer with tab */}
           <div className="work-5 bg-blue-600 dark:bg-blue-700 w-full h-full origin-top rounded-2xl rounded-tl-none group-hover:shadow-[0_20px_40px_rgba(0,0,0,.2)] transition-all ease duration-300 relative after:absolute after:content-[''] after:bottom-[99%] after:left-0 after:w-20 after:h-4 after:bg-blue-600 dark:after:bg-blue-700 after:rounded-t-2xl before:absolute before:content-[''] before:-top-[15px] before:left-[75.5px] before:w-4 before:h-4 before:bg-blue-600 dark:before:bg-blue-700 before:[clip-path:polygon(0_35%,0%_100%,50%_100%)]" />
 
@@ -1531,24 +1645,89 @@ const FileGridItem: React.FC<{
           <div className="work-1 absolute bottom-0 bg-gradient-to-t from-blue-500 to-blue-400 dark:from-blue-600 dark:to-blue-500 w-full h-[156px] rounded-2xl rounded-tr-none after:absolute after:content-[''] after:bottom-[99%] after:right-0 after:w-[146px] after:h-[16px] after:bg-blue-400 dark:after:bg-blue-500 after:rounded-t-2xl before:absolute before:content-[''] before:-top-[10px] before:right-[142px] before:size-3 before:bg-blue-400 dark:before:bg-blue-500 before:[clip-path:polygon(100%_14%,50%_100%,100%_100%)] transition-all ease duration-300 origin-bottom flex items-end group-hover:shadow-[inset_0_20px_40px_#3b82f6,_inset_0_-20px_40px_#1e40af] group-hover:[transform:rotateX(-46deg)_translateY(1px)]">
             {/* Center Icon */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <FolderOpen size={48} className="text-white opacity-90" />
+              <FolderOpen size={32} className="sm:size-[40px] md:size-[48px] text-white opacity-90" />
             </div>
           </div>
         </div>
 
         {/* Folder name */}
-        <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white mt-3 sm:mt-4 text-center truncate w-full px-2">{item.name}</p>
+        <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white mt-2 sm:mt-3 md:mt-4 text-center truncate w-full px-1 sm:px-2">{item.name}</p>
 
-        {/* Delete button */}
+        {/* Delete and Rename buttons */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
-          className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all shadow-lg z-50"
+          className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 opacity-0 group-hover:opacity-100 p-1.5 sm:p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all shadow-lg z-50"
         >
-          <X size={16} />
+          <X size={14} className="sm:size-4" />
         </button>
+
+        {/* Rename button */}
+        {onRename && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowRenameModal(true);
+            }}
+            className="absolute -top-1 -right-10 sm:-top-2 sm:-right-12 opacity-0 group-hover:opacity-100 p-1.5 sm:p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all shadow-lg z-50"
+          >
+            <Edit3 size={14} className="sm:size-4" />
+          </button>
+        )}
+
+        {/* Rename Modal */}
+        {onRename && (
+          <Dialog open={showRenameModal} onOpenChange={setShowRenameModal}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Rename Folder</DialogTitle>
+              </DialogHeader>
+              <div className="py-4">
+                <input
+                  type="text"
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  placeholder="Enter new folder name"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && renameValue.trim()) {
+                      onRename(item.id, renameValue.trim());
+                      setShowRenameModal(false);
+                      setRenameValue(item.name);
+                    }
+                  }}
+                />
+              </div>
+              <DialogFooter>
+                <button
+                  onClick={() => {
+                    setShowRenameModal(false);
+                    setRenameValue(item.name);
+                  }}
+                  className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (renameValue.trim()) {
+                      onRename(item.id, renameValue.trim());
+                      setShowRenameModal(false);
+                      setRenameValue(item.name);
+                    }
+                  }}
+                  disabled={!renameValue.trim()}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Rename
+                </button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     );
   }
@@ -1656,8 +1835,11 @@ const FileListItem: React.FC<{
   onDownload: (item: any) => void;
   onPreview: (item: any) => void;
   onEdit?: (item: any) => void;
+  onRename?: (folderId: string, newName: string) => void;
   isEditable?: (item: any) => boolean;
-}> = ({ item, selected, onSelect, onDelete, isLast, onNavigateFolder, onDownload, onPreview, onEdit, isEditable }) => {
+}> = ({ item, selected, onSelect, onDelete, isLast, onNavigateFolder, onDownload, onPreview, onEdit, onRename, isEditable }) => {
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameValue, setRenameValue] = useState(item.name);
   const isFolder = item.is_folder;
   const fileConfig = !isFolder ? getFileTypeConfig(item.name, item.file_type) : null;
   const IconComponent = fileConfig?.icon;
@@ -1827,7 +2009,71 @@ const FileListItem: React.FC<{
         >
           <Trash2 size={16} className="sm:w-4 sm:h-4" />
         </button>
+        {isFolder && onRename && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowRenameModal(true);
+            }}
+            className="p-2 sm:p-2.5 bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-all duration-200 transform hover:scale-110 active:scale-95 hover:shadow-md"
+            title="Rename"
+          >
+            <Edit3 size={16} className="sm:w-4 sm:h-4" />
+          </button>
+        )}
       </div>
+
+      {/* Rename Modal */}
+      {isFolder && onRename && (
+        <Dialog open={showRenameModal} onOpenChange={setShowRenameModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Rename Folder</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <input
+                type="text"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                placeholder="Enter new folder name"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && renameValue.trim()) {
+                    onRename(item.id, renameValue.trim());
+                    setShowRenameModal(false);
+                    setRenameValue(item.name);
+                  }
+                }}
+              />
+            </div>
+            <DialogFooter>
+              <button
+                onClick={() => {
+                  setShowRenameModal(false);
+                  setRenameValue(item.name);
+                }}
+                className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (renameValue.trim()) {
+                    onRename(item.id, renameValue.trim());
+                    setShowRenameModal(false);
+                    setRenameValue(item.name);
+                  }
+                }}
+                disabled={!renameValue.trim()}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Rename
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
@@ -1884,14 +2130,14 @@ const EmptyState: React.FC<{ createFolder: (name: string) => void; isFolderView?
       <div className="text-center max-w-md">
         {/* Icon Container */}
         <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 mb-6 sm:mb-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-700/50 rounded-full">
-          <Upload size={64} className="sm:w-24 sm:h-24 text-slate-500 dark:text-slate-400" />
+          <Upload size={40} className="sm:w-12 sm:h-12 text-slate-500 dark:text-slate-400" />
         </div>
         
         {/* Heading */}
         <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-2 sm:mb-3">This folder is empty</h3>
         
         {/* Subheading */}
-        <p className="text-sm sm:text-base text-slate-600 dark:text-white max-w-md mx-auto leading-relaxed">
+        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
           Upload files to get started. You can organize them into subfolders anytime.
         </p>
       </div>

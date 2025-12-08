@@ -3,6 +3,7 @@ import { useNotifications } from '@/context/NotificationContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
+import Loader from '@/components/Loader'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -253,13 +254,7 @@ export default function NotificationsPage() {
         <div className="space-y-2">
           {loading ? (
             <Card className="p-8 flex items-center justify-center">
-              <div className="flex flex-col items-center gap-3">
-                <div className="relative">
-                  <div className="h-10 w-10 border-4 border-muted rounded-full" />
-                  <div className="absolute top-0 left-0 h-10 w-10 border-4 border-transparent border-t-primary rounded-full animate-spin" />
-                </div>
-                <p className="text-sm text-muted-foreground">Loading notifications...</p>
-              </div>
+              <Loader size="md" />
             </Card>
           ) : filteredNotifications.length === 0 ? (
             <Card className="p-8 flex items-center justify-center">

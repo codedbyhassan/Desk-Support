@@ -1,5 +1,6 @@
 import * as React from "react";
 import { ReactNode } from "react";
+import { useThemeProvider } from "@/hooks/useThemeProvider";
 
 type Theme = "light" | "dark" | "system";
 
@@ -202,6 +203,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem("themeSettings");
     return stored ? JSON.parse(stored) : defaultThemeSettings;
   });
+
+  // Initialize semantic theme provider
+  const { isDark } = React.useMemo(() => ({
+    isDark: theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches),
+  }), [theme]);
 
   // Apply theme mode to DOM
   React.useEffect(() => {

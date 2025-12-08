@@ -42,6 +42,7 @@ import { useAuth } from '@/lib/auth'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useTheme } from '@/context/ThemeContext'
+import { colors, statusStyles } from '@/lib/theme'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -708,8 +709,8 @@ export default function ManagementTab() {
             <Card className="p-3 lg:p-4 relative overflow-hidden border-border bg-card">
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-transparent" />
               <div className="relative flex items-center gap-3 lg:gap-4">
-                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center">
-                  <Crown className="h-4 w-4 lg:h-5 lg:w-5 text-purple-600 dark:text-purple-400" />
+                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded bg-[${colors.purple.light}] dark:bg-[${colors.purple.lighter}] flex items-center justify-center">
+                  <Crown className={`h-4 w-4 lg:h-5 lg:w-5 text-[${colors.purple.text}] dark:text-[${colors.purple.lighter}]`} />
                 </div>
                 <div>
                   <p className="text-xs lg:text-sm text-muted-foreground">Admins</p>
@@ -721,8 +722,8 @@ export default function ManagementTab() {
             <Card className="p-3 lg:p-4 relative overflow-hidden border-border bg-card">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent" />
               <div className="relative flex items-center gap-3 lg:gap-4">
-                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
-                  <UserCheck className="h-4 w-4 lg:h-5 lg:w-5 text-blue-600 dark:text-blue-400" />
+                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded bg-[${colors.primary.light}] dark:bg-[${colors.primary.lighter}] flex items-center justify-center">
+                  <UserCheck className={`h-4 w-4 lg:h-5 lg:w-5 text-[${colors.primary.text}] dark:text-[${colors.primary.lighter}]`} />
                 </div>
                 <div>
                   <p className="text-xs lg:text-sm text-muted-foreground">Others</p>
@@ -734,8 +735,8 @@ export default function ManagementTab() {
             <Card className="p-3 lg:p-4 relative overflow-hidden border-border bg-card">
               <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-transparent" />
               <div className="relative flex items-center gap-3 lg:gap-4">
-                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded bg-green-100 dark:bg-green-500/20 flex items-center justify-center">
-                  <Users className="h-4 w-4 lg:h-5 lg:w-5 text-green-600 dark:text-green-400" />
+                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded bg-[${colors.success.light}] dark:bg-[${colors.success.lighter}] flex items-center justify-center">
+                  <Users className={`h-4 w-4 lg:h-5 lg:w-5 text-[${colors.success.text}] dark:text-[${colors.success.lighter}]`} />
                 </div>
                 <div>
                   <p className="text-xs lg:text-sm text-muted-foreground">Total Users</p>
@@ -747,8 +748,8 @@ export default function ManagementTab() {
             <Card className="p-3 lg:p-4 relative overflow-hidden border-border bg-card">
               <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-transparent" />
               <div className="relative flex items-center gap-3 lg:gap-4">
-                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center">
-                  <User className="h-4 w-4 lg:h-5 lg:w-5 text-orange-600 dark:text-orange-400" />
+                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded bg-[${colors.orange.light}] dark:bg-[${colors.orange.lighter}] flex items-center justify-center">
+                  <User className={`h-4 w-4 lg:h-5 lg:w-5 text-[${colors.orange.text}] dark:text-[${colors.orange.lighter}]`} />
                 </div>
                 <div>
                   <p className="text-xs lg:text-sm text-muted-foreground">Available Slots</p>
@@ -1015,7 +1016,7 @@ export default function ManagementTab() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className={`bg-[${colors.danger.main}] hover:bg-[${colors.danger.dark}]`}
               onClick={async () => {
                 if (!userIdPendingDelete) return
                 const id = userIdPendingDelete

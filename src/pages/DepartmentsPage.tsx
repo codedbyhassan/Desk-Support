@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import Loader from '@/components/Loader'
 import {
   Dialog,
   DialogContent,
@@ -298,8 +299,8 @@ export default function DepartmentsPage() {
       {hasManagementView ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 px-4 sm:px-0">
           {loading ? (
-            <div className="col-span-full text-center py-8 lg:py-12 text-gray-500 text-xs sm:text-sm">
-              Loading departments...
+            <div className="col-span-full flex items-center justify-center py-12 lg:py-16">
+              <Loader fullPage />
             </div>
           ) : filteredDepartments.length === 0 ? (
             <div className="col-span-full text-center py-8 lg:py-12">

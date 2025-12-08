@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Download, Share2, ChevronLeft, ChevronRight, Loader, AlertCircle } from 'lucide-react';
 import { WorkingAreaFile } from '@/types/workingArea';
 import { supabase } from '@/lib/supabase';
+import { colors, components, sizing, typography, patterns } from '@/lib/theme';
 
 interface FilePreviewProps {
   isOpen: boolean;
@@ -142,7 +143,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
     // PDF preview
     if (currentFile.file_type === 'application/pdf') {
       return (
-        <div className="h-96 bg-gray-50">
+        <div className={`h-96 ${colors.neutral.light}`}>
           <iframe
             src={`${previewUrl}#toolbar=1&navpanes=0&scrollbar=1`}
             className="w-full h-full border-none"
@@ -186,7 +187,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
     // Text file preview
     if (SUPPORTED_TEXT_TYPES.includes(currentFile.file_type || '')) {
       return (
-        <div className="h-96 bg-gray-50 p-4 overflow-auto">
+        <div className={`h-96 ${colors.neutral.light} p-4 overflow-auto`}>
           <pre className="font-mono text-sm text-gray-900">
             {previewUrl ? <code>{previewUrl}</code> : 'Content loading...'}
           </pre>
@@ -262,7 +263,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
             <button
               onClick={handleDownload}
               disabled={isDownloading}
-              className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+              className={`p-2 hover:${colors.neutral.lighter} rounded-lg ${patterns.smoothTransition} disabled:opacity-50`}
               title="Download"
             >
               {isDownloading ? (
@@ -276,7 +277,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
             {onShare && (
               <button
                 onClick={onShare}
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                className={`p-2 hover:${colors.neutral.lighter} rounded-lg ${patterns.smoothTransition}`}
                 title="Share"
               >
                 <Share2 className="w-5 h-5 text-gray-600 hover:text-gray-900" />
@@ -295,7 +296,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto bg-gray-100">
+        <div className={`flex-1 overflow-auto ${colors.neutral.lighter}`}>
           {renderPreview()}
         </div>
 

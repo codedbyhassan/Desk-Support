@@ -165,16 +165,17 @@ export function NotificationBell() {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-full max-w-sm p-0">
+      <DropdownMenuContent align="end" className="w-full max-w-xs sm:max-w-sm p-0">
         {/* Header */}
-        <div className="p-4 border-b bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-base flex items-center gap-2 text-white">
-              <Bell className="h-5 w-5" />
-              Notifications
+        <div className="p-2 sm:p-4 border-b bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500">
+          <div className="flex items-center justify-between mb-1 sm:mb-3">
+            <h3 className="font-bold text-sm sm:text-base flex items-center gap-1 sm:gap-2 text-white">
+              <Bell className="h-4 sm:h-5 w-4 sm:w-5" />
+              <span className="hidden sm:inline">Notifications</span>
+              <span className="sm:hidden">Notif</span>
               {unreadCount > 0 && (
-                <span className="bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs font-semibold">
-                  {unreadCount} new
+                <span className="bg-white/20 backdrop-blur-sm px-1.5 sm:px-2 py-0 sm:py-0.5 rounded-full text-[10px] sm:text-xs font-semibold">
+                  {unreadCount}
                 </span>
               )}
             </h3>
@@ -182,33 +183,35 @@ export function NotificationBell() {
 
           {/* Action Buttons */}
           {notifications.length > 0 && (
-            <div className="flex gap-2">
+            <div className="flex gap-1 sm:gap-2">
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={markAllAsRead}
                 disabled={unreadCount === 0}
-                className="flex-1 text-xs bg-white/90 hover:bg-white text-orange-600 font-semibold"
+                className="flex-1 text-[10px] sm:text-xs bg-white/90 hover:bg-white text-orange-600 font-semibold px-1 sm:px-2 py-1 h-7 sm:h-8"
               >
-                <CheckCheck className="h-3 w-3 mr-1" />
-                Mark all read
+                <CheckCheck className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
+                <span className="hidden sm:inline">Mark all read</span>
+                <span className="sm:hidden">Read</span>
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={deleteAllRead}
                 disabled={notifications.filter((n: Notification) => n.read).length === 0}
-                className="flex-1 text-xs bg-white/90 hover:bg-white text-orange-600 font-semibold"
+                className="flex-1 text-[10px] sm:text-xs bg-white/90 hover:bg-white text-orange-600 font-semibold px-1 sm:px-2 py-1 h-7 sm:h-8"
               >
-                <Trash2 className="h-3 w-3 mr-1" />
-                Clear read
+                <Trash2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
+                <span className="hidden sm:inline">Clear read</span>
+                <span className="sm:hidden">Clear</span>
               </Button>
             </div>
           )}
         </div>
 
         {/* Notifications List */}
-        <div className="overflow-y-auto max-h-[480px] bg-gray-50/50 dark:bg-gray-900/50">
+        <div className="overflow-y-auto max-h-[280px] sm:max-h-[480px] bg-gray-50/50 dark:bg-gray-900/50">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="relative">
@@ -245,33 +248,35 @@ export function NotificationBell() {
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-orange-500 to-amber-500" />
                   )}
 
-                  <div className="flex items-start gap-3 ml-2">
+                  <div className="flex items-start gap-2 sm:gap-3 ml-1 sm:ml-2">
                     {/* Icon */}
                     <div className={`
-                      h-10 w-10 rounded-xl
+                      h-8 sm:h-10 w-8 sm:w-10 rounded-lg sm:rounded-xl
                       bg-gradient-to-br from-gray-100 to-gray-200 
                       dark:from-gray-800 dark:to-gray-700 
                       flex items-center justify-center flex-shrink-0
                       shadow-sm
                       group-hover:scale-110 transition-transform duration-200
                     `}>
-                      {getNotificationIcon(notification.type)}
+                      <div className="h-3 w-3 sm:h-4 sm:w-4">
+                        {getNotificationIcon(notification.type)}
+                      </div>
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <p className={`font-semibold text-sm mb-1 ${!notification.read ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+                      <p className={`font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1 ${!notification.read ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                         {notification.title}
                       </p>
-                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                      <p className="text-[10px] sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-1 sm:line-clamp-2 leading-tight">
                         {notification.message}
                       </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs text-gray-500 dark:text-gray-500">
+                      <div className="flex items-center gap-1 sm:gap-2 mt-1">
+                        <span className="text-[9px] sm:text-xs text-gray-500 dark:text-gray-500">
                           {formatTimeAgo(notification.created_at)}
                         </span>
                         {!notification.read && (
-                          <Badge variant="default" className="text-[10px] py-0 px-1.5 bg-orange-500 hover:bg-orange-600">
+                          <Badge variant="default" className="text-[8px] sm:text-[10px] py-0 px-1 sm:px-1.5 bg-orange-500 hover:bg-orange-600">
                             New
                           </Badge>
                         )}
@@ -318,17 +323,18 @@ export function NotificationBell() {
         {notifications.length > 0 && (
           <>
             <Separator />
-            <div className="p-3 text-center bg-white dark:bg-gray-900">
+            <div className="p-2 sm:p-3 text-center bg-white dark:bg-gray-900">
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-xs text-orange-600 hover:text-orange-700 font-semibold hover:bg-orange-50"
+                className="text-[10px] sm:text-xs text-orange-600 hover:text-orange-700 font-semibold hover:bg-orange-50 py-1 h-auto"
                 onClick={() => {
                   navigate('/app/notifications')
                   setIsOpen(false)
                 }}
               >
-                View all notifications →
+                <span className="hidden sm:inline">View all notifications →</span>
+                <span className="sm:hidden">View all</span>
               </Button>
             </div>
           </>

@@ -68,11 +68,47 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const earlyNotificationsBufferRef = useRef<Notification[]>([])
   const processedMessageIdsRef = useRef<Set<string>>(new Set())
   const processedNotificationIdsRef = useRef<Set<string>>(new Set())
+  const audioContextInitializedRef = useRef(false)
 
-  // Load notification sound
+  // Load notification sound with lazy initialization
   const [playNotification] = useSound('/sounds/notification.mp3', {
     volume: 0.5,
+    // Disable autoplay - will be triggered only after user gesture
   })
+
+  // Initialize AudioContext on first user interaction
+  useEffect(() => {
+    const initializeAudioContext = () => {
+      if (!audioContextInitializedRef.current) {
+        try {
+          // Attempt to play a silent sound to wake up the AudioContext
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+          if (audioContext.state === 'suspended') {
+            audioContext.resume()
+          }
+          audioContextInitializedRef.current = true
+          console.log('[NotificationContext] AudioContext initialized')
+        } catch (error) {
+          console.debug('[NotificationContext] AudioContext initialization skipped:', error)
+        }
+      }
+      // Remove listeners after first interaction
+      document.removeEventListener('click', initializeAudioContext)
+      document.removeEventListener('touchstart', initializeAudioContext)
+      document.removeEventListener('keydown', initializeAudioContext)
+    }
+
+    // Add listeners for user gestures
+    document.addEventListener('click', initializeAudioContext, { once: true })
+    document.addEventListener('touchstart', initializeAudioContext, { once: true })
+    document.addEventListener('keydown', initializeAudioContext, { once: true })
+
+    return () => {
+      document.removeEventListener('click', initializeAudioContext)
+      document.removeEventListener('touchstart', initializeAudioContext)
+      document.removeEventListener('keydown', initializeAudioContext)
+    }
+  }, [])
 
   // ✅ Get user data from AuthContext (no race condition with auth loading)
   useEffect(() => {

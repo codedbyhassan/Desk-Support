@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
+import Loader from '@/components/Loader'
 import { useToast } from '@/hooks/use-toast'
 import {
   Dialog,
@@ -818,8 +819,7 @@ export default function TeamsPage() {
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-full">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">Loading teams...</p>
+              <Loader size="md" />
             </div>
           ) : error && filteredTeams.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center">

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
+import { colors } from '@/lib/theme'
 
 interface ScreenShareDisplayProps {
   stream: MediaStream | null
@@ -54,7 +55,7 @@ export default function ScreenShareDisplay({ stream, sharerName, onClose }: Scre
       )}
 
       {/* Screen share indicator bottom right */}
-      <div className="absolute bottom-4 right-4 px-3 py-1.5 bg-slate-900/80 text-white text-xs font-semibold rounded-full backdrop-blur-sm border border-slate-600/50">
+      <div className={`absolute bottom-4 right-4 px-3 py-1.5 bg-[${colors.neutral.darker}]/80 text-white text-xs font-semibold rounded-full backdrop-blur-sm border border-[${colors.neutral.main}]/50`}>
         Screen Share
       </div>
     </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Search, Loader, Check, Trash2, Calendar } from 'lucide-react';
 import { AccessLevel, ShareType, UserInfo, TeamInfo } from '@/types/workingArea';
 import { supabase } from '@/lib/supabase';
+import { colors, components, sizing, typography, patterns } from '@/lib/theme';
 
 interface ShareDialogProps {
   isOpen: boolean;
@@ -237,7 +238,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
                   disabled={isLoading}
                   className={`p-3 rounded-lg border text-left transition ${
                     shareType === type
-                      ? 'border-blue-500 bg-blue-50'
+                      ? `border-[${colors.primary.main}] bg-[${colors.primary.light}]`
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -279,7 +280,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
               )}
 
               {searchResults.length > 0 && (
-                <div className="bg-gray-50 rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
+                <div className={`${colors.neutral.light} rounded-lg p-3 max-h-48 overflow-y-auto space-y-2`}>
                   {searchResults.map((result) => (
                     <button
                       key={result.id}
@@ -291,7 +292,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
                         }
                       }}
                       disabled={isLoading}
-                      className="w-full flex items-center gap-3 p-2 hover:bg-gray-100 rounded text-left"
+                      className={`w-full flex items-center gap-3 p-2 hover:${colors.neutral.light} rounded text-left ${patterns.smoothTransition}`}
                     >
                       <input
                         type="checkbox"
@@ -337,7 +338,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
                   {selectedTeams.map((team) => (
                     <div
                       key={team.id}
-                      className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200"
+                      className={`flex items-center justify-between p-2 bg-[${colors.primary.light}] rounded border border-[${colors.primary.border}]`}
                     >
                       <p className="text-sm text-gray-900">{team.name}</p>
                       <button
@@ -364,7 +365,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
                   disabled={isLoading}
                   className={`w-full flex items-start gap-3 p-3 rounded-lg border text-left transition ${
                     selectedPermission === level.value
-                      ? 'border-blue-500 bg-blue-50'
+                      ? `border-[${colors.primary.main}] bg-[${colors.primary.light}]`
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -418,7 +419,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">{access.name}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                        <span className={`text-xs px-2 py-1 bg-[${colors.primary.lighter}] text-[${colors.primary.text}] rounded`}>
                           {access.permissionLevel}
                         </span>
                         {access.expiresAt && (
@@ -454,7 +455,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
               <button
                 onClick={handleShare}
                 disabled={isLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 flex items-center gap-2"
+                className={`px-4 py-2 bg-[${colors.primary.main}] text-white rounded-lg hover:bg-[${colors.primary.dark}] disabled:bg-[${colors.primary.lighter}] flex items-center gap-2`}
               >
                 {isLoading ? (
                   <>

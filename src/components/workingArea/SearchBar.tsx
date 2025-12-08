@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Search, X, Calendar, FileType, ChevronDown, Loader } from 'lucide-react';
 import { WorkingAreaFile, WorkingAreaFolder } from '@/types/workingArea';
 import { supabase } from '@/lib/supabase';
+import { colors, components, sizing, typography, patterns } from '@/lib/theme';
 
 interface SearchBarProps {
   onSearch: (results: (WorkingAreaFile | WorkingAreaFolder)[]) => void;
@@ -228,7 +229,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           <button
             onClick={handleSearch}
             disabled={isSearching || !query.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 flex items-center gap-2 transition"
+            className={`px-4 py-2 ${colors.primary.dark} text-white rounded-lg hover:${colors.primary.darker} disabled:${colors.primary.medium} flex items-center gap-2 ${patterns.smoothTransition}`}
           >
             {isSearching ? (
               <Loader className="w-4 h-4 animate-spin" />
@@ -241,7 +242,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           {onClose && (
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600"
+              className={`p-2 hover:${colors.neutral.lighter} rounded-lg ${patterns.smoothTransition} ${colors.neutral.text}`}
               title="Close search"
             >
               <X className="w-5 h-5" />
@@ -251,7 +252,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
         {/* Suggestions Dropdown */}
         {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute top-full left-4 right-4 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+          <div className={`absolute top-full left-4 right-4 mt-2 bg-white ${colors.neutral.borderLight} rounded-lg shadow-lg z-50`}>
             {suggestions.map((suggestion, index) => (
               <button
                 key={index}
@@ -260,10 +261,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                   setShowSuggestions(false);
                   handleQueryChange(suggestion);
                 }}
-                className="w-full text-left px-4 py-2 hover:bg-gray-50 transition flex items-center gap-2"
+                className={`w-full text-left px-4 py-2 hover:${colors.neutral.light} ${patterns.smoothTransition} flex items-center gap-2`}
               >
-                <Search className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-700">{suggestion}</span>
+                <Search className={`w-4 h-4 ${colors.neutral.textLighter}`} />
+                <span className={`text-sm ${colors.neutral.textDark}`}>{suggestion}</span>
               </button>
             ))}
           </div>
@@ -272,7 +273,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
       {/* Advanced Filters */}
       {showAdvanced && (
-        <div className="p-4 bg-gray-50 border-b border-gray-200 space-y-4">
+        <div className={`${colors.neutral.light} ${colors.neutral.borderLight} ${patterns.smoothTransition} space-y-4`}>
           <div className="grid grid-cols-2 gap-4">
             {/* File Type Filter */}
             <div>
@@ -370,35 +371,35 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
       {/* Active Filters Display */}
       {Object.keys(filters).length > 0 && (
-        <div className="px-4 py-2 bg-blue-50 border-b border-blue-200 flex flex-wrap gap-2">
+        <div className={`px-4 py-2 ${colors.primary.light} border-b ${colors.primary.borderLight} flex flex-wrap gap-2`}>
           {filters.fileType && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">
+            <span className={`inline-flex items-center gap-1 px-2 py-1 ${colors.primary.lighter} ${colors.primary.textDark} rounded ${typography.xs}`}>
               Type: {FILE_TYPES.find((t) => t.value === filters.fileType)?.label}
               <button
                 onClick={() => updateFilter('fileType', undefined)}
-                className="hover:text-blue-900"
+                className={`hover:${colors.primary.textDark}`}
               >
                 ×
               </button>
             </span>
           )}
           {filters.minSize && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">
+            <span className={`inline-flex items-center gap-1 px-2 py-1 ${colors.primary.lighter} ${colors.primary.textDark} rounded ${typography.xs}`}>
               Min: {(filters.minSize / 1048576).toFixed(1)}MB
               <button
                 onClick={() => updateFilter('minSize', undefined)}
-                className="hover:text-blue-900"
+                className={`hover:${colors.primary.textDark}`}
               >
                 ×
               </button>
             </span>
           )}
           {filters.maxSize && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">
+            <span className={`inline-flex items-center gap-1 px-2 py-1 ${colors.primary.lighter} ${colors.primary.textDark} rounded ${typography.xs}`}>
               Max: {(filters.maxSize / 1048576).toFixed(1)}MB
               <button
                 onClick={() => updateFilter('maxSize', undefined)}
-                className="hover:text-blue-900"
+                className={`hover:${colors.primary.textDark}`}
               >
                 ×
               </button>

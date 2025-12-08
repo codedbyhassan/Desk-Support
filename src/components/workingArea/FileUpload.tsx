@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { Upload, X, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 import { useWorkingArea } from '../../pages/WorkingArea';
+import { colors, components, sizing, typography, patterns } from '@/lib/theme';
 import {
   UploadStatus,
 } from '@/types/workingArea';
@@ -274,10 +275,10 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
-        className={`relative border-2 border-dashed rounded-lg p-8 transition-colors ${
+        className={`relative border-2 border-dashed rounded-lg p-8 ${patterns.smoothTransition} ${
           isDragActive
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-300 bg-gray-50 hover:border-gray-400'
+            ? `${colors.primary.border} ${colors.primary.light}`
+            : `${colors.neutral.borderLight} ${colors.neutral.light} hover:${colors.neutral.borderLight}`
         }`}
       >
         <input
@@ -290,18 +291,18 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         />
 
         <div className="flex flex-col items-center justify-center gap-2">
-          <Upload className="w-8 h-8 text-gray-400" />
+          <Upload className={`w-8 h-8 ${colors.neutral.textLighter}`} />
           <div className="text-center">
-            <p className="text-sm font-medium text-gray-900">
+            <p className={`text-sm font-medium ${colors.neutral.textDark}`}>
               Drag and drop files here, or{' '}
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="text-blue-600 hover:text-blue-700 font-medium"
+                className={`${colors.primary.text} hover:${colors.primary.textDark} font-medium`}
               >
                 browse
               </button>
             </p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className={`text-xs ${colors.neutral.text} mt-1`}>
               Max file size: {maxFileSize / 1024 / 1024}MB
             </p>
           </div>
@@ -325,7 +326,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    className={`bg-[${colors.primary.main}] h-2 rounded-full transition-all duration-300`}
                     style={{ width: `${Math.min(upload.progress, 100)}%` }}
                   />
                 </div>
@@ -333,7 +334,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                   {(upload.file.size / 1024 / 1024).toFixed(2)}MB
                 </p>
               </div>
-              <Loader className="w-4 h-4 text-blue-500 animate-spin flex-shrink-0" />
+              <Loader className={`w-4 h-4 text-[${colors.primary.main}] animate-spin flex-shrink-0`} />
             </div>
           ))}
         </div>
@@ -354,7 +355,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           {completedUploads.map((upload) => (
             <div
               key={upload.id}
-              className="flex items-center justify-between gap-3 p-3 bg-green-50 rounded-lg border border-green-200"
+              className={`flex items-center justify-between gap-3 p-3 ${colors.success.light} rounded-lg border ${colors.success.borderLight}`}
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
@@ -380,7 +381,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           {failedUploads.map((upload) => (
             <div
               key={upload.id}
-              className="flex items-center justify-between gap-3 p-3 bg-red-50 rounded-lg border border-red-200"
+              className={`flex items-center justify-between gap-3 p-3 ${colors.danger.light} rounded-lg border ${colors.danger.borderLight}`}
             >
               <div className="flex items-start gap-3 flex-1 min-w-0">
                 <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
@@ -396,7 +397,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => retryUpload(upload.id)}
-                  className="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded"
+                  className={`text-xs ${colors.danger.dark} hover:${colors.danger.darker} ${colors.neutral.textDark} px-2 py-1 rounded`}
                 >
                   Retry
                 </button>
@@ -414,7 +415,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
       {/* Upload Summary */}
       {uploads.length > 0 && (
-        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <div className={`p-3 ${colors.neutral.light} rounded-lg border ${colors.neutral.borderLight}`}>
           <div className="flex items-center justify-between text-xs text-gray-600">
             <span>
               {uploads.filter((u) => u.status === 'success').length} of{' '}

@@ -4,10 +4,12 @@ import { useTheme } from '@/context/ThemeContext'
 import { useAudioLevel } from '@/hooks/useAudioLevel'
 import { useVideoChat } from '@/hooks/useVideoChat'
 import { AlertCircle, Mic, MicOff, Video, VideoOff, PhoneOff, Settings, Maximize2, Minimize2, Monitor, MessageSquare, Users } from 'lucide-react'
+import Loader from '@/components/Loader'
 import VideoCallSettings from './VideoCallSettings'
 import ScreenShareDisplay from './ScreenShareDisplay'
 import ChatPanel from '../calls/ChatPanel'
 import ParticipantsList from './ParticipantsList'
+import { colors } from '@/lib/theme'
 
 interface VideoCallViewProps {
   roomId: string
@@ -298,10 +300,10 @@ export default function VideoCallView({ roomId, mode = 'video', initiator = fals
       {/* Main content */}
       <div className="flex-1 flex flex-col relative z-10">
         {isConnecting && (
-          <div className="absolute inset-0 flex items-center justify-center z-40 bg-slate-950/50 backdrop-blur-sm rounded-3xl">
+          <div className={`absolute inset-0 flex items-center justify-center z-40 bg-[${colors.neutral.darker}]/50 backdrop-blur-sm rounded-3xl`}>
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full border-4 border-slate-700 border-t-blue-500 animate-spin mx-auto mb-4"></div>
-              <p className="text-slate-300 text-lg font-medium">Connecting to call...</p>
+              <Loader size="lg" />
+              <p className="text-slate-300 text-lg font-medium mt-4">Connecting to call...</p>
               <p className="text-slate-400 text-sm mt-2">Setting up your devices</p>
             </div>
           </div>
@@ -377,7 +379,7 @@ export default function VideoCallView({ roomId, mode = 'video', initiator = fals
                   <LocalVideoElement stream={localStream} />
                   
                   {/* Local video badge */}
-                  <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-slate-900/80 text-white text-xs font-semibold rounded-full backdrop-blur-sm border border-slate-600/50">
+                  <div className={`absolute bottom-2 left-2 px-2 py-0.5 bg-[${colors.neutral.darker}]/80 text-white text-xs font-semibold rounded-full backdrop-blur-sm border border-[${colors.neutral.main}]/50`}>
                     You
                   </div>
                   
@@ -390,7 +392,7 @@ export default function VideoCallView({ roomId, mode = 'video', initiator = fals
                 {/* Audio level indicator */}
                 {!isMuted && (
                   <div className="absolute bottom-2 right-2 flex items-center gap-1">
-                    <div className="flex items-center gap-0.5 bg-slate-900/80 rounded-full px-1.5 py-0.5 backdrop-blur-sm border border-slate-600/50">
+                    <div className={`flex items-center gap-0.5 bg-[${colors.neutral.darker}]/80 rounded-full px-1.5 py-0.5 backdrop-blur-sm border border-[${colors.neutral.main}]/50`}>
                       <div className="flex gap-0.5">
                         {[...Array(3)].map((_, i) => (
                           <div
@@ -425,7 +427,7 @@ export default function VideoCallView({ roomId, mode = 'video', initiator = fals
               {/* Other participants */}
               {remoteEntries.length > 0 && (
                 <div className={screenSharePeerId ? 'h-32 overflow-x-auto' : 'flex-1 overflow-y-auto min-h-0'}>
-                  <p className="text-slate-400 text-xs font-medium mb-2 uppercase tracking-wider sticky top-0 bg-slate-950/80 backdrop-blur-sm py-1">
+                  <p className={`text-[${colors.neutral.light}] text-xs font-medium mb-2 uppercase tracking-wider sticky top-0 bg-[${colors.neutral.darker}]/80 backdrop-blur-sm py-1`}>
                     {screenSharePeerId ? 'Participants' : 'Other Participants'}
                   </p>
                   <div className={screenSharePeerId ? 'flex gap-3 overflow-x-auto pb-2' : 'grid grid-cols-1 gap-3'}>
@@ -441,7 +443,7 @@ export default function VideoCallView({ roomId, mode = 'video', initiator = fals
                           <RemoteVideoElement stream={stream} peerId={id} />
                           
                           {/* Remote video label */}
-                          <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 bg-slate-900/80 text-white text-xs font-semibold rounded backdrop-blur-sm border border-slate-600/50">
+                          <div className={`absolute bottom-1.5 left-1.5 px-1.5 py-0.5 bg-[${colors.neutral.darker}]/80 text-white text-xs font-semibold rounded backdrop-blur-sm border border-[${colors.neutral.main}]/50`}>
                             {participantNames[id] || `Participant ${id.slice(0, 6)}`}
                           </div>
                           

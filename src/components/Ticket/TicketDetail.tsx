@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import Loader from '@/components/Loader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
@@ -274,14 +275,7 @@ export function TicketDetail({ ticketId, onStatusChange }: TicketDetailProps) {
   }
 
   if (loading)
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-12 w-12 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin" />
-          <p className="text-sm text-slate-600">Loading ticket details...</p>
-        </div>
-      </div>
-    )
+    return <Loader fullPage />
 
   if (!ticket) 
     return (

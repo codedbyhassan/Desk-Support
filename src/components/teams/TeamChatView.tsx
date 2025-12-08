@@ -1526,7 +1526,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
           </div>
         )}
 
-        <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4 bg-card border-t border-border shadow-lg flex-shrink-0 relative z-10 w-full">
+        <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4 bg-card border-t border-border shadow-lg flex-shrink-0 z-10 w-full">
           {error && (
             <div className="mb-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />

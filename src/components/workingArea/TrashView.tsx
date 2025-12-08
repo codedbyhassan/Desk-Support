@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Trash2, RotateCcw, Trash, Loader, AlertCircle, Calendar, File, Folder } from 'lucide-react';
 import { WorkingAreaTrash } from '@/types/workingArea';
 import { supabase } from '@/lib/supabase';
+import { colors, components, sizing, typography, darkMode, patterns } from '@/lib/theme';
 
 interface TrashViewProps {
   onClose?: () => void;
@@ -262,21 +263,21 @@ export const TrashView: React.FC<TrashViewProps> = ({
 
   // Get warning color based on days remaining
   const getWarningColor = (daysRemaining: number): string => {
-    if (daysRemaining <= 3) return 'bg-red-50';
-    if (daysRemaining <= 7) return 'bg-yellow-50';
-    return 'bg-gray-50';
+    if (daysRemaining <= 3) return colors.danger.light;
+    if (daysRemaining <= 7) return colors.warning.light;
+    return colors.neutral.light;
   };
 
   const getBadgeColor = (daysRemaining: number): string => {
-    if (daysRemaining <= 3) return 'bg-red-100 text-red-800';
-    if (daysRemaining <= 7) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-gray-100 text-gray-800';
+    if (daysRemaining <= 3) return `${colors.danger.lighter} ${colors.danger.textDark}`;
+    if (daysRemaining <= 7) return `${colors.warning.lighter} ${colors.warning.textDark}`;
+    return `${colors.neutral.lighter} ${colors.neutral.textDark}`;
   };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader className="w-8 h-8 animate-spin text-gray-400" />
+        <Loader className={`w-8 h-8 animate-spin ${colors.neutral.textLighter}`} />
       </div>
     );
   }
@@ -286,18 +287,18 @@ export const TrashView: React.FC<TrashViewProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Trash2 className="w-5 h-5" />
+          <h2 className={`text-lg font-semibold ${colors.neutral.textDark} flex items-center gap-2`}>
+            <Trash2 className={sizing.iconMd} />
             Trash
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className={`text-sm ${colors.neutral.text} mt-1`}>
             Items are automatically deleted after 30 days
           </p>
         </div>
         {onClose && (
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition"
+            className={`${colors.neutral.textLighter} hover:${colors.neutral.text} ${patterns.smoothTransition}`}
           >
             ✕
           </button>
@@ -306,10 +307,10 @@ export const TrashView: React.FC<TrashViewProps> = ({
 
       {items.length === 0 ? (
         // Empty State
-        <div className="flex flex-col items-center justify-center py-12 px-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-          <Trash2 className="w-12 h-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Trash is empty</h3>
-          <p className="text-sm text-gray-500 text-center">
+        <div className={`flex flex-col items-center justify-center py-12 px-4 ${colors.neutral.light} rounded-lg border-2 border-dashed ${colors.neutral.borderLight}`}>
+          <Trash2 className={`w-12 h-12 ${colors.neutral.textLighter} mb-4`} />
+          <h3 className={`text-lg font-medium ${colors.neutral.textDark} mb-2`}>Trash is empty</h3>
+          <p className={`text-sm ${colors.neutral.text} text-center`}>
             Deleted files and folders will appear here for 30 days
           </p>
         </div>
@@ -317,15 +318,15 @@ export const TrashView: React.FC<TrashViewProps> = ({
         <>
           {/* Bulk Actions */}
           {selectedItems.length > 0 && (
-            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <span className="text-sm font-medium text-blue-900">
+            <div className={`flex items-center gap-3 p-3 ${colors.primary.light} rounded-lg border ${colors.primary.borderLight}`}>
+              <span className={`text-sm font-medium ${colors.primary.textDark}`}>
                 {selectedItems.length} selected
               </span>
               <div className="flex-1" />
               <button
                 onClick={handleRestoreSelected}
                 disabled={isRestoring}
-                className="flex items-center gap-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-400 transition"
+                className={`flex items-center gap-2 px-3 py-1 text-sm ${colors.primary.dark} text-white rounded hover:${colors.primary.darker} disabled:${colors.primary.medium} ${patterns.smoothTransition}`}
               >
                 {isRestoring ? (
                   <Loader className="w-4 h-4 animate-spin" />
@@ -337,7 +338,7 @@ export const TrashView: React.FC<TrashViewProps> = ({
               <button
                 onClick={handleDeleteSelected}
                 disabled={isDeleting}
-                className="flex items-center gap-2 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-red-400 transition"
+                className={`flex items-center gap-2 px-3 py-1 text-sm ${colors.danger.dark} text-white rounded hover:${colors.danger.darker} disabled:${colors.danger.medium} ${patterns.smoothTransition}`}
               >
                 {isDeleting ? (
                   <Loader className="w-4 h-4 animate-spin" />
@@ -350,28 +351,28 @@ export const TrashView: React.FC<TrashViewProps> = ({
           )}
 
           {/* Select All */}
-          <div className="flex items-center p-2 bg-gray-50 rounded">
+          <div className={`flex items-center p-2 ${colors.neutral.light} rounded`}>
             <input
               type="checkbox"
               checked={selectedItems.length === items.length && items.length > 0}
               onChange={toggleSelectAll}
               className="w-4 h-4 rounded"
             />
-            <span className="text-sm text-gray-600 ml-2">
+            <span className={`text-sm ${colors.neutral.text} ml-2`}>
               Select all ({items.length} items)
             </span>
           </div>
 
           {/* Warning for items expiring soon */}
           {items.some((item) => item.daysRemaining <= 3) && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className={components.alert.error}>
+              <AlertCircle className={`${sizing.iconMd} ${colors.danger.text} flex-shrink-0 mt-0.5`} />
               <div>
-                <p className="text-sm font-medium text-red-900">
+                <p className={`text-sm font-medium ${colors.danger.textDark}`}>
                   {items.filter((item) => item.daysRemaining <= 3).length} item(s) will be
                   permanently deleted soon
                 </p>
-                <p className="text-xs text-red-700 mt-1">
+                <p className={`${typography.xs} ${colors.danger.text} mt-1`}>
                   Restore them now if you want to keep them
                 </p>
               </div>
@@ -383,8 +384,8 @@ export const TrashView: React.FC<TrashViewProps> = ({
             {items.map((item) => (
               <div
                 key={item.id}
-                className={`p-3 rounded-lg border transition ${getWarningColor(item.daysRemaining)} ${
-                  selectedItems.includes(item.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                className={`p-3 rounded-lg border ${patterns.smoothTransition} ${getWarningColor(item.daysRemaining)} ${
+                  selectedItems.includes(item.id) ? `${colors.primary.border} ${colors.primary.light}` : colors.neutral.borderLight
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -438,7 +439,7 @@ export const TrashView: React.FC<TrashViewProps> = ({
                     <button
                       onClick={() => handleDelete(item.id)}
                       disabled={isDeleting}
-                      className="p-1.5 hover:bg-red-100 rounded transition disabled:opacity-50"
+                      className={`p-1.5 hover:bg-[${colors.danger.light}] rounded transition disabled:opacity-50`}
                       title="Delete permanently"
                     >
                       {isDeleting ? (

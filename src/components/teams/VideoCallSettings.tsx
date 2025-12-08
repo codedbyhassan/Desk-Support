@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { X, Settings as SettingsIcon, Volume2, Mic, Video } from 'lucide-react'
+import { colors } from '@/lib/theme'
 
 interface VideoCallSettingsProps {
   onClose: () => void
@@ -89,7 +90,7 @@ export default function VideoCallSettings({
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-slate-700/50 rounded-lg transition-colors"
+            className={`p-1 hover:bg-[${colors.neutral.main}]/50 rounded-lg transition-colors`}
           >
             <X className="w-5 h-5 text-slate-400 hover:text-white" />
           </button>
@@ -106,7 +107,7 @@ export default function VideoCallSettings({
             <select
               value={selectedAudio}
               onChange={(e) => handleAudioChange(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-700/50 text-white rounded-lg border border-slate-600/50 hover:border-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+              className={`w-full px-3 py-2 bg-[${colors.neutral.main}]/50 text-white rounded-lg border border-[${colors.neutral.main}]/50 hover:border-[${colors.neutral.main}] focus:outline-none focus:border-[${colors.primary.main}] transition-colors`}
             >
               {audioDevices.length === 0 ? (
                 <option value="">No microphones found</option>
@@ -129,7 +130,7 @@ export default function VideoCallSettings({
             <select
               value={selectedVideo}
               onChange={(e) => handleVideoChange(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-700/50 text-white rounded-lg border border-slate-600/50 hover:border-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+              className={`w-full px-3 py-2 bg-[${colors.neutral.main}]/50 text-white rounded-lg border border-[${colors.neutral.main}]/50 hover:border-[${colors.neutral.main}] focus:outline-none focus:border-[${colors.primary.main}] transition-colors`}
             >
               {videoDevices.length === 0 ? (
                 <option value="">No cameras found</option>
@@ -152,7 +153,7 @@ export default function VideoCallSettings({
             <select
               value={selectedOutput}
               onChange={(e) => handleOutputChange(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-700/50 text-white rounded-lg border border-slate-600/50 hover:border-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+              className={`w-full px-3 py-2 bg-[${colors.neutral.main}]/50 text-white rounded-lg border border-[${colors.neutral.main}]/50 hover:border-[${colors.neutral.main}] focus:outline-none focus:border-[${colors.primary.main}] transition-colors`}
             >
               {audioOutputDevices.length === 0 ? (
                 <option value="">No speakers found</option>
@@ -171,7 +172,7 @@ export default function VideoCallSettings({
         <div className="p-6 border-t border-slate-700/50 flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-3 rounded-xl bg-slate-700/50 text-white font-semibold hover:bg-slate-600/50 transition-all duration-300"
+            className={`flex-1 px-4 py-3 rounded-xl bg-[${colors.neutral.main}]/50 text-white font-semibold hover:bg-[${colors.neutral.light}]/50 transition-all duration-300`}
           >
             Close
           </button>
