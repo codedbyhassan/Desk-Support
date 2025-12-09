@@ -1,14 +1,9 @@
 workflows:
   ios-capacitor-build:
-    name: iOS Capacitor Build
+    name: iOS Capacitor Build (No Signing)
     max_build_duration: 60
     instance_type: mac_mini_m1
     environment:
-      groups:
-        - capacitor
-      vars:
-        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
-        XCODE_SCHEME: "App"
       node: 20
       xcode: latest
       cocoapods: default
@@ -16,32 +11,62 @@ workflows:
       - name: Install npm dependencies
         script: |
           npm install
+      
       - name: Install Capacitor
         script: |
           npm install @capacitor/cli @capacitor/core @capacitor/ios
+      
       - name: Build web app
         script: |
           npm run build
+      
       - name: Add iOS platform
         script: |
           npx cap add ios || echo "iOS platform already exists"
+      
       - name: Sync Capacitor
         script: |
           npx cap sync ios
-      - name: Set up code signing settings on Xcode project
+      
+      - name: Disable code signing in Xcode project
         script: |
-          xcode-project use-profiles
-      - name: Build iOS app
+          cd ios/App
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' App.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = .*;/DEVELOPMENT_TEAM = "";/g' App.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "";/g' App.xcodeproj/project.pbxproj
+      
+      - name: Build unsigned iOS app
         script: |
-          xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME"
+          cd ios/App
+          xcodebuild clean build \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath ./build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            DEVELOPMENT_TEAM=""
+      
+      - name: Create app bundle
+        script: |
+          cd ios/App/build/Build/Products/Debug-iphonesimulator
+          mkdir -p Payload
+          cp -R App.app Payload/
+          zip -r DeskSupport.ipa Payload
+          mv DeskSupport.ipa ../../../../../
+    
     artifacts:
-      - build/ios/ipa/*.ipa
+      - DeskSupport.ipa
+      - ios/App/build/Build/Products/Debug-iphonesimulator/App.app
+    
     publishing:
       email:
         recipients:
           - your-email@example.com
         notify:
           success: true
-          failure: true
+          failure: false
