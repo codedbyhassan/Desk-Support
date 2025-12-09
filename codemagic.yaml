@@ -1,12 +1,15 @@
 workflows:
   ios-capacitor-build:
-    name: iOS Capacitor Build (No Signing)
+    name: iOS Capacitor Build (Signed)
     max_build_duration: 60
     instance_type: mac_mini_m1
     environment:
       node: 20
       xcode: latest
       cocoapods: default
+      ios_signing:
+        distribution_type: development
+        bundle_identifier: com.yourcompany.desksupport  # Change this to your bundle ID
     scripts:
       - name: Install npm dependencies
         script: |
@@ -28,40 +31,29 @@ workflows:
         script: |
           npx cap sync ios
       
-      - name: Disable code signing in Xcode project
+      - name: Update Bundle Identifier
         script: |
           cd ios/App
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' App.xcodeproj/project.pbxproj
-          sed -i '' 's/DEVELOPMENT_TEAM = .*;/DEVELOPMENT_TEAM = "";/g' App.xcodeproj/project.pbxproj
-          sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "";/g' App.xcodeproj/project.pbxproj
+          # Update bundle identifier in project settings
+          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = .*/PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.desksupport;/g' App.xcodeproj/project.pbxproj
       
-      - name: Build unsigned iOS app
+      - name: Build and sign iOS app
         script: |
           cd ios/App
-          xcodebuild clean build \
-            -workspace App.xcworkspace \
+          xcodebuild -workspace App.xcworkspace \
             -scheme App \
-            -configuration Debug \
+            -configuration Release \
             -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -derivedDataPath ./build \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            PROVISIONING_PROFILE_SPECIFIER="" \
-            DEVELOPMENT_TEAM=""
+            -archivePath $CM_BUILD_DIR/App.xcarchive \
+            archive
+          
+          xcodebuild -exportArchive \
+            -archivePath $CM_BUILD_DIR/App.xcarchive \
+            -exportPath $CM_BUILD_DIR \
+            -exportOptionsPlist $CM_EXPORT_OPTIONS
       
-      - name: Create IPA from app bundle
-        script: |
-          cd ios/App/build/Build/Products/Debug-iphoneos
-          mkdir -p Payload
-          cp -R App.app Payload/
-          zip -r DeskSupport.ipa Payload
-          mv DeskSupport.ipa ../../../../../
-    
     artifacts:
-      - DeskSupport.ipa
-      - ios/App/build/Build/Products/Debug-iphoneos/App.app
+      - "*.ipa"
     
     publishing:
       email:
