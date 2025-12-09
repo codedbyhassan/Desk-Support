@@ -42,8 +42,8 @@ workflows:
             -workspace App.xcworkspace \
             -scheme App \
             -configuration Debug \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             -derivedDataPath ./build \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -51,9 +51,9 @@ workflows:
             PROVISIONING_PROFILE_SPECIFIER="" \
             DEVELOPMENT_TEAM=""
       
-      - name: Create app bundle
+      - name: Create IPA from app bundle
         script: |
-          cd ios/App/build/Build/Products/Debug-iphonesimulator
+          cd ios/App/build/Build/Products/Debug-iphoneos
           mkdir -p Payload
           cp -R App.app Payload/
           zip -r DeskSupport.ipa Payload
@@ -61,12 +61,12 @@ workflows:
     
     artifacts:
       - DeskSupport.ipa
-      - ios/App/build/Build/Products/Debug-iphonesimulator/App.app
+      - ios/App/build/Build/Products/Debug-iphoneos/App.app
     
     publishing:
       email:
         recipients:
-          - your-email@example.com
+          - poundsghst@gmail.com
         notify:
           success: true
           failure: false
