@@ -1,0 +1,47 @@
+workflows:
+  ios-capacitor-build:
+    name: iOS Capacitor Build
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      groups:
+        - capacitor
+      vars:
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install npm dependencies
+        script: |
+          npm install
+      - name: Install Capacitor
+        script: |
+          npm install @capacitor/cli @capacitor/core @capacitor/ios
+      - name: Build web app
+        script: |
+          npm run build
+      - name: Add iOS platform
+        script: |
+          npx cap add ios || echo "iOS platform already exists"
+      - name: Sync Capacitor
+        script: |
+          npx cap sync ios
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+      - name: Build iOS app
+        script: |
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com
+        notify:
+          success: true
+          failure: true
