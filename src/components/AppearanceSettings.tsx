@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useTheme } from '@/context/ThemeContext'
 import { useToast } from '@/hooks/use-toast'
+import { ColorSchemeSelector } from '@/components/ColorSchemeSelector'
 import { 
   Palette, 
   Moon, 
@@ -412,6 +413,9 @@ export function AppearanceSettings() {
           </p>
         </div>
       </div>
+
+      {/* Color Scheme Selector */}
+      <ColorSchemeSelector />
 
       {/* Theme Mode Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

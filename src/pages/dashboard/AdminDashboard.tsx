@@ -273,9 +273,9 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
           <AlertTriangle className="h-6 w-6 lg:h-8 lg:w-8 text-red-500" />
         </div>
         <div className="text-center">
-          <h3 className="text-base lg:text-lg font-semibold text-slate-900">Unable to load dashboard</h3>
-          <p className="text-sm lg:text-base text-slate-500 mt-2 max-w-md">{error}</p>
-          <Button onClick={fetchStats} className="mt-4 bg-slate-900 hover:bg-slate-800 h-11 lg:h-10">
+          <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">Unable to load dashboard</h3>
+          <p className="text-sm lg:text-base text-[hsl(var(--muted-foreground))] mt-2 max-w-md">{error}</p>
+          <Button onClick={fetchStats} className="mt-4 bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))] h-11 lg:h-10">
             Try Again
           </Button>
         </div>
@@ -290,9 +290,9 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
           <AlertTriangle className="h-6 w-6 lg:h-8 lg:w-8 text-amber-500" />
         </div>
         <div className="text-center">
-          <h3 className="text-base lg:text-lg font-semibold text-slate-900">Company information missing</h3>
-          <p className="text-sm lg:text-base text-slate-500 mt-2">Your account is not associated with a company.</p>
-          <p className="text-sm lg:text-base text-slate-500">Please contact support.</p>
+          <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">Company information missing</h3>
+          <p className="text-sm lg:text-base text-[hsl(var(--muted-foreground))] mt-2">Your account is not associated with a company.</p>
+          <p className="text-sm lg:text-base text-[hsl(var(--muted-foreground))]">Please contact support.</p>
         </div>
       </div>
     )
@@ -307,23 +307,23 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1 lg:space-y-2">
           <div className="flex items-center gap-2 lg:gap-3 mb-1 lg:mb-2">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold dark:text-white text-slate-900">Dashboard</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[hsl(var(--foreground))]">Dashboard</h1>
             {user?.role === 'admin' && (
-              <Badge className="bg-slate-900 text-white border-0 px-2 lg:px-3 py-1 text-xs lg:text-sm">
+              <Badge className="bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] border-0 px-2 lg:px-3 py-1 text-xs lg:text-sm">
                 <Shield className="h-3 w-3 mr-1" />
                 Admin
               </Badge>
             )}
           </div>
-          <p className="text-xs sm:text-sm lg:text-base dark:text-white/80 text-slate-500">
-            Welcome back, <span className="font-medium dark:text-white text-slate-700">{user?.full_name}</span>
+          <p className="text-xs sm:text-sm lg:text-base text-[hsl(var(--muted-foreground))]">
+            Welcome back, <span className="font-medium text-[hsl(var(--foreground))]">{user?.full_name}</span>
           </p>
         </div>
 
         {company && (
           <div className="text-right">
-            <p className="text-xs sm:text-sm font-medium dark:text-white text-slate-900">{company.name}</p>
-            <p className="text-xs dark:text-white/70 text-slate-500 mt-1">
+            <p className="text-xs sm:text-sm font-medium text-[hsl(var(--foreground))]">{company.name}</p>
+            <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">
               {stats.totalUsers} / {company.max_users} users • {stats.totalAssets} / {company.max_assets} assets
             </p>
           </div>
@@ -348,7 +348,7 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                 )}
               </div>
             </div>
-            <Button variant="outline" size="sm" className="bg-white border-amber-300 text-amber-900 hover:bg-amber-50 flex-shrink-0 h-10 md:h-9 text-xs lg:text-sm">
+            <Button variant="outline" size="sm" className="bg-[hsl(var(--card))] border-[hsl(var(--warning-500))] text-[hsl(var(--warning-900))] hover:bg-[hsl(var(--warning-50))] flex-shrink-0 h-10 md:h-9 text-xs lg:text-sm">
               Upgrade
             </Button>
           </div>
@@ -376,49 +376,49 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
           {/* Key Performance Metrics */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
             {/* Total Users Card */}
-            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 text-white">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+            <Card variant="glass" className="relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[hsla(0,0%,100%,0.1)] rounded-full -mr-12 -mt-12 blur-2xl" />
               <div className="relative p-3 sm:p-4">
                 <div className="space-y-2">
-                  <p className="text-xs sm:text-sm dark:text-white/80 text-slate-300 font-medium">Total Users</p>
-                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.totalUsers}</h3>
-                  <p className="text-xs dark:text-white/60 text-slate-400">Active team members</p>
+                  <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))] font-medium">Total Users</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[hsl(var(--foreground))]">{stats.totalUsers}</h3>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))]">Active team members</p>
                 </div>
               </div>
             </Card>
 
             {/* Total Assets Card */}
-            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600 dark:from-blue-700 dark:via-blue-600 dark:to-blue-700 text-white">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+            <Card variant="glass" className="relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[hsla(0,0%,100%,0.1)] rounded-full -mr-12 -mt-12 blur-2xl" />
               <div className="relative p-3 sm:p-4">
                 <div className="space-y-2">
-                  <p className="text-xs sm:text-sm dark:text-white/80 text-blue-100 font-medium">Total Assets</p>
-                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.totalAssets}</h3>
-                  <p className="text-xs dark:text-white/60 text-blue-100">{stats.assignedAssets} assigned</p>
+                  <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))] font-medium">Total Assets</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[hsl(var(--foreground))]">{stats.totalAssets}</h3>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))]">{stats.assignedAssets} assigned</p>
                 </div>
               </div>
             </Card>
 
             {/* Active Tickets Card */}
-            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-amber-600 via-amber-500 to-amber-600 dark:from-amber-700 dark:via-amber-600 dark:to-amber-700 text-white">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+            <Card variant="glass" className="relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[hsla(0,0%,100%,0.1)] rounded-full -mr-12 -mt-12 blur-2xl" />
               <div className="relative p-3 sm:p-4">
                 <div className="space-y-2">
-                  <p className="text-xs sm:text-sm dark:text-white/80 text-amber-100 font-medium">Active Tickets</p>
-                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.openTickets + stats.inProgressTickets}</h3>
-                  <p className="text-xs dark:text-white/60 text-amber-100">{stats.resolvedTickets} resolved</p>
+                  <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))] font-medium">Active Tickets</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[hsl(var(--foreground))]">{stats.openTickets + stats.inProgressTickets}</h3>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))]">{stats.resolvedTickets} resolved</p>
                 </div>
               </div>
             </Card>
 
             {/* Resolution Rate Card */}
-            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-600 dark:from-emerald-700 dark:via-emerald-600 dark:to-emerald-700 text-white">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+            <Card variant="glass" className="relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[hsla(0,0%,100%,0.1)] rounded-full -mr-12 -mt-12 blur-2xl" />
               <div className="relative p-3 sm:p-4">
                 <div className="space-y-2">
-                  <p className="text-xs sm:text-sm dark:text-white/80 text-emerald-100 font-medium">Resolution Rate</p>
-                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.resolutionRate}%</h3>
-                  <p className="text-xs dark:text-white/60 text-emerald-100">Ticket resolution efficiency</p>
+                  <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))] font-medium">Resolution Rate</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[hsl(var(--foreground))]">{stats.resolutionRate}%</h3>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))]">Ticket resolution efficiency</p>
                 </div>
               </div>
             </Card>
@@ -427,53 +427,53 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
           {/* Quick Actions & Insights */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Quick Actions */}
-            <Card className="border-slate-200 shadow-md hover:shadow-lg transition-shadow">
+            <Card variant="glass" className="hover:shadow-lg transition-all">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[hsl(var(--primary))] to-[hsl(var(--primary-dark))] flex items-center justify-center">
+                    <Sparkles className="h-5 w-5 text-[hsl(var(--primary-foreground))]" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-900">Quick Actions</h3>
-                    <p className="text-xs text-slate-500">Common tasks at your fingertips</p>
+                    <h3 className="text-lg font-semibold text-[hsl(var(--foreground))]">Quick Actions</h3>
+                    <p className="text-xs text-[hsl(var(--muted-foreground))]">Common tasks at your fingertips</p>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <Button 
                     onClick={() => navigate('/app/users')}
-                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-[hsl(var(--muted))] border border-[hsl(var(--border))]"
                     variant="ghost"
                   >
-                    <UserPlus className="h-4 w-4 mr-3 text-slate-600" />
+                    <UserPlus className="h-4 w-4 mr-3 text-[hsl(var(--muted-foreground))]" />
                     <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-xs sm:text-sm">Add New User</div>
-                      <div className="text-xs text-slate-500">Invite team member</div>
+                      <div className="font-medium text-[hsl(var(--foreground))] text-xs sm:text-sm">Add New User</div>
+                      <div className="text-xs text-[hsl(var(--muted-foreground))]">Invite team member</div>
                     </div>
-                    <ArrowUpRight className="h-4 w-4 text-slate-400" />
+                    <ArrowUpRight className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />
                   </Button>
                   <Button 
                     onClick={() => navigate('/app/assets')}
-                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-[hsl(var(--muted))] border border-[hsl(var(--border))]"
                     variant="ghost"
                   >
-                    <Plus className="h-4 w-4 mr-3 text-slate-600" />
+                    <Plus className="h-4 w-4 mr-3 text-[hsl(var(--muted-foreground))]" />
                     <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-sm">Add Asset</div>
-                      <div className="text-xs text-slate-500">Register new equipment</div>
+                      <div className="font-medium text-[hsl(var(--foreground))] text-sm">Add Asset</div>
+                      <div className="text-xs text-[hsl(var(--muted-foreground))]">Register new equipment</div>
                     </div>
-                    <ArrowUpRight className="h-4 w-4 text-slate-400" />
+                    <ArrowUpRight className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />
                   </Button>
                   <Button 
                     onClick={() => navigate('/app/tickets')}
-                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-[hsl(var(--muted))] border border-[hsl(var(--border))]"
                     variant="ghost"
                   >
-                    <Ticket className="h-4 w-4 mr-3 text-slate-600" />
+                    <Ticket className="h-4 w-4 mr-3 text-[hsl(var(--muted-foreground))]" />
                     <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-sm">View Tickets</div>
-                      <div className="text-xs text-slate-500">Manage support requests</div>
+                      <div className="font-medium text-[hsl(var(--foreground))] text-sm">View Tickets</div>
+                      <div className="text-xs text-[hsl(var(--muted-foreground))]">Manage support requests</div>
                     </div>
-                    <ArrowUpRight className="h-4 w-4 text-slate-400" />
+                    <ArrowUpRight className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />
                   </Button>
                   <Button 
                     onClick={async () => {
@@ -502,28 +502,28 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                     }}
                     className={`w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl border ${
                       attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break'
-                        ? 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
-                        : 'hover:bg-slate-50 border-slate-200'
+                        ? 'bg-[hsl(var(--success-50))] border-[hsl(var(--success-500))] hover:bg-[hsl(var(--success-50))]'
+                        : 'hover:bg-[hsl(var(--muted))] border-[hsl(var(--border))]'
                     }`}
                     variant="ghost"
                   >
                     {attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break' ? (
-                      <LogOut className={`h-4 w-4 mr-3 ${attendanceStatus.status === 'clocked_in' ? 'text-emerald-600' : 'text-slate-600'}`} />
+                      <LogOut className={`h-4 w-4 mr-3 ${attendanceStatus.status === 'clocked_in' ? 'text-[hsl(var(--success-500))]' : 'text-[hsl(var(--muted-foreground))]'}`} />
                     ) : (
-                      <LogIn className="h-4 w-4 mr-3 text-slate-600" />
+                      <LogIn className="h-4 w-4 mr-3 text-[hsl(var(--muted-foreground))]" />
                     )}
                     <div className="flex-1 text-left">
                       <div className={`font-medium text-sm ${
                         attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break'
-                          ? 'text-emerald-900'
-                          : 'text-slate-500'
+                          ? 'text-[hsl(var(--success-900))]'
+                          : 'text-[hsl(var(--muted-foreground))]'
                       }`}>
                         {attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break' ? 'Clock Out' : 'Clock In'}
                       </div>
                       <div className={`text-xs ${
                         attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break'
-                          ? 'text-emerald-700'
-                          : 'text-slate-500'
+                          ? 'text-[hsl(var(--success-700))]'
+                          : 'text-[hsl(var(--muted-foreground))]'
                       }`}>
                         {attendanceStatus.status === 'clocked_in' || attendanceStatus.status === 'on_break'
                           ? attendanceStatus.elapsedHours 
@@ -539,7 +539,7 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
             </Card>
 
             {/* Performance Insights */}
-            <Card className="border-slate-200 shadow-md hover:shadow-lg transition-shadow lg:col-span-2">
+            <Card variant="glass" className="hover:shadow-lg transition-all lg:col-span-2">
               <div className="p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between gap-3 mb-4 lg:mb-6">
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -547,8 +547,8 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                       <LineChart className="h-4 sm:h-5 w-4 sm:w-5 text-white" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900 dark:text-white truncate">Performance Insights</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Key metrics at a glance</p>
+                      <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-[hsl(var(--foreground))] truncate">Performance Insights</h3>
+                      <p className="text-xs text-[hsl(var(--muted-foreground))] hidden sm:block">Key metrics at a glance</p>
                     </div>
                   </div>
                   <Button 
@@ -568,12 +568,12 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">Asset Utilization</p>
-                        <p className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white">
+                        <p className="text-lg lg:text-xl font-bold text-[hsl(var(--foreground))]">
                           {stats.totalAssets > 0 ? Math.round((stats.assignedAssets / stats.totalAssets) * 100) : 0}%
                         </p>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 text-right whitespace-nowrap flex-shrink-0">
+                    <p className="text-xs text-[hsl(var(--muted-foreground))] text-right whitespace-nowrap flex-shrink-0">
                       {stats.assignedAssets}/{stats.totalAssets}
                     </p>
                   </div>
@@ -586,10 +586,10 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">Ticket Activity</p>
-                        <p className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white">{stats.totalTickets}</p>
+                        <p className="text-lg lg:text-xl font-bold text-[hsl(var(--foreground))]">{stats.totalTickets}</p>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 text-right whitespace-nowrap flex-shrink-0">
+                    <p className="text-xs text-[hsl(var(--muted-foreground))] text-right whitespace-nowrap flex-shrink-0">
                       {stats.inProgressTickets} in progress
                     </p>
                   </div>
@@ -602,12 +602,12 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">Team Growth</p>
-                        <p className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white">
+                        <p className="text-lg lg:text-xl font-bold text-[hsl(var(--foreground))]">
                           {stats.userGrowthPercentage >= 0 ? '+' : ''}{stats.userGrowthPercentage}%
                         </p>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 text-right whitespace-nowrap flex-shrink-0">
+                    <p className="text-xs text-[hsl(var(--muted-foreground))] text-right whitespace-nowrap flex-shrink-0">
                       vs last 30 days
                     </p>
                   </div>
@@ -620,10 +620,10 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">Efficiency</p>
-                        <p className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white">{stats.resolutionRate}%</p>
+                        <p className="text-lg lg:text-xl font-bold text-[hsl(var(--foreground))]">{stats.resolutionRate}%</p>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 text-right whitespace-nowrap flex-shrink-0">
+                    <p className="text-xs text-[hsl(var(--muted-foreground))] text-right whitespace-nowrap flex-shrink-0">
                       Success rate
                     </p>
                   </div>
@@ -634,7 +634,7 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
 
           {/* Reports & Asset Distribution */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="border-slate-200 shadow-md">
+            <Card variant="glass">
               <div className="p-4 lg:p-6 border-b border-slate-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -642,8 +642,8 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                       <FileText className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-base lg:text-lg font-semibold text-slate-900 dark:text-white">Reports & Export</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Generate comprehensive reports</p>
+                      <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">Reports & Export</h3>
+                      <p className="text-xs text-[hsl(var(--muted-foreground))]">Generate comprehensive reports</p>
                     </div>
                   </div>
                   <Button 
@@ -660,7 +660,7 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
               </div>
             </Card>
 
-            <Card className="border-slate-200 shadow-md">
+            <Card variant="glass">
               <div className="p-4 lg:p-6 border-b border-slate-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -668,8 +668,8 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
                       <Package className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-base lg:text-lg font-semibold text-slate-900 dark:text-white">Asset Distribution</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Overview of asset status</p>
+                      <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">Asset Distribution</h3>
+                      <p className="text-xs text-[hsl(var(--muted-foreground))]">Overview of asset status</p>
                     </div>
                   </div>
                   <Button 
@@ -690,11 +690,11 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
         </TabsContent>
 
         <TabsContent value="users" className="mt-4">
-          <Card className="border-slate-200">
+          <Card variant="glass">
             <div className="p-3 sm:p-4 lg:p-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="space-y-1 min-w-0">
-                <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900 dark:text-white truncate">Users Management</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-[hsl(var(--foreground))] truncate">Users Management</h3>
+                <p className="text-xs text-[hsl(var(--muted-foreground))] truncate">
                   {stats.totalUsers} users in {company?.name}
                 </p>
               </div>
@@ -708,11 +708,11 @@ export default function AdminDashboard({ activeTab: initialTab = 'overview' }: A
         </TabsContent>
 
         <TabsContent value="assets" className="mt-4">
-          <Card className="border-slate-200">
+          <Card variant="glass">
             <div className="p-3 sm:p-4 lg:p-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="space-y-1 min-w-0">
-                <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900 dark:text-white truncate">Assets Inventory</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-[hsl(var(--foreground))] truncate">Assets Inventory</h3>
+                <p className="text-xs text-[hsl(var(--muted-foreground))] truncate">
                   {stats.totalAssets} assets • {stats.availableAssets} available • {stats.assignedAssets} assigned
                 </p>
               </div>

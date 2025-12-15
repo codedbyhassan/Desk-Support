@@ -128,6 +128,9 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
   const markedAsReadRef = useRef<Set<string>>(new Set())
+  const messagesChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const messagesLoadedRef = useRef(MESSAGE_LOAD_COUNT)
 
   // State management
   const [team, setTeam] = useState<Team | null>(null)
@@ -295,7 +298,11 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
       setHasMoreMessages(data && data.length === limit)
       setError(null)
 
-      setTimeout(() => scrollToBottom(false), 100)
+      // Always scroll to bottom when loading messages initially
+      setTimeout(() => {
+        scrollToBottom(false)
+        setUserScrolled(false) // Reset scroll state to allow auto-scroll
+      }, 100)
     } catch (error) {
       console.error('Error fetching messages:', error)
       setError('Failed to load messages')
@@ -428,6 +435,11 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
     }
   }, [user?.company_id, teamId])
 
+  // Update ref when messagesLoaded changes
+  useEffect(() => {
+    messagesLoadedRef.current = messagesLoaded
+  }, [messagesLoaded])
+
   useEffect(() => {
     if (!user?.company_id || !teamId) return
 
@@ -435,6 +447,15 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
     fetchMessages()
     fetchTeamFiles()
 
+    // Cleanup existing channels first
+    if (messagesChannelRef.current) {
+      supabase.removeChannel(messagesChannelRef.current)
+    }
+    if (typingChannelRef.current) {
+      supabase.removeChannel(typingChannelRef.current)
+    }
+
+    // Create messages channel
     const messagesChannel = supabase
       .channel(`team-chat-${teamId}`)
       .on(
@@ -446,11 +467,15 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
           filter: `team_id=eq.${teamId}`
         },
         () => {
-          fetchMessages(messagesLoaded)
+          // Use ref to get latest value without recreating subscription
+          fetchMessages(messagesLoadedRef.current)
         }
       )
       .subscribe()
 
+    messagesChannelRef.current = messagesChannel
+
+    // Create typing channel
     const typingChannel = supabase
       .channel(`typing-${teamId}`)
       .on('presence', { event: 'sync' }, () => {
@@ -469,17 +494,45 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
       })
       .subscribe()
 
-    return () => {
-      supabase.removeChannel(messagesChannel)
-      supabase.removeChannel(typingChannel)
-    }
-  }, [teamId, user?.company_id, user?.id, messagesLoaded, fetchMessages, fetchTeamData, fetchTeamFiles])
+    typingChannelRef.current = typingChannel
 
+    return () => {
+      if (messagesChannelRef.current) {
+        supabase.removeChannel(messagesChannelRef.current)
+        messagesChannelRef.current = null
+      }
+      if (typingChannelRef.current) {
+        supabase.removeChannel(typingChannelRef.current)
+        typingChannelRef.current = null
+      }
+    }
+  }, [teamId, user?.company_id, user?.id, fetchMessages, fetchTeamData, fetchTeamFiles])
+
+  // Auto-scroll to bottom when new messages arrive (if user hasn't scrolled up)
   useEffect(() => {
-    if (messages.length > 0 && !userScrolled) {
-      scrollToBottom(true)
+    if (messages.length > 0) {
+      const container = messagesContainerRef.current
+      if (container && !userScrolled) {
+        // Check if we're near the bottom (within threshold)
+        const { scrollTop, scrollHeight, clientHeight } = container
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < AUTO_SCROLL_THRESHOLD
+        
+        if (isNearBottom) {
+          scrollToBottom(true)
+        }
+      }
     }
   }, [messages.length, userScrolled])
+
+  // Always scroll to bottom when team changes
+  useEffect(() => {
+    if (teamId && messages.length > 0) {
+      setTimeout(() => {
+        scrollToBottom(false)
+        setUserScrolled(false)
+      }, 300)
+    }
+  }, [teamId])
 
   useEffect(() => {
     const container = messagesContainerRef.current
@@ -584,8 +637,13 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
       setNewMessage('')
       setSelectedFile(null)
       setReplyToMessage(null)
-      setUserScrolled(false)
       setIsTyping(false)
+      
+      // Always scroll to bottom after sending message
+      setTimeout(() => {
+        scrollToBottom(true)
+        setUserScrolled(false)
+      }, 100)
 
       toast({
         title: 'Success',
@@ -748,12 +806,14 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
   const handleTyping = useCallback(() => {
     if (!isTyping && newMessage.length > 0) {
       setIsTyping(true)
-      const channel = supabase.channel(`typing-${teamId}`)
-      channel.track({
-        user_id: user?.id,
-        user_name: user?.full_name,
-        timestamp: Date.now()
-      })
+      // Use existing typing channel instead of creating new one
+      if (typingChannelRef.current) {
+        typingChannelRef.current.track({
+          user_id: user?.id,
+          user_name: user?.full_name,
+          timestamp: Date.now()
+        })
+      }
     }
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
@@ -1062,14 +1122,14 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
         .message-enter { animation: slideInUp 0.3s ease-out; }
         .chat-pattern {
           background-image: 
-            radial-gradient(circle at 20% 50%, rgba(226, 232, 240, 0.3) 1px, transparent 1px),
-            radial-gradient(circle at 80% 80%, rgba(226, 232, 240, 0.3) 1px, transparent 1px);
+            radial-gradient(circle at 20% 50%, hsl(var(--border) / 0.3) 1px, transparent 1px),
+            radial-gradient(circle at 80% 80%, hsl(var(--border) / 0.3) 1px, transparent 1px);
           background-size: 50px 50px;
         }
         .dark .chat-pattern {
           background-image: 
-            radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.1) 1px, transparent 1px),
-            radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 1px, transparent 1px);
+            radial-gradient(circle at 20% 50%, hsl(var(--primary) / 0.1) 1px, transparent 1px),
+            radial-gradient(circle at 80% 80%, hsl(var(--primary) / 0.1) 1px, transparent 1px);
         }
       `}</style>
 
@@ -1090,7 +1150,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                 </Button>
               )}
               <Avatar className="h-10 w-10 md:h-11 md:w-11">
-                <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(team.id)} text-white font-semibold`}>
+                <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(team.id)} text-[hsl(var(--primary-foreground))] font-semibold`}>
                   {getInitials(team.name)}
                 </AvatarFallback>
               </Avatar>
@@ -1135,7 +1195,19 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
         </div>
 
         {/* Messages Area */}
-        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-3 md:px-6 py-4 space-y-2">
+        <div 
+          ref={messagesContainerRef} 
+          className="flex-1 overflow-y-auto px-3 md:px-6 py-4 space-y-2"
+          onScroll={() => {
+            // Update scroll state when user manually scrolls
+            const container = messagesContainerRef.current
+            if (container) {
+              const { scrollTop, scrollHeight, clientHeight } = container
+              const isAtBottom = scrollHeight - scrollTop - clientHeight < AUTO_SCROLL_THRESHOLD
+              setUserScrolled(!isAtBottom)
+            }
+          }}
+        >
           {filteredMessages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full p-6">
               <div className="w-16 h-16 bg-card rounded-full flex items-center justify-center mb-4 shadow-sm border border-border">
@@ -1483,12 +1555,12 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                   />
                 </div>
               ) : selectedFile.type.startsWith('audio/') ? (
-                <div className="h-12 w-12 rounded-lg bg-accent flex items-center justify-center shadow-sm flex-shrink-0">
-                  <Mic className="h-6 w-6 text-white" />
+                <div className="h-12 w-12 rounded-lg bg-[hsl(var(--accent))] flex items-center justify-center shadow-sm flex-shrink-0">
+                  <Mic className="h-6 w-6 text-[hsl(var(--accent-foreground))]" />
                 </div>
               ) : (
-                <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center shadow-sm flex-shrink-0">
-                  <File className="h-6 w-6 text-primary-foreground" />
+                <div className="h-12 w-12 rounded-lg bg-[hsl(var(--primary))] flex items-center justify-center shadow-sm flex-shrink-0">
+                  <File className="h-6 w-6 text-[hsl(var(--primary-foreground))]" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
@@ -1634,8 +1706,8 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
               >
                 {isRecording ? (
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                    <span className="text-xs text-white font-medium">{recordingTime}s</span>
+                    <div className="w-2 h-2 bg-[hsl(var(--destructive-foreground))] rounded-full animate-pulse" />
+                    <span className="text-xs text-[hsl(var(--destructive-foreground))] font-medium">{recordingTime}s</span>
                   </div>
                 ) : (
                   <Mic className="h-5 w-5" />
@@ -1663,7 +1735,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
 
             <div className="flex flex-col items-center text-center mb-4">
               <Avatar className="h-20 w-20 mb-3">
-                <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(team.id)} text-white font-bold text-2xl`}>
+                <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(team.id)} text-[hsl(var(--primary-foreground))] font-bold text-2xl`}>
                   {getInitials(team.name)}
                 </AvatarFallback>
               </Avatar>
@@ -1736,8 +1808,8 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                       className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer"
                       onClick={() => window.open(file.file_url || '', '_blank')}
                     >
-                      <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-                        <Play className="h-5 w-5 text-white" />
+                      <div className="h-10 w-10 rounded-lg bg-[hsl(var(--primary))] flex items-center justify-center flex-shrink-0">
+                        <Play className="h-5 w-5 text-[hsl(var(--primary-foreground))]" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{file.file_name}</p>
@@ -1777,8 +1849,8 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                         key={file.id}
                         className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted"
                       >
-                        <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-                          <Mic className="h-5 w-5 text-white" />
+                        <div className="h-10 w-10 rounded-lg bg-[hsl(var(--primary))] flex items-center justify-center flex-shrink-0">
+                          <Mic className="h-5 w-5 text-[hsl(var(--primary-foreground))]" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">{file.file_name}</p>
@@ -1874,7 +1946,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                     <div className="relative">
                       <Avatar className="h-9 w-9">
                         <AvatarImage src={member.user.avatar_url || undefined} />
-                        <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(member.user.id)} text-white text-xs font-semibold`}>
+                        <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(member.user.id)} text-[hsl(var(--primary-foreground))] text-xs font-semibold`}>
                           {getInitials(member.user.full_name)}
                         </AvatarFallback>
                       </Avatar>
@@ -1952,7 +2024,7 @@ export default function TeamChatView({ teamId, userRole, onClose, onStartCall }:
                     >
                       <Avatar className="h-10 w-10">
                         <AvatarImage src={companyUser.avatar_url || undefined} />
-                        <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(companyUser.id)} text-white font-semibold`}>
+                        <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(companyUser.id)} text-[hsl(var(--primary-foreground))] font-semibold`}>
                           {getInitials(companyUser.full_name)}
                         </AvatarFallback>
                       </Avatar>

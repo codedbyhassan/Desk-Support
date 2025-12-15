@@ -15,10 +15,10 @@ interface AssetUtilizationChartProps {
 export function AssetUtilizationChart({ data }: AssetUtilizationChartProps) {
   // Filter out zero values and create chart data
   const chartData = [
-    { name: 'Available', value: data.available, color: '#10b981' },
-    { name: 'Assigned', value: data.assigned, color: '#3b82f6' },
-    { name: 'Maintenance', value: data.maintenance, color: '#f59e0b' },
-    { name: 'Retired', value: data.retired, color: '#ef4444' }
+    { name: 'Available', value: data.available, color: 'hsl(var(--chart-green))' },
+    { name: 'Assigned', value: data.assigned, color: 'hsl(var(--chart-blue))' },
+    { name: 'Maintenance', value: data.maintenance, color: 'hsl(var(--chart-amber))' },
+    { name: 'Retired', value: data.retired, color: 'hsl(var(--chart-red))' }
   ].filter(item => item.value > 0)
 
   // If all values are 0, show a placeholder
@@ -29,7 +29,7 @@ export function AssetUtilizationChart({ data }: AssetUtilizationChartProps) {
           <CardTitle>Asset Utilization</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-80 text-gray-500">
+          <div className="flex items-center justify-center h-80 text-muted-foreground">
             <p>No asset data available</p>
           </div>
         </CardContent>
@@ -52,7 +52,7 @@ export function AssetUtilizationChart({ data }: AssetUtilizationChartProps) {
               labelLine={false}
               label={({ name, value }) => `${name}: ${value}`}
               outerRadius={100}
-              fill="#8884d8"
+              fill="hsl(var(--chart-purple))"
               dataKey="value"
             >
               {chartData.map((entry, index) => (
@@ -66,21 +66,21 @@ export function AssetUtilizationChart({ data }: AssetUtilizationChartProps) {
 
         {/* Summary Stats */}
         <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Available</p>
-            <p className="text-2xl font-bold text-green-700 dark:text-green-300">{data.available}</p>
+          <div className="p-3 rounded-lg bg-[hsl(var(--success-50))] dark:bg-[hsl(var(--success-900))]/20 border border-[hsl(var(--success-500))]/20 dark:border-[hsl(var(--success-500))]/30">
+            <p className="text-sm text-muted-foreground">Available</p>
+            <p className="text-2xl font-bold text-[hsl(var(--success-500))] dark:text-[hsl(var(--success-500))]">{data.available}</p>
           </div>
-          <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Assigned</p>
-            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{data.assigned}</p>
+          <div className="p-3 rounded-lg bg-[hsl(var(--primary-50))] dark:bg-[hsl(var(--primary-900))]/20 border border-[hsl(var(--primary-500))]/20 dark:border-[hsl(var(--primary-500))]/30">
+            <p className="text-sm text-muted-foreground">Assigned</p>
+            <p className="text-2xl font-bold text-[hsl(var(--primary-500))] dark:text-[hsl(var(--primary-500))]">{data.assigned}</p>
           </div>
-          <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Maintenance</p>
-            <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">{data.maintenance}</p>
+          <div className="p-3 rounded-lg bg-[hsl(var(--warning-50))] dark:bg-[hsl(var(--warning-900))]/20 border border-[hsl(var(--warning-500))]/20 dark:border-[hsl(var(--warning-500))]/30">
+            <p className="text-sm text-muted-foreground">Maintenance</p>
+            <p className="text-2xl font-bold text-[hsl(var(--warning-500))] dark:text-[hsl(var(--warning-500))]">{data.maintenance}</p>
           </div>
-          <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Retired</p>
-            <p className="text-2xl font-bold text-red-700 dark:text-red-300">{data.retired}</p>
+          <div className="p-3 rounded-lg bg-[hsl(var(--error-50))] dark:bg-[hsl(var(--error-900))]/20 border border-[hsl(var(--error-500))]/20 dark:border-[hsl(var(--error-500))]/30">
+            <p className="text-sm text-muted-foreground">Retired</p>
+            <p className="text-2xl font-bold text-[hsl(var(--error-500))] dark:text-[hsl(var(--error-500))]">{data.retired}</p>
           </div>
         </div>
       </CardContent>

@@ -42,15 +42,17 @@ export function AnalyticsCards({ metrics }: AnalyticsCardsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card) => (
-        <Card key={card.title} className={card.colorLight}>
+        <Card key={card.title} variant="glass">
           <CardHeader className="pb-2">
-            <CardTitle className={`${typography.sm} font-medium flex items-center justify-between`}>
+            <CardTitle className={`${typography.sm} font-medium flex items-center justify-between text-[hsl(var(--foreground))]`}>
               <span>{card.title}</span>
-              <card.icon className={`${sizing.iconMd} ${card.colorText}`} />
+              <div className="bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.3)] rounded-lg p-2">
+                <card.icon className={`${sizing.iconMd} text-[hsl(var(--foreground))]`} />
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`${typography['3xl']} font-bold ${card.colorText}`}>
+            <div className={`${typography['3xl']} font-bold text-[hsl(var(--foreground))]`}>
               {card.value}
             </div>
           </CardContent>

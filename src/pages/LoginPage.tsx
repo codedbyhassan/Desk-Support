@@ -107,22 +107,22 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
   ]
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
+    <div className="min-h-screen flex bg-[hsl(var(--background))]">
       {/* Left Side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           {/* Logo & Header */}
           <div className="mb-10">
             <div className="flex items-center gap-3 mb-8">
-              <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg shadow-slate-900/20">
-                <BarChart3 className="h-6 w-6 text-white" />
+              <div className="w-12 h-12 bg-[hsl(var(--primary))] rounded-2xl flex items-center justify-center shadow-lg shadow-[hsl(var(--primary))]/20">
+                <BarChart3 className="h-6 w-6 text-[hsl(var(--primary-foreground))]" />
               </div>
-              <span className="text-2xl font-bold text-slate-900">DeskSupport Pro</span>
+              <span className="text-xl lg:text-2xl font-bold text-[hsl(var(--foreground))]">DeskSupport Pro</span>
             </div>
-            <h1 className="text-4xl font-bold text-slate-900 mb-3">
+            <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-[hsl(var(--foreground))] mb-3">
               {isSignUp ? 'Create your account' : 'Welcome back'}
             </h1>
-            <p className="text-slate-600 text-lg">
+            <p className="text-sm lg:text-base text-[hsl(var(--muted-foreground))]">
               {isSignUp ? 'Start managing your IT operations today' : 'Sign in to access your dashboard'}
             </p>
           </div>
@@ -132,11 +132,11 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
             {isSignUp && (
               <>
                 <div className="space-y-2">
-                  <label htmlFor="fullName" className="text-sm font-medium text-slate-700 block">
+                  <label htmlFor="fullName" className="text-xs sm:text-sm font-medium text-[hsl(var(--foreground))] block">
                     Full Name
                   </label>
                   <div className="relative">
-                    <Users className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                    <Users className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[hsl(var(--muted-foreground))]" />
                     <input
                       id="fullName"
                       type="text"
@@ -147,17 +147,17 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
                       autoComplete="name"
                       autoFocus={isSignUp}
                       required={isSignUp}
-                      className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:ring-4 focus:ring-slate-900/10 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full pl-12 pr-4 py-3 sm:py-3.5 bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:border-[hsl(var(--primary))] focus:ring-4 focus:ring-[hsl(var(--primary))]/10 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed text-sm lg:text-base"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="companyName" className="text-sm font-medium text-slate-700 block">
+                  <label htmlFor="companyName" className="text-xs sm:text-sm font-medium text-[hsl(var(--foreground))] block">
                     Company Name
                   </label>
                   <div className="relative">
-                    <Package className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                    <Package className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[hsl(var(--muted-foreground))]" />
                     <input
                       id="companyName"
                       type="text"
@@ -167,7 +167,7 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
                       disabled={loading}
                       autoComplete="organization"
                       required={isSignUp}
-                      className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:ring-4 focus:ring-slate-900/10 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full pl-12 pr-4 py-3 sm:py-3.5 bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:border-[hsl(var(--primary))] focus:ring-4 focus:ring-[hsl(var(--primary))]/10 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed text-sm lg:text-base"
                     />
                   </div>
                 </div>
@@ -175,11 +175,11 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
             )}
 
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-slate-700 block">
+              <label htmlFor="email" className="text-xs sm:text-sm font-medium text-[hsl(var(--foreground))] block">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[hsl(var(--muted-foreground))]" />
                 <input
                   id="email"
                   type="email"
@@ -190,20 +190,20 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
                   autoComplete="email"
                   autoFocus={!isSignUp}
                   required
-                  className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:ring-4 focus:ring-slate-900/10 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full pl-12 pr-4 py-3 sm:py-3.5 bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:border-[hsl(var(--primary))] focus:ring-4 focus:ring-[hsl(var(--primary))]/10 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed text-sm lg:text-base"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-medium text-slate-700 block">
+                <label htmlFor="password" className="text-xs sm:text-sm font-medium text-[hsl(var(--foreground))] block">
                   Password
                 </label>
                 {!isSignUp && (
                   <button 
                     type="button"
-                    className="text-sm text-slate-600 hover:text-slate-900 font-medium transition-colors"
+                    className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] font-medium transition-colors"
                     onClick={() => toast('Password reset feature coming soon!', { icon: 'ℹ️' })}
                   >
                     Forgot password?
@@ -211,7 +211,7 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
                 )}
               </div>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[hsl(var(--muted-foreground))]" />
                 <input
                   id="password"
                   type="password"
@@ -221,7 +221,7 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
                   disabled={loading}
                   autoComplete={isSignUp ? 'new-password' : 'current-password'}
                   required
-                  className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:ring-4 focus:ring-slate-900/10 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full pl-12 pr-4 py-3 sm:py-3.5 bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:border-[hsl(var(--primary))] focus:ring-4 focus:ring-[hsl(var(--primary))]/10 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed text-sm lg:text-base"
                 />
               </div>
             </div>
@@ -229,11 +229,11 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-4 rounded-xl shadow-lg shadow-slate-900/20 hover:shadow-slate-900/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
+              className="w-full bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))] text-[hsl(var(--primary-foreground))] font-semibold py-3 sm:py-4 rounded-xl shadow-lg shadow-[hsl(var(--primary))]/20 hover:shadow-[hsl(var(--primary))]/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group text-sm lg:text-base"
             >
               {loading ? (
                 <>
-                  <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="h-5 w-5 border-2 border-[hsl(var(--primary-foreground))]/30 border-t-[hsl(var(--primary-foreground))] rounded-full animate-spin" />
                   {isSignUp ? 'Creating account...' : 'Signing in...'}
                 </>
               ) : (
@@ -247,13 +247,13 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
 
           {/* Toggle Mode */}
           <div className="text-center mt-6">
-            <p className="text-sm text-slate-600">
+            <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))]">
               {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
               <button 
                 type="button"
                 onClick={toggleMode}
                 disabled={loading}
-                className="text-slate-900 hover:text-slate-700 font-semibold transition-colors disabled:opacity-50"
+                className="text-[hsl(var(--foreground))] hover:text-[hsl(var(--primary))] font-semibold transition-colors disabled:opacity-50"
               >
                 {isSignUp ? 'Sign in' : 'Create account'}
               </button>
@@ -261,7 +261,7 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
           </div>
 
           {/* Security Badge */}
-          <div className="mt-8 flex items-center justify-center gap-2 text-sm text-slate-600">
+          <div className="mt-8 flex items-center justify-center gap-2 text-xs sm:text-sm text-[hsl(var(--muted-foreground))]">
             <Shield className="h-4 w-4" />
             <span>Enterprise-grade security & encryption</span>
           </div>
@@ -269,89 +269,89 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
       </div>
 
       {/* Right Side - Feature Showcase */}
-      <div className="hidden lg:flex w-1/2 bg-slate-900 p-12 items-center justify-center relative overflow-hidden">
+      <div className="hidden lg:flex w-1/2 bg-[hsl(var(--primary))] p-12 items-center justify-center relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(59,130,246,0.1),transparent_50%),radial-gradient(circle_at_70%_50%,rgba(16,185,129,0.1),transparent_50%)]" />
         
         {/* Floating Cards */}
-        <div className="absolute top-20 right-20 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform">
+        <div className="absolute top-20 right-20 glass-card border border-[hsl(var(--primary-foreground))]/10 rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-              <CheckCircle2 className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 bg-[hsl(var(--success-500))] rounded-xl flex items-center justify-center shadow-lg shadow-[hsl(var(--success-500))]/20">
+              <CheckCircle2 className="h-5 w-5 text-[hsl(var(--primary-foreground))]" />
             </div>
             <div>
-              <div className="text-sm font-semibold text-white">Ticket Resolved</div>
-              <div className="text-xs text-slate-400">2 minutes ago</div>
+              <div className="text-sm font-semibold text-[hsl(var(--primary-foreground))]">Ticket Resolved</div>
+              <div className="text-xs text-[hsl(var(--primary-foreground))]/60">2 minutes ago</div>
             </div>
           </div>
         </div>
 
-        <div className="absolute bottom-32 left-20 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform">
+        <div className="absolute bottom-32 left-20 glass-card border border-[hsl(var(--primary-foreground))]/10 rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-transform">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <Package className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 bg-[hsl(var(--primary))] rounded-xl flex items-center justify-center shadow-lg shadow-[hsl(var(--primary))]/20 border-2 border-[hsl(var(--primary-foreground))]/20">
+              <Package className="h-5 w-5 text-[hsl(var(--primary-foreground))]" />
             </div>
             <div>
-              <div className="text-sm font-semibold text-white">Asset Added</div>
-              <div className="text-xs text-slate-400">Just now</div>
+              <div className="text-sm font-semibold text-[hsl(var(--primary-foreground))]">Asset Added</div>
+              <div className="text-xs text-[hsl(var(--primary-foreground))]/60">Just now</div>
             </div>
           </div>
         </div>
         
         <div className="relative z-10 max-w-lg">
-          <h2 className="text-5xl font-bold text-white mb-6 leading-tight">
+          <h2 className="text-3xl lg:text-4xl xl:text-5xl font-bold text-[hsl(var(--primary-foreground))] mb-6 leading-tight">
             Transform your IT operations
           </h2>
-          <p className="text-xl text-slate-300 mb-12 leading-relaxed">
+          <p className="text-base lg:text-lg xl:text-xl text-[hsl(var(--primary-foreground))]/80 mb-12 leading-relaxed">
             Streamline support tickets, manage assets, and empower your team with one powerful platform.
           </p>
 
           {/* Feature List */}
           <div className="space-y-6 mb-12">
             <div className="flex items-start gap-4 group">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-500/20 transition-all">
-                <TrendingUp className="h-6 w-6 text-emerald-400" />
+              <div className="w-12 h-12 rounded-xl bg-[hsl(var(--success-500))]/10 border border-[hsl(var(--success-500))]/20 flex items-center justify-center flex-shrink-0 group-hover:bg-[hsl(var(--success-500))]/20 transition-all">
+                <TrendingUp className="h-6 w-6 text-[hsl(var(--success-500))]" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white mb-1">Real-time Analytics</h3>
-                <p className="text-slate-400">Track performance metrics and make data-driven decisions</p>
+                <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--primary-foreground))] mb-1">Real-time Analytics</h3>
+                <p className="text-sm lg:text-base text-[hsl(var(--primary-foreground))]/70">Track performance metrics and make data-driven decisions</p>
               </div>
             </div>
 
             <div className="flex items-start gap-4 group">
-              <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/20 transition-all">
-                <Users className="h-6 w-6 text-blue-400" />
+              <div className="w-12 h-12 rounded-xl bg-[hsl(var(--primary))]/20 border border-[hsl(var(--primary-foreground))]/20 flex items-center justify-center flex-shrink-0 group-hover:bg-[hsl(var(--primary))]/30 transition-all">
+                <Users className="h-6 w-6 text-[hsl(var(--primary-foreground))]" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white mb-1">Team Collaboration</h3>
-                <p className="text-slate-400">Work together seamlessly across departments</p>
+                <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--primary-foreground))] mb-1">Team Collaboration</h3>
+                <p className="text-sm lg:text-base text-[hsl(var(--primary-foreground))]/70">Work together seamlessly across departments</p>
               </div>
             </div>
 
             <div className="flex items-start gap-4 group">
-              <div className="w-12 h-12 rounded-xl bg-slate-500/10 border border-slate-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-500/20 transition-all">
-                <Shield className="h-6 w-6 text-slate-400" />
+              <div className="w-12 h-12 rounded-xl bg-[hsl(var(--primary-foreground))]/10 border border-[hsl(var(--primary-foreground))]/20 flex items-center justify-center flex-shrink-0 group-hover:bg-[hsl(var(--primary-foreground))]/20 transition-all">
+                <Shield className="h-6 w-6 text-[hsl(var(--primary-foreground))]" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white mb-1">Secure & Compliant</h3>
-                <p className="text-slate-400">Enterprise-grade security with role-based access</p>
+                <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--primary-foreground))] mb-1">Secure & Compliant</h3>
+                <p className="text-sm lg:text-base text-[hsl(var(--primary-foreground))]/70">Enterprise-grade security with role-based access</p>
               </div>
             </div>
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-6 pt-8 border-t border-white/10">
+          <div className="grid grid-cols-3 gap-6 pt-8 border-t border-[hsl(var(--primary-foreground))]/10">
             {stats.map((stat, idx) => {
               const Icon = stat.icon
               return (
                 <div key={idx} className="group cursor-default">
                   <div className="flex items-center gap-2 mb-2">
-                    <Icon className="h-4 w-4 text-slate-400 group-hover:text-white transition-colors" />
+                    <Icon className="h-4 w-4 text-[hsl(var(--primary-foreground))]/60 group-hover:text-[hsl(var(--primary-foreground))] transition-colors" />
                   </div>
-                  <div className="text-3xl font-bold text-white mb-1 group-hover:scale-105 transition-transform origin-left">
+                  <div className="text-2xl lg:text-3xl font-bold text-[hsl(var(--primary-foreground))] mb-1 group-hover:scale-105 transition-transform origin-left">
                     {stat.value}
                   </div>
-                  <div className="text-sm text-slate-400">{stat.label}</div>
+                  <div className="text-xs sm:text-sm text-[hsl(var(--primary-foreground))]/70">{stat.label}</div>
                 </div>
               )
             })}

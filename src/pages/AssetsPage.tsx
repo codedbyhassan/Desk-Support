@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
+import { PageHeader } from '@/components/ui/PageHeader'
 import {
   Dialog,
   DialogContent,
@@ -525,7 +526,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
       badge: 'bg-amber-50 text-amber-700 border-0',
     },
     retired: {
-      badge: 'bg-slate-50 text-slate-600 border-0',
+      badge: 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] border-0',
     },
   }
 
@@ -625,27 +626,27 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
   }, [createDialogOpen])
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 lg:space-y-6">
       {/* Hero section removed to simplify UI and free space for actions */}
 
-      <Card className="rounded-3xl border-slate-200 shadow-sm">
+      <Card variant="glass">
         <div className="p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-500">Inventory</p>
-            <h3 className="text-sm font-medium text-slate-900">Snapshot</h3>
-            <p className="text-xs text-slate-500 mt-1">{totalAssets} assets • {assignedAssets.length} assigned • {availableAssets.length} available</p>
+            <p className="text-xs uppercase tracking-wide text-[hsl(var(--muted-foreground))]">Inventory</p>
+            <h3 className="text-sm font-medium text-[hsl(var(--foreground))]">Snapshot</h3>
+            <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">{totalAssets} assets • {assignedAssets.length} assigned • {availableAssets.length} available</p>
           </div>
-          <Badge variant="secondary" className="bg-slate-100 text-slate-700 border-0">
+          <Badge variant="secondary" className="bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] border-0">
             {totalAssets} tracked
           </Badge>
         </div>
       </Card>
 
-      <Card className="rounded-3xl border-slate-200 shadow-sm">
+      <Card variant="glass">
         <div className="p-4 lg:p-6 space-y-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(var(--muted-foreground))]" />
               <Input
                 placeholder="Search by name, serial, or category..."
                 ref={searchInputRef}
@@ -669,8 +670,8 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
             </Select>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-            <p className="px-3 py-1 rounded-full bg-slate-100 text-slate-700">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[hsl(var(--muted-foreground))]">
+            <p className="px-3 py-1 rounded-full bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]">
               {filteredAssets.length === 0
                 ? 'No assets to display'
                 : `Showing ${showingFrom} – ${showingTo} of ${filteredAssets.length}`}
@@ -679,9 +680,9 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
           </div>
         </div>
         {filteredAssets.length > 0 && (
-          <div className="border-t border-slate-100 px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
+          <div className="border-t border-[hsl(var(--border))] px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
               <div className="flex flex-col gap-3 lg:gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <p className="text-xs sm:text-sm text-slate-500">Page {currentPage} of {totalPages}</p>
+                <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))]">Page {currentPage} of {totalPages}</p>
 
                 <div className="flex items-center gap-2 flex-wrap">
                   <Button
@@ -764,7 +765,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
         <Button
           onClick={openCreateDialog}
           title="Add asset"
-          className="fixed bottom-6 right-6 z-50 h-14 w-14 sm:h-12 sm:w-12 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg hover:shadow-xl flex items-center justify-center transition-all active:scale-95"
+          className="fixed bottom-6 right-6 z-50 h-14 w-14 sm:h-12 sm:w-12 rounded-full bg-emerald-500 hover:bg-emerald-600 text-[hsl(var(--card-foreground))] shadow-lg hover:shadow-xl flex items-center justify-center transition-all active:scale-95"
         >
           <Plus className="h-6 w-6 sm:h-5 sm:w-5" />
         </Button>
@@ -776,21 +777,21 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
       >
         <DialogContent className="max-w-6xl mx-4 my-8 max-h-[90vh] overflow-auto border-0 p-0 rounded-2xl lg:rounded-3xl">
           <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-0">
-            <div className="relative bg-slate-950 text-white p-6 space-y-6">
+            <div className="relative bg-[hsl(var(--background))] text-[hsl(var(--card-foreground))] p-6 space-y-6">
               <div className="space-y-3">
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.3em]">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[hsl(var(--card))]/10 px-3 py-1 text-[11px] uppercase tracking-[0.3em]">
                   <Plus className="h-3.5 w-3.5" />
                   New Asset
                 </div>
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-semibold tracking-tight">Register asset</DialogTitle>
-                  <DialogDescription className="text-sm text-white/70">
+                  <DialogDescription className="text-sm text-[hsl(var(--card-foreground))]/70">
                     Capture every lifecycle detail so the profile page is complete on day one.
                   </DialogDescription>
                 </DialogHeader>
               </div>
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-4 space-y-4">
-                <Label className="flex items-center gap-2 text-xs uppercase tracking-wide text-white/70">
+              <div className="rounded-3xl border border-white/10 bg-[hsl(var(--card))]/5 p-4 space-y-4">
+                <Label className="flex items-center gap-2 text-xs uppercase tracking-wide text-[hsl(var(--card-foreground))]/70">
                   <ImageIcon className="h-4 w-4" />
                   Asset photo
                 </Label>
@@ -805,7 +806,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                       type="button"
                       variant="secondary"
                       size="sm"
-                      className="absolute top-3 right-3 rounded-full bg-white/90 text-slate-900"
+                      className="absolute top-3 right-3 rounded-full bg-[hsl(var(--card))]/90 text-[hsl(var(--foreground))]"
                       onClick={() => {
                         setPhotoFile(null)
                         setPhotoPreview(null)
@@ -815,10 +816,10 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-center py-8 text-white/70">
-                    <Upload className="h-10 w-10 text-white/60 mb-3" />
+                  <div className="flex flex-col items-center justify-center text-center py-8 text-[hsl(var(--card-foreground))]/70">
+                    <Upload className="h-10 w-10 text-[hsl(var(--card-foreground))]/60 mb-3" />
                     <p className="text-sm font-medium">Upload a hero shot</p>
-                    <p className="text-xs text-white/50">PNG, JPG up to 5MB</p>
+                    <p className="text-xs text-[hsl(var(--card-foreground))]/50">PNG, JPG up to 5MB</p>
                   </div>
                 )}
                 <Input
@@ -826,11 +827,11 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                   accept="image/*"
                   onChange={handlePhotoChange}
                   disabled={submitting}
-                  className="text-sm cursor-pointer bg-white/5 text-white placeholder:text-white/50 file:text-slate-900"
+                  className="text-sm cursor-pointer bg-[hsl(var(--card))]/5 text-[hsl(var(--card-foreground))] placeholder:text-[hsl(var(--card-foreground))]/50 file:text-[hsl(var(--foreground))]"
                 />
               </div>
-              <div className="space-y-3 text-sm text-white/70">
-                <p className="font-medium text-white">What gets captured?</p>
+              <div className="space-y-3 text-sm text-[hsl(var(--card-foreground))]/70">
+                <p className="font-medium text-[hsl(var(--card-foreground))]">What gets captured?</p>
                 <ul className="space-y-2">
                   <li className="flex items-center gap-2">
                     <Tag className="h-4 w-4 text-emerald-300" />
@@ -999,7 +1000,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                   <Button type="button" variant="outline" onClick={closeCreateDialog} disabled={submitting}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={submitting} className="bg-slate-900 hover:bg-slate-800">
+                  <Button type="submit" disabled={submitting} className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))]">
                     {submitting ? 'Creating…' : 'Create asset'}
                   </Button>
                 </DialogFooter>
@@ -1009,15 +1010,15 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
         </DialogContent>
       </Dialog>
 
-      <Card className="rounded-3xl border-slate-200 shadow-sm">
+      <Card variant="glass">
         <div className="p-4 lg:p-6 space-y-5">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-wide text-slate-500">Inventory</p>
-              <h2 className="text-lg font-semibold text-slate-900">Asset catalog</h2>
-              <p className="text-xs text-slate-500">High-fidelity cards for every asset</p>
+              <p className="text-xs uppercase tracking-wide text-[hsl(var(--muted-foreground))]">Inventory</p>
+              <h2 className="text-lg font-semibold text-[hsl(var(--foreground))]">Asset catalog</h2>
+              <p className="text-xs text-[hsl(var(--muted-foreground))]">High-fidelity cards for every asset</p>
             </div>
-            <Badge variant="secondary" className="bg-slate-100 text-slate-700 border-0">
+            <Badge variant="secondary" className="bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] border-0">
               {filteredAssets.length} assets
             </Badge>
           </div>
@@ -1025,36 +1026,36 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
           {loading ? (
             <div className="space-y-4">
               {[...Array(3)].map((_, idx) => (
-                <div key={idx} className="h-40 rounded-3xl bg-slate-100 animate-pulse" />
+                <div key={idx} className="h-40 rounded-3xl bg-[hsl(var(--muted))] animate-pulse" />
               ))}
             </div>
           ) : filteredAssets.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-slate-200 p-10 text-center">
-              <p className="text-sm text-slate-500">No assets match the current filters.</p>
+            <div className="rounded-3xl border border-dashed border-[hsl(var(--border))] p-10 text-center">
+              <p className="text-sm text-[hsl(var(--muted-foreground))]">No assets match the current filters.</p>
             </div>
           ) : (
             <div className="space-y-3 sm:space-y-4">
               {paginatedAssets.map((asset) => (
                 <div
                   key={asset.id}
-                  className="rounded-2xl lg:rounded-3xl border border-slate-100 bg-white px-3 sm:px-4 lg:px-6 py-4 sm:py-5 lg:py-6 shadow-sm hover:shadow-lg transition"
+                  className="rounded-2xl lg:rounded-3xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-3 sm:px-4 lg:px-6 py-4 sm:py-5 lg:py-6 shadow-sm hover:shadow-lg transition"
                 >
                   <div className="flex flex-col gap-3 lg:gap-4 lg:flex-row lg:items-center">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                       <img
                         src={asset.photo_url}
                         alt={asset.name}
-                        className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24 rounded-xl lg:rounded-2xl object-cover border border-slate-100 shadow-sm flex-shrink-0"
+                        className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24 rounded-xl lg:rounded-2xl object-cover border border-[hsl(var(--border))] shadow-sm flex-shrink-0"
                       />
                       <div className="space-y-2 w-full min-w-0">
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm sm:text-base font-semibold text-slate-900 truncate">{asset.name}</p>
-                            <p className="text-[10px] sm:text-xs text-slate-500 truncate">{asset.serial_number || '—'}</p>
+                            <p className="text-sm sm:text-base font-semibold text-[hsl(var(--foreground))] truncate">{asset.name}</p>
+                            <p className="text-[10px] sm:text-xs text-[hsl(var(--muted-foreground))] truncate">{asset.serial_number || '—'}</p>
                           </div>
                           <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
                             <Badge
-                              className={`text-[10px] sm:text-xs ${assetStatusAccent[asset.status]?.badge ?? 'bg-slate-100 text-slate-600 border-0'}`}
+                              className={`text-[10px] sm:text-xs ${assetStatusAccent[asset.status]?.badge ?? 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] border-0'}`}
                             >
                               {asset.status}
                             </Badge>
@@ -1064,12 +1065,12 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                           </div>
                         </div>
                         {asset.description && (
-                          <p className="text-xs sm:text-sm text-slate-500 line-clamp-2">{asset.description}</p>
+                          <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))] line-clamp-2">{asset.description}</p>
                         )}
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-slate-500">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-[hsl(var(--muted-foreground))]">
                           {asset.assigned_user?.full_name ? (
                             <span className="flex items-center gap-1">
-                              <Box className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                              <Box className="h-3 w-3 text-[hsl(var(--muted-foreground))] flex-shrink-0" />
                               Assigned to {asset.assigned_user.full_name}
                             </span>
                           ) : (
@@ -1087,7 +1088,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                     <div className="flex flex-col gap-2 sm:flex-row lg:flex-col lg:w-[180px] w-full sm:w-auto">
                       <Button
                         variant="outline"
-                        className="rounded-lg lg:rounded-2xl h-10 sm:h-11 text-xs sm:text-sm text-slate-900 dark:text-white"
+                        className="rounded-lg lg:rounded-2xl h-10 sm:h-11 text-xs sm:text-sm text-[hsl(var(--foreground))] dark:text-[hsl(var(--card-foreground))]"
                         onClick={() => navigate(`/app/assets/${asset.id}`)}
                       >
                         View details
@@ -1095,7 +1096,7 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
                       {user?.role === 'admin' && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="rounded-lg lg:rounded-2xl h-10 sm:h-11 text-xs sm:text-sm border border-slate-200">
+                            <Button variant="ghost" className="rounded-lg lg:rounded-2xl h-10 sm:h-11 text-xs sm:text-sm border border-[hsl(var(--border))]">
                               More
                               <MoreVertical className="h-4 w-4 ml-2 flex-shrink-0" />
                             </Button>
@@ -1128,8 +1129,8 @@ export default function AssetsPage({ newAsset = false }: AssetsPageProps) {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="max-w-[90vw] sm:max-w-[500px] lg:max-w-lg rounded-2xl lg:rounded-3xl mx-4">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg lg:text-xl text-slate-900">Delete Asset</AlertDialogTitle>
-            <AlertDialogDescription className="text-xs sm:text-sm lg:text-base text-slate-600">
+            <AlertDialogTitle className="text-lg lg:text-xl text-[hsl(var(--foreground))]">Delete Asset</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs sm:text-sm lg:text-base text-[hsl(var(--muted-foreground))]">
               Are you sure you want to delete "{assetToDelete?.name}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

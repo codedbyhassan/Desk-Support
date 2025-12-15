@@ -43,11 +43,11 @@ export function StatCard({
   className
 }: StatCardProps) {
   const iconColorClasses = {
-    emerald: 'bg-emerald-500',
-    blue: 'bg-blue-500',
-    amber: 'bg-amber-500',
-    slate: 'bg-slate-900',
-    red: 'bg-red-500'
+    emerald: 'bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.3)]',
+    blue: 'bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.3)]',
+    amber: 'bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.3)]',
+    slate: 'bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.3)]',
+    red: 'bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.3)]'
   }
 
   const changeColorClasses = {
@@ -58,9 +58,7 @@ export function StatCard({
 
   return (
     <div className={cn(
-      'bg-card rounded-lg p-4 md:p-6 lg:p-8',
-      'border border-border',
-      'shadow-sm hover:shadow-md transition-shadow',
+      'glass-card rounded-lg p-4 md:p-6 lg:p-8',
       className
     )}>
       <div className="flex items-center justify-between mb-3 md:mb-4">
@@ -71,7 +69,7 @@ export function StatCard({
             'shadow-lg',
             iconColorClasses[iconColor]
           )}>
-            <Icon className="h-5 w-5 lg:h-6 lg:w-6 text-white" />
+            <Icon className="h-5 w-5 lg:h-6 lg:w-6 text-[hsl(var(--foreground))]" />
           </div>
         )}
       </div>

@@ -74,14 +74,11 @@ export function MobileMenu({
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[280px] p-0">
+      <SheetContent side="left" className="glass-menu w-[280px] p-0">
         <SheetHeader className="p-4 border-b">
           <div className="flex items-center gap-3">
-            <div 
-              className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg dark:bg-[#2B124C]"
-              style={{ backgroundColor: theme === 'dark' ? undefined : primaryColor }}
-            >
-              <BarChart3 className={`h-5 w-5 ${theme === 'dark' ? 'text-[#DFB6B2]' : 'text-white'}`} />
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg bg-[hsla(0,0%,100%,0.15)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.2)]">
+              <BarChart3 className="h-5 w-5 text-foreground" />
             </div>
             <SheetTitle className="text-lg font-bold">Dashboard</SheetTitle>
           </div>
@@ -93,10 +90,7 @@ export function MobileMenu({
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
                 <AvatarImage src={user?.avatar_url || undefined} />
-                <AvatarFallback 
-                  className={theme === 'dark' ? 'text-[#FBE4D8]' : 'text-white'}
-                  style={{ backgroundColor: theme === 'dark' ? '#522B5B' : primaryColor }}
-                >
+                <AvatarFallback className="text-[hsl(var(--foreground))] bg-[hsla(0,0%,100%,0.15)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.2)]">
                   {user?.full_name?.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
@@ -119,27 +113,21 @@ export function MobileMenu({
                 <button
                   key={item.id}
                   onClick={() => handleNavChange(item.href)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200"
-                  style={theme === 'dark' ? {
-                    backgroundColor: isActive ? '#522B5B' : 'transparent',
-                    color: isActive ? '#FBE4D8' : '#DFB6B2'
-                  } : {
-                    backgroundColor: isActive ? lightenColor(primaryColor, 45) : 'transparent',
-                    color: isActive ? primaryColor : undefined
-                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    isActive 
+                      ? 'bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm text-[hsl(var(--foreground))]'
+                      : 'bg-transparent text-[hsl(var(--muted-foreground))] hover:bg-[hsla(0,0%,100%,0.1)] hover:text-[hsl(var(--foreground))]'
+                  }`}
                 >
-                  <Icon className="h-5 w-5 shrink-0" />
+                  <Icon className="h-5 w-5 shrink-0 text-foreground" />
                   <span className="flex-1 text-left">{item.name}</span>
                   {item.badge && (
                     <Badge 
-                      className="text-xs font-bold"
-                      style={theme === 'dark' ? {
-                        backgroundColor: isActive ? '#854F6C' : '#522B5B',
-                        color: '#FBE4D8'
-                      } : {
-                        backgroundColor: isActive ? primaryColor : undefined,
-                        color: isActive ? '#ffffff' : undefined
-                      }}
+                      className={`text-xs font-bold ${
+                        isActive 
+                          ? 'bg-[hsla(0,0%,100%,0.3)] backdrop-blur-sm text-[hsl(var(--foreground))]'
+                          : 'bg-[hsla(0,0%,100%,0.15)] backdrop-blur-sm text-[hsl(var(--muted-foreground))]'
+                      }`}
                     >
                       {item.badge}
                     </Badge>
@@ -155,19 +143,19 @@ export function MobileMenu({
               onClick={toggleTheme}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 theme === 'dark' 
-                  ? 'text-[#DFB6B2] hover:bg-[#2B124C]' 
+                  ? 'text-[hsl(var(--menu-hover-text))] hover:bg-[hsl(var(--avatar-border-dark))]' 
                   : 'text-slate-700 hover:bg-slate-100'
               }`}
             >
               {theme === 'dark' ? (
                 <>
-                  <Sun className="h-5 w-5" />
-                  <span>Light Mode</span>
+                  <Sun className="h-5 w-5 text-foreground" />
+                  <span className="text-foreground">Light Mode</span>
                 </>
               ) : (
                 <>
-                  <Moon className="h-5 w-5" />
-                  <span>Dark Mode</span>
+                  <Moon className="h-5 w-5 text-foreground" />
+                  <span className="text-foreground">Dark Mode</span>
                 </>
               )}
             </button>
@@ -176,12 +164,12 @@ export function MobileMenu({
               onClick={handleSignOut}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 theme === 'dark' 
-                  ? 'text-[#DFB6B2] hover:bg-[#2B124C]' 
+                  ? 'text-[hsl(var(--menu-hover-text))] hover:bg-[hsl(var(--avatar-border-dark))]' 
                   : 'text-red-600 hover:bg-red-50'
               }`}
             >
-              <LogOut className="h-5 w-5" />
-              <span>Sign Out</span>
+              <LogOut className="h-5 w-5 text-foreground" />
+              <span className="text-foreground">Sign Out</span>
             </button>
           </div>
         </div>

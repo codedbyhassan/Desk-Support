@@ -393,10 +393,10 @@ export default function ProfilePage() {
     clocked_out: {
       icon: Clock,
       label: 'Clocked Out',
-      color: 'bg-slate-500',
-      textColor: 'text-slate-600',
-      bgColor: 'bg-slate-50',
-      borderColor: 'border-slate-200',
+      color: 'bg-[hsl(var(--muted))]',
+      textColor: 'text-[hsl(var(--muted-foreground))]',
+      bgColor: 'bg-[hsl(var(--muted))]',
+      borderColor: 'border-[hsl(var(--border))]',
     },
     not_started: {
       icon: AlertCircle,
@@ -411,9 +411,9 @@ export default function ProfilePage() {
   const StatusIcon = status.icon
 
   return (
-    <div className="space-y-4 sm:space-y-6 lg:space-y-8 px-0">
+    <div className="space-y-4 lg:space-y-6">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-2xl lg:rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-xl mx-4 sm:mx-0">
+      <div className="relative overflow-hidden rounded-2xl lg:rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-[hsl(var(--card-foreground))] shadow-xl mx-4 sm:mx-0">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0YzAtMS4xLS45LTItMi0ySDI2Yy0xLjEgMC0yIC45LTIgMnYyNGMwIDEuMS45IDIgMiAyaDhjMS4xIDAgMi0uOSAyLTJWMzR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-10" />
         <div className="relative p-4 sm:p-6 lg:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -421,13 +421,13 @@ export default function ProfilePage() {
               <div className="relative flex-shrink-0">
                 <Avatar className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24 ring-4 ring-white/20 shadow-2xl">
                   <AvatarImage src={user.avatar_url} />
-                  <AvatarFallback className="text-lg sm:text-xl lg:text-3xl bg-gradient-to-br from-blue-400 to-cyan-400 text-white font-bold">
+                  <AvatarFallback className="text-lg sm:text-xl lg:text-3xl bg-gradient-to-br from-blue-400 to-cyan-400 text-[hsl(var(--card-foreground))] font-bold">
                     {user.full_name.substring(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 {!editing && (
                   <div className="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 bg-emerald-500 rounded-full border-3 sm:border-4 border-slate-900 flex items-center justify-center flex-shrink-0">
-                    <div className="w-2 h-2 lg:w-2.5 lg:h-2.5 bg-white rounded-full animate-pulse" />
+                    <div className="w-2 h-2 lg:w-2.5 lg:h-2.5 bg-[hsl(var(--card))] rounded-full animate-pulse" />
                   </div>
                 )}
               </div>
@@ -437,20 +437,20 @@ export default function ProfilePage() {
                   <Badge
                     className={`text-[10px] sm:text-xs lg:text-sm px-2 sm:px-3 py-0.5 sm:py-1 flex-shrink-0 ${
                       user.role === 'admin'
-                        ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-lg'
-                        : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-lg'
+                        ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-[hsl(var(--card-foreground))] border-0 shadow-lg'
+                        : 'bg-gradient-to-r from-blue-500 to-blue-600 text-[hsl(var(--card-foreground))] border-0 shadow-lg'
                     }`}
                   >
                     {user.role === 'admin' ? <Crown className="mr-1 h-3 w-3" /> : <User className="mr-1 h-3 w-3" />}
                     {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                   </Badge>
                 </div>
-                <p className="text-slate-300 text-xs sm:text-sm lg:text-base flex items-center gap-2 truncate">
+                <p className="text-[hsl(var(--muted-foreground))] text-xs sm:text-sm lg:text-base flex items-center gap-2 truncate">
                   <Mail className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                   <span className="truncate">{user.email}</span>
                 </p>
                 {userDepartment && (
-                  <p className="text-slate-400 text-[11px] sm:text-xs lg:text-sm mt-1 flex items-center gap-2 truncate">
+                  <p className="text-[hsl(var(--muted-foreground))] text-[11px] sm:text-xs lg:text-sm mt-1 flex items-center gap-2 truncate">
                     <Building2 className="h-3 w-3 lg:h-4 lg:w-4 flex-shrink-0" />
                     <span className="truncate">{userDepartment.name}</span>
                   </p>
@@ -460,7 +460,7 @@ export default function ProfilePage() {
             {!editing && (
               <Button
                 onClick={() => setEditing(true)}
-                className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-lg rounded-lg lg:rounded-xl h-10 sm:h-11 lg:h-12 text-xs sm:text-sm w-full sm:w-auto flex-shrink-0"
+                className="bg-[hsl(var(--card))]/10 hover:bg-[hsl(var(--card))]/20 text-[hsl(var(--card-foreground))] border border-white/20 backdrop-blur-sm shadow-lg rounded-lg lg:rounded-xl h-10 sm:h-11 lg:h-12 text-xs sm:text-sm w-full sm:w-auto flex-shrink-0"
               >
                 <Edit3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
                 Edit Profile
@@ -486,20 +486,20 @@ export default function ProfilePage() {
         {/* Profile Tab */}
         <TabsContent value="profile" className="space-y-4 sm:space-y-6 px-4 sm:px-0">
           {editing ? (
-            <Card className="border-slate-200 shadow-lg rounded-2xl lg:rounded-3xl">
+            <Card className="border-[hsl(var(--border))] shadow-lg rounded-2xl lg:rounded-3xl">
               <form onSubmit={handleUpdateProfile} className="p-3 sm:p-4 lg:p-8 space-y-6 sm:space-y-8">
                 {/* Avatar Section */}
-                <div className="flex flex-col items-center gap-4 sm:gap-6 pb-6 sm:pb-8 border-b border-slate-200">
+                <div className="flex flex-col items-center gap-4 sm:gap-6 pb-6 sm:pb-8 border-b border-[hsl(var(--border))]">
                   <div className="relative group">
-                    <Avatar className="h-24 w-24 sm:h-32 sm:w-32 lg:h-36 lg:w-36 ring-4 ring-slate-200 shadow-xl">
+                    <Avatar className="h-24 w-24 sm:h-32 sm:w-32 lg:h-36 lg:w-36 ring-4 ring-[hsl(var(--border))] shadow-xl">
                       <AvatarImage src={avatarPreview} />
-                      <AvatarFallback className="text-3xl sm:text-4xl lg:text-5xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white font-bold">
+                      <AvatarFallback className="text-3xl sm:text-4xl lg:text-5xl bg-gradient-to-br from-blue-500 to-cyan-500 text-[hsl(var(--card-foreground))] font-bold">
                         {fullName.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <label
                       htmlFor="avatar-upload"
-                      className="absolute bottom-0 right-0 p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-full cursor-pointer hover:from-blue-600 hover:to-cyan-600 transition-all shadow-xl hover:scale-110 group-hover:scale-110"
+                      className="absolute bottom-0 right-0 p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-cyan-500 text-[hsl(var(--card-foreground))] rounded-full cursor-pointer hover:from-blue-600 hover:to-cyan-600 transition-all shadow-xl hover:scale-110 group-hover:scale-110"
                     >
                       <Upload className="h-4 w-4 sm:h-5 sm:w-5" />
                       <input
@@ -513,26 +513,26 @@ export default function ProfilePage() {
                     </label>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs sm:text-sm font-medium text-slate-600">Upload Profile Photo</p>
-                    <p className="text-[10px] sm:text-xs text-slate-500 mt-1">JPG, PNG or GIF (max 5MB)</p>
+                    <p className="text-xs sm:text-sm font-medium text-[hsl(var(--muted-foreground))]">Upload Profile Photo</p>
+                    <p className="text-[10px] sm:text-xs text-[hsl(var(--muted-foreground))] mt-1">JPG, PNG or GIF (max 5MB)</p>
                   </div>
                 </div>
 
                 {/* Personal Information */}
                 <div className="space-y-6">
-                  <div className="flex items-center gap-3 pb-4 border-b border-slate-200">
+                  <div className="flex items-center gap-3 pb-4 border-b border-[hsl(var(--border))]">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                      <User className="h-5 w-5 text-white" />
+                      <User className="h-5 w-5 text-[hsl(var(--card-foreground))]" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">Personal Information</h3>
-                      <p className="text-sm text-slate-500">Update your personal details</p>
+                      <h3 className="text-lg font-semibold text-[hsl(var(--foreground))]">Personal Information</h3>
+                      <p className="text-sm text-[hsl(var(--muted-foreground))]">Update your personal details</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 lg:gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="fullName" className="text-xs sm:text-sm font-medium text-slate-700">
+                      <Label htmlFor="fullName" className="text-xs sm:text-sm font-medium text-[hsl(var(--muted-foreground))]">
                         Full Name <span className="text-red-500">*</span>
                       </Label>
                       <Input
@@ -550,13 +550,13 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs sm:text-sm font-medium text-slate-700">Email</Label>
-                      <Input value={user.email} disabled className="h-9 lg:h-11 text-xs lg:text-sm bg-slate-50" />
-                      <p className="text-[10px] lg:text-xs text-slate-500 mt-1">Email cannot be changed</p>
+                      <Label className="text-xs sm:text-sm font-medium text-[hsl(var(--muted-foreground))]">Email</Label>
+                      <Input value={user.email} disabled className="h-9 lg:h-11 text-xs lg:text-sm bg-[hsl(var(--muted))]" />
+                      <p className="text-[10px] lg:text-xs text-[hsl(var(--muted-foreground))] mt-1">Email cannot be changed</p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-xs sm:text-sm font-medium text-slate-700">Phone Number</Label>
+                      <Label htmlFor="phone" className="text-xs sm:text-sm font-medium text-[hsl(var(--muted-foreground))]">Phone Number</Label>
                       <Input
                         id="phone"
                         type="tel"
@@ -573,7 +573,7 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs sm:text-sm font-medium text-slate-700">Department</Label>
+                      <Label className="text-xs sm:text-sm font-medium text-[hsl(var(--muted-foreground))]">Department</Label>
                       <Select value={departmentId || "none"} onValueChange={(value) => setDepartmentId(value === "none" ? "" : value)} disabled={loading}>
                         <SelectTrigger className="h-9 lg:h-11 text-xs lg:text-sm">
                           <SelectValue placeholder="Select department" />
@@ -592,20 +592,20 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Password Section */}
-                <div className="space-y-6 pt-6 border-t border-slate-200">
+                <div className="space-y-6 pt-6 border-t border-[hsl(var(--border))]">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                      <Lock className="h-5 w-5 text-white" />
+                      <Lock className="h-5 w-5 text-[hsl(var(--card-foreground))]" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">Change Password</h3>
-                      <p className="text-sm text-slate-500">Optional - Leave blank to keep current password</p>
+                      <h3 className="text-lg font-semibold text-[hsl(var(--foreground))]">Change Password</h3>
+                      <p className="text-sm text-[hsl(var(--muted-foreground))]">Optional - Leave blank to keep current password</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 lg:gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="password" className="text-xs sm:text-sm font-medium text-slate-700">New Password</Label>
+                      <Label htmlFor="password" className="text-xs sm:text-sm font-medium text-[hsl(var(--muted-foreground))]">New Password</Label>
                       <Input
                         id="password"
                         type="password"
@@ -622,7 +622,7 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="confirmPassword" className="text-xs sm:text-sm font-medium text-slate-700">Confirm Password</Label>
+                      <Label htmlFor="confirmPassword" className="text-xs sm:text-sm font-medium text-[hsl(var(--muted-foreground))]">Confirm Password</Label>
                       <Input
                         id="confirmPassword"
                         type="password"
@@ -641,13 +641,13 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-6 border-t border-slate-200">
+                <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-6 border-t border-[hsl(var(--border))]">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={handleCancel}
                     disabled={loading}
-                    className="h-10 sm:h-11 text-xs sm:text-sm border-slate-300 hover:bg-slate-50"
+                    className="h-10 sm:h-11 text-xs sm:text-sm border-slate-300 hover:bg-[hsl(var(--muted))]"
                     size="lg"
                   >
                     <X className="h-4 w-4 mr-1 sm:mr-2" />
@@ -656,7 +656,7 @@ export default function ProfilePage() {
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="h-10 sm:h-11 text-xs sm:text-sm bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white shadow-lg"
+                    className="h-10 sm:h-11 text-xs sm:text-sm bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-[hsl(var(--card-foreground))] shadow-lg"
                     size="lg"
                   >
                     {loading ? (
@@ -677,15 +677,15 @@ export default function ProfilePage() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Main Profile Card */}
-              <Card className="lg:col-span-2 border-slate-200 shadow-lg">
+              <Card className="lg:col-span-2 border-[hsl(var(--border))] shadow-lg">
                 <div className="p-6 lg:p-8 space-y-8">
-                  <div className="flex items-center gap-3 pb-6 border-b border-slate-200">
+                  <div className="flex items-center gap-3 pb-6 border-b border-[hsl(var(--border))]">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                      <UserCircle className="h-5 w-5 text-white" />
+                      <UserCircle className="h-5 w-5 text-[hsl(var(--card-foreground))]" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">Profile Details</h3>
-                      <p className="text-sm text-slate-500">Your account information</p>
+                      <h3 className="text-lg font-semibold text-[hsl(var(--foreground))]">Profile Details</h3>
+                      <p className="text-sm text-[hsl(var(--muted-foreground))]">Your account information</p>
                     </div>
                   </div>
 
@@ -693,41 +693,41 @@ export default function ProfilePage() {
                     <div className="p-3 lg:p-5 rounded-lg lg:rounded-xl bg-gradient-to-br from-blue-50 to-white border border-blue-100 hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-8 lg:w-10 h-8 lg:h-10 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
-                          <Mail className="h-4 lg:h-5 w-4 lg:w-5 text-white" />
+                          <Mail className="h-4 lg:h-5 w-4 lg:w-5 text-[hsl(var(--card-foreground))]" />
                         </div>
-                        <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">Email</p>
+                        <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wide">Email</p>
                       </div>
-                      <p className="text-xs lg:text-sm font-semibold text-slate-900 truncate">{user.email}</p>
+                      <p className="text-xs lg:text-sm font-semibold text-[hsl(var(--foreground))] truncate">{user.email}</p>
                     </div>
 
                     <div className="p-3 lg:p-5 rounded-lg lg:rounded-xl bg-gradient-to-br from-emerald-50 to-white border border-emerald-100 hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-8 lg:w-10 h-8 lg:h-10 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
-                          <Phone className="h-4 lg:h-5 w-4 lg:w-5 text-white" />
+                          <Phone className="h-4 lg:h-5 w-4 lg:w-5 text-[hsl(var(--card-foreground))]" />
                         </div>
-                        <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">Phone</p>
+                        <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wide">Phone</p>
                       </div>
-                      <p className="text-xs lg:text-sm font-semibold text-slate-900">{user.phone || 'Not provided'}</p>
+                      <p className="text-xs lg:text-sm font-semibold text-[hsl(var(--foreground))]">{user.phone || 'Not provided'}</p>
                     </div>
 
                     <div className="p-3 lg:p-5 rounded-lg lg:rounded-xl bg-gradient-to-br from-amber-50 to-white border border-amber-100 hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-8 lg:w-10 h-8 lg:h-10 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0">
-                          <Building2 className="h-4 lg:h-5 w-4 lg:w-5 text-white" />
+                          <Building2 className="h-4 lg:h-5 w-4 lg:w-5 text-[hsl(var(--card-foreground))]" />
                         </div>
-                        <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">Department</p>
+                        <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wide">Department</p>
                       </div>
-                      <p className="text-xs lg:text-sm font-semibold text-slate-900 truncate">{userDepartment?.name || 'Not assigned'}</p>
+                      <p className="text-xs lg:text-sm font-semibold text-[hsl(var(--foreground))] truncate">{userDepartment?.name || 'Not assigned'}</p>
                     </div>
 
                     <div className="p-3 lg:p-5 rounded-lg lg:rounded-xl bg-gradient-to-br from-purple-50 to-white border border-purple-100 hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-8 lg:w-10 h-8 lg:h-10 rounded-lg bg-purple-500 flex items-center justify-center flex-shrink-0">
-                          <Calendar className="h-4 lg:h-5 w-4 lg:w-5 text-white" />
+                          <Calendar className="h-4 lg:h-5 w-4 lg:w-5 text-[hsl(var(--card-foreground))]" />
                         </div>
-                        <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">Member Since</p>
+                        <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wide">Member Since</p>
                       </div>
-                      <p className="text-xs lg:text-sm font-semibold text-slate-900">
+                      <p className="text-xs lg:text-sm font-semibold text-[hsl(var(--foreground))]">
                         {new Date(user.created_at).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -737,12 +737,12 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <div className="pt-6 border-t border-slate-200">
+                  <div className="pt-6 border-t border-[hsl(var(--border))]">
                     <div className="flex items-center gap-3 mb-3">
-                      <Shield className="h-5 w-5 text-slate-400" />
-                      <p className="text-sm font-medium text-slate-600">User ID</p>
+                      <Shield className="h-5 w-5 text-[hsl(var(--muted-foreground))]" />
+                      <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">User ID</p>
                     </div>
-                    <code className="text-xs bg-slate-100 text-slate-700 px-4 py-2 rounded-lg font-mono block w-full overflow-x-auto">
+                    <code className="text-xs bg-slate-100 text-[hsl(var(--muted-foreground))] px-4 py-2 rounded-lg font-mono block w-full overflow-x-auto">
                       {user.id}
                     </code>
                   </div>
@@ -750,26 +750,26 @@ export default function ProfilePage() {
               </Card>
 
               {/* Stats Card */}
-              <Card className="border-slate-200 shadow-lg">
+              <Card className="border-[hsl(var(--border))] shadow-lg">
                 <div className="p-6 lg:p-8">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
-                      <Award className="h-5 w-5 text-white" />
+                      <Award className="h-5 w-5 text-[hsl(var(--card-foreground))]" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">Account Stats</h3>
-                      <p className="text-sm text-slate-500">Quick overview</p>
+                      <h3 className="text-lg font-semibold text-[hsl(var(--foreground))]">Account Stats</h3>
+                      <p className="text-sm text-[hsl(var(--muted-foreground))]">Quick overview</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
-                      <p className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-1">Role</p>
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-[hsl(var(--border))]">
+                      <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wide mb-1">Role</p>
                       <Badge
                         className={`mt-2 ${
                           user.role === 'admin'
-                            ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0'
-                            : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0'
+                            ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-[hsl(var(--card-foreground))] border-0'
+                            : 'bg-gradient-to-r from-blue-500 to-blue-600 text-[hsl(var(--card-foreground))] border-0'
                         }`}
                       >
                         {user.role === 'admin' ? <Crown className="mr-1 h-3 w-3" /> : <User className="mr-1 h-3 w-3" />}
@@ -778,20 +778,20 @@ export default function ProfilePage() {
                     </div>
 
                     {userDepartment && (
-                      <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
-                        <p className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-1">Department</p>
-                        <p className="text-sm font-semibold text-slate-900 mt-2">{userDepartment.name}</p>
+                      <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-[hsl(var(--border))]">
+                        <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wide mb-1">Department</p>
+                        <p className="text-sm font-semibold text-[hsl(var(--foreground))] mt-2">{userDepartment.name}</p>
                         {userDepartment.description && (
-                          <p className="text-xs text-slate-500 mt-1">{userDepartment.description}</p>
+                          <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">{userDepartment.description}</p>
                         )}
                       </div>
                     )}
 
-                    <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
-                      <p className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-1">Account Status</p>
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-[hsl(var(--border))]">
+                      <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wide mb-1">Account Status</p>
                       <div className="flex items-center gap-2 mt-2">
                         <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                        <p className="text-sm font-semibold text-slate-900">Active</p>
+                        <p className="text-sm font-semibold text-[hsl(var(--foreground))]">Active</p>
                       </div>
                     </div>
                   </div>
@@ -806,22 +806,22 @@ export default function ProfilePage() {
           {/* Attendance History Summary */}
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
             {/* Today */}
-            <Card className="border-slate-200 shadow-lg">
+            <Card className="border-[hsl(var(--border))] shadow-lg">
               <div className="p-3 lg:p-6">
                 <div className="flex items-center justify-between mb-3 lg:mb-4">
                   <div className="w-8 lg:w-10 h-8 lg:h-10 rounded-lg lg:rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
-                    <Calendar className="h-4 lg:h-5 w-4 lg:w-5 text-white" />
+                    <Calendar className="h-4 lg:h-5 w-4 lg:w-5 text-[hsl(var(--card-foreground))]" />
                   </div>
                   {attendanceLoadingHistory && (
                     <div className="h-3 w-3 lg:h-4 lg:w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
                   )}
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-0.5">Today</p>
-                  <p className="text-lg lg:text-2xl font-bold text-slate-900 dark:text-white">
+                  <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] dark:text-[hsl(var(--muted-foreground))] uppercase tracking-wide mb-0.5">Today</p>
+                  <p className="text-lg lg:text-2xl font-bold text-[hsl(var(--foreground))] dark:text-[hsl(var(--card-foreground))]">
                     {attendanceHistory.today.present > 0 ? 'Present' : 'Absent'}
                   </p>
-                  <p className="text-xs lg:text-sm text-slate-500 dark:text-slate-300 mt-0.5 lg:mt-1">
+                  <p className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))] dark:text-[hsl(var(--muted-foreground))] mt-0.5 lg:mt-1">
                     {attendanceHistory.today.hours > 0 
                       ? `${attendanceHistory.today.hours.toFixed(1)}h`
                       : 'No hours'}
@@ -831,22 +831,22 @@ export default function ProfilePage() {
             </Card>
 
             {/* This Week */}
-            <Card className="border-slate-200 shadow-lg">
+            <Card className="border-[hsl(var(--border))] shadow-lg">
               <div className="p-3 lg:p-6">
                 <div className="flex items-center justify-between mb-3 lg:mb-4">
                   <div className="w-8 lg:w-10 h-8 lg:h-10 rounded-lg lg:rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center flex-shrink-0">
-                    <Clock className="h-4 lg:h-5 w-4 lg:w-5 text-white" />
+                    <Clock className="h-4 lg:h-5 w-4 lg:w-5 text-[hsl(var(--card-foreground))]" />
                   </div>
                   {attendanceLoadingHistory && (
                     <div className="h-3 w-3 lg:h-4 lg:w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
                   )}
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-0.5">This Week</p>
-                  <p className="text-lg lg:text-2xl font-bold text-slate-900 dark:text-white">
+                  <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] dark:text-[hsl(var(--muted-foreground))] uppercase tracking-wide mb-0.5">This Week</p>
+                  <p className="text-lg lg:text-2xl font-bold text-[hsl(var(--foreground))] dark:text-[hsl(var(--card-foreground))]">
                     {attendanceHistory.week.present}/{attendanceHistory.week.total}
                   </p>
-                  <p className="text-xs lg:text-sm text-slate-500 dark:text-slate-300 mt-0.5 lg:mt-1">
+                  <p className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))] dark:text-[hsl(var(--muted-foreground))] mt-0.5 lg:mt-1">
                     {attendanceHistory.week.hours > 0 
                       ? `${attendanceHistory.week.hours.toFixed(1)}h`
                       : 'No hours'}
@@ -856,22 +856,22 @@ export default function ProfilePage() {
             </Card>
 
             {/* This Month */}
-            <Card className="border-slate-200 shadow-lg">
+            <Card className="border-[hsl(var(--border))] shadow-lg">
               <div className="p-3 lg:p-6">
                 <div className="flex items-center justify-between mb-3 lg:mb-4">
                   <div className="w-8 lg:w-10 h-8 lg:h-10 rounded-lg lg:rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center flex-shrink-0">
-                    <Award className="h-4 lg:h-5 w-4 lg:w-5 text-white" />
+                    <Award className="h-4 lg:h-5 w-4 lg:w-5 text-[hsl(var(--card-foreground))]" />
                   </div>
                   {attendanceLoadingHistory && (
                     <div className="h-3 w-3 lg:h-4 lg:w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
                   )}
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-0.5">This Month</p>
-                  <p className="text-lg lg:text-2xl font-bold text-slate-900 dark:text-white">
+                  <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] dark:text-[hsl(var(--muted-foreground))] uppercase tracking-wide mb-0.5">This Month</p>
+                  <p className="text-lg lg:text-2xl font-bold text-[hsl(var(--foreground))] dark:text-[hsl(var(--card-foreground))]">
                     {attendanceHistory.month.present}/{attendanceHistory.month.total}
                   </p>
-                  <p className="text-xs lg:text-sm text-slate-500 dark:text-slate-300 mt-0.5 lg:mt-1">
+                  <p className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))] dark:text-[hsl(var(--muted-foreground))] mt-0.5 lg:mt-1">
                     {attendanceHistory.month.hours > 0 
                       ? `${attendanceHistory.month.hours.toFixed(1)}h`
                       : 'No hours'}
@@ -881,22 +881,22 @@ export default function ProfilePage() {
             </Card>
 
             {/* This Year */}
-            <Card className="border-slate-200 shadow-lg">
+            <Card className="border-[hsl(var(--border))] shadow-lg">
               <div className="p-3 lg:p-6">
                 <div className="flex items-center justify-between mb-3 lg:mb-4">
                   <div className="w-8 lg:w-10 h-8 lg:h-10 rounded-lg lg:rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="h-4 lg:h-5 w-4 lg:w-5 text-white" />
+                    <Sparkles className="h-4 lg:h-5 w-4 lg:w-5 text-[hsl(var(--card-foreground))]" />
                   </div>
                   {attendanceLoadingHistory && (
                     <div className="h-3 w-3 lg:h-4 lg:w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
                   )}
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-0.5">This Year</p>
-                  <p className="text-lg lg:text-2xl font-bold text-slate-900 dark:text-white">
+                  <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] dark:text-[hsl(var(--muted-foreground))] uppercase tracking-wide mb-0.5">This Year</p>
+                  <p className="text-lg lg:text-2xl font-bold text-[hsl(var(--foreground))] dark:text-[hsl(var(--card-foreground))]">
                     {attendanceHistory.year.present}/{attendanceHistory.year.total}
                   </p>
-                  <p className="text-xs lg:text-sm text-slate-500 dark:text-slate-300 mt-0.5 lg:mt-1">
+                  <p className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))] dark:text-[hsl(var(--muted-foreground))] mt-0.5 lg:mt-1">
                     {attendanceHistory.year.hours > 0 
                       ? `${attendanceHistory.year.hours.toFixed(1)}h`
                       : 'No hours'}
@@ -908,40 +908,40 @@ export default function ProfilePage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Status Card */}
-            <Card className="lg:col-span-2 border-slate-200 shadow-lg">
+            <Card className="lg:col-span-2 border-[hsl(var(--border))] shadow-lg">
               <div className="p-6 lg:p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                    <Clock className="h-5 w-5 text-white" />
+                    <Clock className="h-5 w-5 text-[hsl(var(--card-foreground))]" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Today's Attendance</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-300">Current status and time tracking</p>
+                    <h3 className="text-lg font-semibold text-[hsl(var(--foreground))] dark:text-[hsl(var(--card-foreground))]">Today's Attendance</h3>
+                    <p className="text-sm text-[hsl(var(--muted-foreground))] dark:text-[hsl(var(--muted-foreground))]">Current status and time tracking</p>
                   </div>
                 </div>
 
                 <div className={`relative overflow-hidden rounded-2xl p-8 ${status.bgColor} border-2 ${status.borderColor}`}>
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-[hsl(var(--card))]/10 rounded-full -mr-16 -mt-16 blur-2xl" />
                   <div className="relative text-center space-y-4">
                     <div className="flex justify-center">
                       <div className={`w-16 h-16 lg:w-20 lg:h-20 ${status.color} rounded-2xl flex items-center justify-center shadow-xl`}>
-                        <StatusIcon className="h-8 w-8 lg:h-10 lg:w-10 text-white" />
+                        <StatusIcon className="h-8 w-8 lg:h-10 lg:w-10 text-[hsl(var(--card-foreground))]" />
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white mb-2">{status.label}</h3>
+                      <h3 className="text-2xl lg:text-3xl font-bold text-[hsl(var(--foreground))] dark:text-[hsl(var(--card-foreground))] mb-2">{status.label}</h3>
                       {attendanceStatus.clockInTime && (
                         <div className="space-y-2 mt-4">
-                          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-slate-700/60 backdrop-blur-sm rounded-lg">
-                            <Clock className="h-4 w-4 text-slate-600 dark:text-slate-300" />
-                            <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[hsl(var(--card))]/60 dark:bg-slate-700/60 backdrop-blur-sm rounded-lg">
+                            <Clock className="h-4 w-4 text-[hsl(var(--muted-foreground))] dark:text-[hsl(var(--muted-foreground))]" />
+                            <span className="text-sm font-semibold text-[hsl(var(--foreground))] dark:text-[hsl(var(--card-foreground))]">
                               Clocked in at {attendanceStatus.clockInTime}
                             </span>
                           </div>
                           {attendanceStatus.elapsedHours && (
-                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-slate-700/60 backdrop-blur-sm rounded-lg ml-2">
-                              <Sparkles className="h-4 w-4 text-slate-600 dark:text-slate-300" />
-                              <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[hsl(var(--card))]/60 dark:bg-slate-700/60 backdrop-blur-sm rounded-lg ml-2">
+                              <Sparkles className="h-4 w-4 text-[hsl(var(--muted-foreground))] dark:text-[hsl(var(--muted-foreground))]" />
+                              <span className="text-sm font-semibold text-[hsl(var(--foreground))] dark:text-[hsl(var(--card-foreground))]">
                                 {attendanceStatus.elapsedHours} elapsed
                               </span>
                             </div>
@@ -955,15 +955,15 @@ export default function ProfilePage() {
             </Card>
 
             {/* Quick Actions Card */}
-            <Card className="border-slate-200 shadow-lg">
+            <Card className="border-[hsl(var(--border))] shadow-lg">
               <div className="p-6 lg:p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-                    <QrCode className="h-5 w-5 text-white" />
+                    <QrCode className="h-5 w-5 text-[hsl(var(--card-foreground))]" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-900">Quick Actions</h3>
-                    <p className="text-sm text-slate-500">Check in or out</p>
+                    <h3 className="text-lg font-semibold text-[hsl(var(--foreground))]">Quick Actions</h3>
+                    <p className="text-sm text-[hsl(var(--muted-foreground))]">Check in or out</p>
                   </div>
                 </div>
 
@@ -971,7 +971,7 @@ export default function ProfilePage() {
                   <Button
                     onClick={startScanning}
                     disabled={attendanceLoading}
-                    className="w-full h-14 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-xl hover:shadow-2xl transition-all"
+                    className="w-full h-14 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-[hsl(var(--card-foreground))] shadow-xl hover:shadow-2xl transition-all"
                     size="lg"
                   >
                     <QrCode className="h-5 w-5 mr-2" />
@@ -1011,22 +1011,22 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-200">
-                  <h4 className="font-semibold text-slate-900 text-sm mb-2 flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-slate-600" />
+                <div className="mt-6 p-4 rounded-xl bg-[hsl(var(--muted))] border border-[hsl(var(--border))]">
+                  <h4 className="font-semibold text-[hsl(var(--foreground))] text-sm mb-2 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />
                     Instructions
                   </h4>
-                  <ul className="text-xs text-slate-600 space-y-1.5">
+                  <ul className="text-xs text-[hsl(var(--muted-foreground))] space-y-1.5">
                     <li className="flex items-start gap-2">
-                      <span className="text-slate-400 mt-0.5">•</span>
+                      <span className="text-[hsl(var(--muted-foreground))] mt-0.5">•</span>
                       <span>Click the button to open camera</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-slate-400 mt-0.5">•</span>
+                      <span className="text-[hsl(var(--muted-foreground))] mt-0.5">•</span>
                       <span>Position QR code in the center</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-slate-400 mt-0.5">•</span>
+                      <span className="text-[hsl(var(--muted-foreground))] mt-0.5">•</span>
                       <span>You'll be automatically clocked in/out</span>
                     </li>
                   </ul>

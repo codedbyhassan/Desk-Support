@@ -8,6 +8,7 @@ import { Toaster } from 'react-hot-toast'
 import { NotificationProvider, useNotifications } from './context/NotificationContext'
 import { QRCodeProvider } from './context/QRCodeContext'
 import { ThemeProvider } from './context/ThemeContext'
+import { ColorSchemeProvider } from './context/ColorSchemeContext'
 import { ToastContainer } from '@/components/ToastNotification'
 
 // ✅ Pages
@@ -341,29 +342,31 @@ export default function App() {
     <ErrorBoundary>
       <AuthProvider>
         <ThemeProvider>
-          <NotificationProvider>
-            <QRCodeProvider>
-              <HashRouter>
-                <ToastWrapper />
-                <AppRoutes />
-                <Toaster
-                position="bottom-right"
-                toastOptions={{
-                  duration: 5000,
-                  className: 'rounded-xl shadow-lg p-4 bg-white dark:bg-gray-800',
-                  success: {
-                    className: 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200',
-                    iconTheme: { primary: '#22c55e', secondary: '#fff' },
-                  },
-                  error: {
-                    className: 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200',
-                    iconTheme: { primary: '#ef4444', secondary: '#fff' },
-                  },
-                }}
-              />
-            </HashRouter>
-          </QRCodeProvider>
-        </NotificationProvider>
+          <ColorSchemeProvider>
+            <NotificationProvider>
+              <QRCodeProvider>
+                <HashRouter>
+                  <ToastWrapper />
+                  <AppRoutes />
+                  <Toaster
+                  position="bottom-right"
+                  toastOptions={{
+                    duration: 5000,
+                    className: 'rounded-xl shadow-lg p-4 bg-white dark:bg-gray-800',
+                    success: {
+                      className: 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200',
+                      iconTheme: { primary: '#22c55e', secondary: '#fff' },
+                    },
+                    error: {
+                      className: 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200',
+                      iconTheme: { primary: '#ef4444', secondary: '#fff' },
+                    },
+                  }}
+                />
+              </HashRouter>
+            </QRCodeProvider>
+          </NotificationProvider>
+          </ColorSchemeProvider>
         </ThemeProvider>
       </AuthProvider>
     </ErrorBoundary>

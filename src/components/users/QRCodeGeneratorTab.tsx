@@ -195,8 +195,8 @@ export default function QRCodeGeneratorTab() {
         width: 400,
         margin: 2,
         color: {
-          dark: '#000000',
-          light: '#FFFFFF',
+          dark: 'hsl(var(--qr-code-dark))',
+          light: 'hsl(var(--qr-code-light))',
         },
       })
       return url

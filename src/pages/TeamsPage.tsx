@@ -190,8 +190,8 @@ function FloatingHomeButton({ onNavigate }: { onNavigate: () => void }) {
       <div
         className={`h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 ${
           theme === 'dark'
-            ? 'bg-white hover:bg-gray-100 text-slate-900'
-            : 'bg-blue-600 hover:bg-blue-700 text-white'
+            ? 'bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] text-[hsl(var(--foreground))]'
+            : 'bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))] text-[hsl(var(--primary-foreground))]'
         }`}
         style={{
           cursor: 'grab',
@@ -264,6 +264,7 @@ export default function TeamsPage() {
       setLoading(true)
       setError(null)
 
+      // Fetch all teams in one query
       const { data: teamsData, error: teamsError } = await supabase
         .from('teams')
         .select(`
@@ -283,28 +284,31 @@ export default function TeamsPage() {
 
       if (teamsError) throw teamsError
 
-      const teamsWithMembership = await Promise.all(
-        (teamsData || []).map(async (team: any) => {
-          const { data: memberData, error: memberError } = await supabase
-            .from('team_members')
-            .select('role')
-            .eq('team_id', team.id)
-            .eq('user_id', user.id)
-            .single()
+      // Fetch all user memberships in ONE query (fixes N+1 problem)
+      const teamIds = (teamsData || []).map((t: any) => t.id)
+      const { data: userMemberships, error: membershipsError } = await supabase
+        .from('team_members')
+        .select('team_id, role')
+        .eq('user_id', user.id)
+        .in('team_id', teamIds.length > 0 ? teamIds : ['00000000-0000-0000-0000-000000000000'])
 
-          if (memberError && memberError.code !== 'PGRST116') {
-            console.error('Error checking membership:', memberError)
-          }
+      if (membershipsError && membershipsError.code !== 'PGRST116') {
+        console.error('Error fetching memberships:', membershipsError)
+      }
 
-          return {
-            ...team,
-            is_member: !!memberData,
-            user_role: memberData?.role || null,
-            member_count: team.team_members?.[0]?.count || 0,
-            message_count: team.team_messages?.[0]?.count || 0
-          }
-        })
+      // Create a map for O(1) lookup
+      const membershipMap = new Map(
+        (userMemberships || []).map((m: any) => [m.team_id, m.role])
       )
+
+      // Merge membership data (no additional queries needed)
+      const teamsWithMembership = (teamsData || []).map((team: any) => ({
+        ...team,
+        is_member: membershipMap.has(team.id),
+        user_role: membershipMap.get(team.id) || null,
+        member_count: team.team_members?.[0]?.count || 0,
+        message_count: team.team_messages?.[0]?.count || 0
+      }))
 
       const { data: lastMessages, error: messagesError } = await supabase
         .from('team_messages')
@@ -400,6 +404,13 @@ export default function TeamsPage() {
       return
     }
 
+    // Check for duplicate team names BEFORE creating (fixes validation bug)
+    const nameExists = teams.some(t => t.name.toLowerCase() === formData.name.trim().toLowerCase())
+    if (nameExists) {
+      setError('A team with this name already exists')
+      return
+    }
+
     setSubmitting(true)
     setError(null)
 
@@ -427,13 +438,6 @@ export default function TeamsPage() {
         })
 
       if (memberError) throw memberError
-
-      // Check for duplicate team names
-      const nameExists = teams.some(t => t.name.toLowerCase() === formData.name.toLowerCase())
-      if (nameExists) {
-        setError('A team with this name already exists')
-        return
-      }
 
       setFormData({ name: '', description: '' })
       setCreateDialogOpen(false)
@@ -697,9 +701,9 @@ export default function TeamsPage() {
       {/* Left Sidebar - Teams List */}
       <div className={`${
         showSidebar ? 'translate-x-0' : '-translate-x-full'
-      } md:translate-x-0 transition-transform duration-300 ease-in-out fixed md:static inset-y-0 left-0 z-40 w-full md:w-80 bg-card border-r border-border flex flex-col`}>
+      } md:translate-x-0 transition-transform duration-300 ease-in-out fixed md:static inset-y-0 left-0 z-40 w-full md:w-80 glass-sidebar border-r border-[hsl(var(--border))] flex flex-col`}>
         {/* Header */}
-        <div className="p-4 border-b border-border">
+        <div className="p-3 sm:p-4 border-b border-[hsl(var(--border))]">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               {selectedTeamId && (
@@ -800,17 +804,17 @@ export default function TeamsPage() {
 
           {/* Quick Stats */}
           <div className="grid grid-cols-3 gap-2 mt-4">
-            <div className="bg-muted rounded-lg p-2 text-center">
-              <div className="text-lg font-bold text-foreground">{memberTeams.length}</div>
-              <div className="text-[10px] text-muted-foreground">Teams</div>
+            <div className="glass-card rounded-lg p-2 text-center">
+              <div className="text-lg font-bold text-[hsl(var(--foreground))]">{memberTeams.length}</div>
+              <div className="text-[10px] text-[hsl(var(--muted-foreground))]">Teams</div>
             </div>
-            <div className="bg-muted rounded-lg p-2 text-center">
-              <div className="text-lg font-bold text-foreground">{totalMessages}</div>
-              <div className="text-[10px] text-muted-foreground">Messages</div>
+            <div className="glass-card rounded-lg p-2 text-center">
+              <div className="text-lg font-bold text-[hsl(var(--foreground))]">{totalMessages}</div>
+              <div className="text-[10px] text-[hsl(var(--muted-foreground))]">Messages</div>
             </div>
-            <div className="bg-muted rounded-lg p-2 text-center">
-              <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{activeTeams}</div>
-              <div className="text-[10px] text-muted-foreground">Active</div>
+            <div className="glass-card rounded-lg p-2 text-center">
+              <div className="text-lg font-bold text-[hsl(var(--success-500))]">{activeTeams}</div>
+              <div className="text-[10px] text-[hsl(var(--muted-foreground))]">Active</div>
             </div>
           </div>
         </div>
@@ -845,33 +849,33 @@ export default function TeamsPage() {
                   <div key={team.id} className="group relative">
                     <button
                       onClick={() => handleTeamClick(team.id)}
-                      className={`w-full p-3 rounded-lg transition-colors text-left ${
+                      className={`w-full p-3 rounded-lg transition-all duration-200 text-left relative overflow-hidden ${
                         isSelected 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'hover:bg-muted'
+                          ? 'bg-[hsl(var(--primary))]/20 border-2 border-[hsl(var(--primary))]/40 shadow-lg shadow-[hsl(var(--primary))]/10' 
+                          : 'glass-card hover:scale-[1.02] hover:shadow-md'
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <div className="relative flex-shrink-0">
                           <Avatar className="h-11 w-11">
-                            <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(team.id)} text-white font-semibold text-sm`}>
+                            <AvatarFallback className={`bg-gradient-to-br ${getAvatarColor(team.id)} text-[hsl(var(--card-foreground))] font-semibold text-sm`}>
                               {getInitials(team.name)}
                             </AvatarFallback>
                           </Avatar>
                           {team.member_count && team.member_count > 0 && (
-                            <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-emerald-500 border-2 border-white rounded-full" />
+                            <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-[hsl(var(--success-500))] border-2 border-[hsl(var(--card))] rounded-full" />
                           )}
                         </div>
                         
                         <div className="flex-1 min-w-0 pr-8">
                           <div className="flex items-center justify-between mb-1">
                             <h3 className={`font-semibold text-sm truncate ${
-                              isSelected ? 'text-primary-foreground' : 'text-foreground'
+                              isSelected ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--foreground))]'
                             }`}>
                               {team.name}
                             </h3>
                             <span className={`text-[11px] flex-shrink-0 ml-2 ${
-                              isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                              isSelected ? 'text-[hsl(var(--primary))]/70' : 'text-[hsl(var(--muted-foreground))]'
                             }`}>
                               {team.last_message && getTimeAgo(team.last_message.created_at)}
                             </span>
@@ -879,7 +883,7 @@ export default function TeamsPage() {
                           
                           <div className="flex items-center justify-between gap-2">
                             <p className={`text-xs truncate ${
-                              isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                              isSelected ? 'text-[hsl(var(--primary))]/80' : 'text-[hsl(var(--muted-foreground))]'
                             }`}>
                               {formatLastMessage(team)}
                             </p>
@@ -902,7 +906,7 @@ export default function TeamsPage() {
                             setTeamToEdit(team)
                             setEditDialogOpen(true)
                           }}
-                          className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition-colors"
+                          className="p-2 glass-button hover:bg-[hsl(var(--primary))]/10 rounded-lg text-[hsl(var(--primary))] transition-all duration-200"
                           title="Edit team"
                         >
                           <Edit2 className="h-4 w-4" />

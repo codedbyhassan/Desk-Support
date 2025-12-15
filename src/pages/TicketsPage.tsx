@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { 
   AlertCircle, 
   CheckCircle2, 
@@ -208,34 +209,29 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
   const avgResponseTime = '2.4h'
 
   return (
-    <div className="space-y-3 sm:space-y-4 lg:space-y-6 px-0 sm:px-0">
-      {/* Header with Breadcrumb */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between px-4 sm:px-0">
-        <div className="space-y-1 lg:space-y-2 flex-1 min-w-0">
-          <div className="flex items-center gap-2 text-xs lg:text-sm dark:text-white/60 text-slate-500 overflow-x-auto">
-            <span className="whitespace-nowrap">Support</span>
-            <span className="flex-shrink-0">/</span>
-            <span className="dark:text-white text-slate-900 font-medium whitespace-nowrap">Tickets</span>
+    <div className="space-y-4 lg:space-y-6">
+      {/* Header */}
+      <PageHeader
+        title="Support Tickets"
+        description="Track, manage, and resolve customer support requests"
+        actions={
+          <div className="flex gap-2 flex-shrink-0 w-full sm:w-auto">
+            <Button variant="outline" className="rounded-lg lg:rounded-xl border-[hsl(var(--border))] h-10 sm:h-11 lg:h-10 flex-1 sm:flex-none text-xs sm:text-sm">
+              <Download className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+              <span className="hidden sm:inline">Export</span>
+              <span className="sm:hidden">Export</span>
+            </Button>
+            <Button
+              onClick={toggleForm}
+              className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))] rounded-lg lg:rounded-xl shadow-lg shadow-[hsl(var(--primary))]/20 h-10 sm:h-11 lg:h-10 flex-1 sm:flex-none text-xs sm:text-sm"
+            >
+              <Plus className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+              <span className="hidden sm:inline">New Ticket</span>
+              <span className="sm:hidden">New</span>
+            </Button>
           </div>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold dark:text-white text-slate-900 break-words">Support Tickets</h1>
-          <p className="text-xs sm:text-sm lg:text-base dark:text-white/70 text-slate-500">Track, manage, and resolve customer support requests</p>
-        </div>
-        <div className="flex gap-2 flex-shrink-0 w-full sm:w-auto">
-          <Button variant="outline" className="rounded-lg lg:rounded-xl border-slate-200 h-10 sm:h-11 lg:h-10 flex-1 sm:flex-none text-xs sm:text-sm">
-            <Download className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
-            <span className="hidden sm:inline">Export</span>
-            <span className="sm:hidden">Export</span>
-          </Button>
-          <Button
-            onClick={toggleForm}
-            className="bg-slate-900 hover:bg-slate-800 rounded-lg lg:rounded-xl shadow-lg shadow-slate-900/20 h-10 sm:h-11 lg:h-10 flex-1 sm:flex-none text-xs sm:text-sm"
-          >
-            <Plus className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
-            <span className="hidden sm:inline">New Ticket</span>
-            <span className="sm:hidden">New</span>
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Ticket View Tabs - Incoming vs Outgoing */}
       <Tabs
@@ -293,15 +289,15 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
 
       {/* Create Ticket Form */}
       {showForm && (
-        <Card className="border-slate-200 shadow-xl rounded-2xl lg:rounded-3xl mx-4 sm:mx-0">
-          <div className="p-3 sm:p-4 lg:p-6 border-b border-slate-200 bg-slate-50">
+        <Card variant="glass" className="mx-4 sm:mx-0">
+          <div className="p-3 sm:p-4 lg:p-6 border-b border-[hsl(var(--border))] bg-[hsl(var(--muted))]">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-slate-900 rounded-lg lg:rounded-xl flex items-center justify-center shadow-lg shadow-slate-900/20 flex-shrink-0">
-                <Plus className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-[hsl(var(--primary))] rounded-lg lg:rounded-xl flex items-center justify-center shadow-lg shadow-[hsl(var(--primary))]/20 flex-shrink-0">
+                <Plus className="h-4 w-4 lg:h-5 lg:w-5 text-[hsl(var(--primary-foreground))]" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-base sm:text-lg lg:text-xl font-semibold text-slate-900 truncate">Create New Ticket</h2>
-                <p className="text-xs sm:text-sm text-slate-500 truncate">Submit a new support request</p>
+                <h2 className="text-base sm:text-lg lg:text-xl font-semibold text-[hsl(var(--foreground))] truncate">Create New Ticket</h2>
+                <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))] truncate">Submit a new support request</p>
               </div>
               <Button
                 variant="ghost"
@@ -320,17 +316,17 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
       )}
 
       {/* Tickets Table */}
-      <Card className="border-slate-200 shadow-sm">
-        <div className="p-4 lg:p-6 border-b border-slate-200">
+      <Card variant="glass">
+        <div className="p-4 lg:p-6 border-b border-[hsl(var(--border))]">
           <div className="flex flex-col gap-3 lg:gap-4 mb-3 lg:mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="space-y-1">
-                <h2 className="text-base sm:text-lg font-semibold text-slate-900">
+                <h2 className="text-base sm:text-lg font-semibold text-[hsl(var(--foreground))]">
                   {activeTab === 'incoming'
                     ? 'Incoming Tickets (Assigned to Me)'
                     : 'Outgoing Tickets (My Tickets)'}
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500">
+                <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))]">
                   {displayedTickets.length} {displayedTickets.length === 1 ? 'ticket' : 'tickets'} found
                 </p>
               </div>
@@ -338,17 +334,17 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
             
             <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 flex-shrink-0" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(var(--muted-foreground))] flex-shrink-0" />
                 <Input
                   placeholder="Search tickets..."
-                  className="pl-9 rounded-lg border-slate-200 text-xs sm:text-sm h-10 sm:h-11"
+                  className="pl-9 rounded-lg border-[hsl(var(--border))] text-xs sm:text-sm h-10 sm:h-11"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
               <div className="flex gap-2 flex-shrink-0">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="rounded-lg border-slate-200 text-xs sm:text-sm h-10 sm:h-11 flex-1 sm:flex-none min-w-fit">
+                  <SelectTrigger className="rounded-lg border-[hsl(var(--border))] text-xs sm:text-sm h-10 sm:h-11 flex-1 sm:flex-none min-w-fit">
                     <Filter className="h-4 w-4 mr-1 flex-shrink-0" />
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
@@ -361,7 +357,7 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
                   </SelectContent>
                 </Select>
                 <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                  <SelectTrigger className="rounded-lg border-slate-200 text-xs sm:text-sm h-10 sm:h-11 flex-1 sm:flex-none min-w-fit">
+                  <SelectTrigger className="rounded-lg border-[hsl(var(--border))] text-xs sm:text-sm h-10 sm:h-11 flex-1 sm:flex-none min-w-fit">
                     <Filter className="h-4 w-4 mr-1 flex-shrink-0" />
                     <SelectValue placeholder="Priority" />
                   </SelectTrigger>
@@ -379,13 +375,13 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
           {/* Filter Pills */}
           {(statusFilter !== 'all' || priorityFilter !== 'all' || searchQuery) && (
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-slate-500">Active filters:</span>
+              <span className="text-xs text-[hsl(var(--muted-foreground))]">Active filters:</span>
               {searchQuery && (
                 <Badge variant="secondary" className="rounded-full text-xs">
                   Search: {searchQuery}
                   <button 
                     onClick={() => setSearchQuery('')}
-                    className="ml-1 hover:text-slate-900"
+                    className="ml-1 hover:text-[hsl(var(--foreground))]"
                   >
                     ×
                   </button>
@@ -396,7 +392,7 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
                   Status: {statusFilter}
                   <button 
                     onClick={() => setStatusFilter('all')}
-                    className="ml-1 hover:text-slate-900"
+                    className="ml-1 hover:text-[hsl(var(--foreground))]"
                   >
                     ×
                   </button>
@@ -407,7 +403,7 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
                   Priority: {priorityFilter}
                   <button 
                     onClick={() => setPriorityFilter('all')}
-                    className="ml-1 hover:text-slate-900"
+                    className="ml-1 hover:text-[hsl(var(--foreground))]"
                   >
                     ×
                   </button>
@@ -419,7 +415,7 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
                   setStatusFilter('all')
                   setPriorityFilter('all')
                 }}
-                className="text-xs text-slate-600 hover:text-slate-900 font-medium"
+                className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] font-medium"
               >
                 Clear all
               </button>
@@ -452,8 +448,8 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="max-w-[90vw] sm:max-w-[500px] lg:max-w-lg rounded-2xl lg:rounded-3xl mx-4">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg lg:text-xl text-slate-900">Delete Ticket</AlertDialogTitle>
-            <AlertDialogDescription className="text-xs sm:text-sm lg:text-base text-slate-600">
+            <AlertDialogTitle className="text-lg lg:text-xl text-[hsl(var(--foreground))]">Delete Ticket</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs sm:text-sm lg:text-base text-[hsl(var(--muted-foreground))]">
               Are you sure you want to delete this ticket? This action cannot be undone.
               All comments and history associated with this ticket will also be deleted.
             </AlertDialogDescription>

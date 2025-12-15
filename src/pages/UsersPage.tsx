@@ -17,6 +17,7 @@ import { useDashboardTab } from '@/context/DashboardTabContext'
 import ManagementTab from '@/components/users/ManagementTab'
 import UserAttendanceTab from '@/components/users/UserAttendanceTab'
 import QRCodeGeneratorTab from '@/components/users/QRCodeGeneratorTab'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 export default function UsersPage() {
   const { activeTab, setActiveTab } = useDashboardTab()
@@ -49,15 +50,17 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-3 sm:space-y-4 lg:space-y-6 px-0">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="space-y-1 lg:space-y-2 px-4 sm:px-0">
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground break-words">User Management</h1>
-        <p className="text-muted-foreground flex items-center gap-1 text-xs sm:text-sm lg:text-base">
-          <Users className="h-4 w-4 flex-shrink-0" />
-          <span className="truncate">Manage team members, attendance, and access</span>
-        </p>
-      </div>
+      <PageHeader
+        title="User Management"
+        description={
+          <span className="flex items-center gap-1">
+            <Users className="h-4 w-4 flex-shrink-0" />
+            <span>Manage team members, attendance, and access</span>
+          </span>
+        }
+      />
 
       {/* Mobile Tab Selector */}
       <div className="sm:hidden px-4">
@@ -113,7 +116,7 @@ export default function UsersPage() {
       <Tabs 
         value={normalizedTab} 
         onValueChange={setActiveTab} 
-        className="space-y-3 sm:space-y-4 lg:space-y-6 px-0"
+        className="space-y-4 lg:space-y-6"
       >
         <TabsList className="hidden sm:flex">
           <TabsTrigger 

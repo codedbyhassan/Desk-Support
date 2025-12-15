@@ -1,73 +1,86 @@
 /**
- * Centralized Design System Theme with Semantic Color Tokens
+ * ============================================================================
+ * CENTRALIZED THEME SYSTEM
+ * ============================================================================
  * 
- * This file contains all styling configurations for the application using semantic tokens.
- * Each theme (light/dark) maps semantic tokens to actual colors.
- * Components import semantic tokens instead of hardcoded colors.
+ * This file provides theme utilities and references to CSS variables defined
+ * in src/index.css. All colors, spacing, and styling should use CSS variables
+ * from index.css or import from src/lib/design-system.ts
  * 
- * To change the app's look and feel, modify theme definitions below.
+ * IMPORTANT: Do NOT hardcode colors here. Use CSS variables instead.
+ * 
+ * For design tokens, see: src/lib/design-system.ts
+ * For CSS variables, see: src/index.css
  */
 
 // ============================================================================
-// SEMANTIC COLOR TOKENS (Theme-agnostic)
+// SEMANTIC COLOR TOKENS (References CSS Variables)
 // ============================================================================
 
 export const semanticTokens = {
-  // Surface colors
+  // Surface colors - Use CSS variables from index.css
   surface: {
-    primary: 'var(--color-surface-primary)',
-    secondary: 'var(--color-surface-secondary)',
-    tertiary: 'var(--color-surface-tertiary)',
-    interactive: 'var(--color-surface-interactive)',
-    interactive_hover: 'var(--color-surface-interactive-hover)',
+    primary: 'hsl(var(--background))',
+    secondary: 'hsl(var(--muted))',
+    tertiary: 'hsl(var(--card))',
+    interactive: 'hsl(var(--accent))',
+    interactive_hover: 'hsl(var(--accent-hover))',
   },
 
-  // Text colors
+  // Text colors - Use CSS variables from index.css
   text: {
-    primary: 'var(--color-text-primary)',
-    secondary: 'var(--color-text-secondary)',
-    tertiary: 'var(--color-text-tertiary)',
-    inverse: 'var(--color-text-inverse)',
-    disabled: 'var(--color-text-disabled)',
+    primary: 'hsl(var(--foreground))',
+    secondary: 'hsl(var(--muted-foreground))',
+    tertiary: 'hsl(var(--muted-foreground))',
+    inverse: 'hsl(var(--primary-foreground))',
+    disabled: 'hsl(var(--muted-foreground))',
   },
 
-  // Brand colors
+  // Brand colors - Use CSS variables from index.css
   brand: {
-    primary: 'var(--color-brand-primary)',
-    primary_hover: 'var(--color-brand-primary-hover)',
-    primary_active: 'var(--color-brand-primary-active)',
+    primary: 'hsl(var(--primary))',
+    primary_hover: 'hsl(var(--primary-hover))',
+    primary_active: 'hsl(var(--primary-dark))',
   },
 
-  // Semantic status colors
+  // Semantic status colors - Use CSS variables from index.css
   status: {
-    success: 'var(--color-status-success)',
-    success_light: 'var(--color-status-success-light)',
-    warning: 'var(--color-status-warning)',
-    warning_light: 'var(--color-status-warning-light)',
-    error: 'var(--color-status-error)',
-    error_light: 'var(--color-status-error-light)',
-    info: 'var(--color-status-info)',
-    info_light: 'var(--color-status-info-light)',
+    success: 'hsl(var(--success))',
+    success_light: 'hsl(var(--success-50))',
+    warning: 'hsl(var(--warning))',
+    warning_light: 'hsl(var(--warning-50))',
+    error: 'hsl(var(--destructive))',
+    error_light: 'hsl(var(--error-50))',
+    info: 'hsl(var(--info))',
+    info_light: 'hsl(var(--info-50))',
   },
 
-  // Border colors
+  // Border colors - Use CSS variables from index.css
   border: {
-    default: 'var(--color-border-default)',
-    light: 'var(--color-border-light)',
-    strong: 'var(--color-border-strong)',
+    default: 'hsl(var(--border))',
+    light: 'hsl(var(--border))',
+    strong: 'hsl(var(--border))',
   },
 
-  // Specialized colors
-  focus: 'var(--color-focus)',
-  shadow: 'var(--color-shadow)',
+  // Specialized colors - Use CSS variables from index.css
+  focus: 'hsl(var(--ring))',
+  shadow: 'var(--shadow)',
   overlay: 'var(--color-overlay)',
 };
 
 // ============================================================================
-// LIGHT THEME DEFINITIONS
+// THEME DEFINITIONS (Legacy - Now using CSS variables from index.css)
+// ============================================================================
+// 
+// NOTE: These theme definitions are kept for backward compatibility.
+// All new code should use CSS variables directly from index.css.
+// 
+// To change colors, update CSS variables in src/index.css, not here.
 // ============================================================================
 
 export const lightTheme = {
+  // These are now defined in index.css as CSS variables
+  // Kept here for reference only - use CSS variables instead
   '--color-surface-primary': 'rgb(255, 255, 255)',
   '--color-surface-secondary': 'rgb(248, 250, 252)',
   '--color-surface-tertiary': 'rgb(241, 245, 249)',
@@ -404,7 +417,7 @@ export const typography = {
 export const components = {
   // Card styles - Premium dark mode support
   card: {
-    base: 'rounded-lg border bg-white shadow-sm dark:bg-[#151a2a] dark:border-slate-700/50 dark:shadow-xl dark:shadow-black/40',
+    base: 'rounded-lg border bg-white shadow-sm dark:bg-[hsl(var(--card))] dark:border-[hsl(var(--border))] dark:shadow-xl dark:shadow-black/40',
     dark: 'dark:bg-slate-900/80 dark:border-slate-800/50 dark:backdrop-blur-sm',
     hover: 'hover:shadow-md dark:hover:shadow-2xl dark:hover:shadow-black/50 transition-all duration-200',
     glass: 'backdrop-blur-sm bg-white/50 dark:bg-slate-800/40 border-white/20 dark:border-slate-700/30 dark:backdrop-blur-lg',

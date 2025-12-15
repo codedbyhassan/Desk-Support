@@ -233,7 +233,7 @@ export default function EmployeeDashboard() {
       case 'closed':
         return 'bg-emerald-100 text-emerald-800 border-emerald-200'
       default:
-        return 'bg-slate-100 text-slate-800 border-slate-200'
+        return 'bg-[hsl(var(--muted))] text-slate-800 border-[hsl(var(--border))]'
     }
   }
 
@@ -246,7 +246,7 @@ export default function EmployeeDashboard() {
       case 'low':
         return 'bg-emerald-100 text-emerald-800 border-emerald-200'
       default:
-        return 'bg-slate-100 text-slate-800 border-slate-200'
+        return 'bg-[hsl(var(--muted))] text-slate-800 border-[hsl(var(--border))]'
     }
   }
 
@@ -260,7 +260,7 @@ export default function EmployeeDashboard() {
       case 'retired':
         return 'bg-red-100 text-red-800 border-red-200'
       default:
-        return 'bg-slate-100 text-slate-800 border-slate-200'
+        return 'bg-[hsl(var(--muted))] text-slate-800 border-[hsl(var(--border))]'
     }
   }
 
@@ -275,9 +275,9 @@ export default function EmployeeDashboard() {
           <AlertTriangle className="h-6 w-6 lg:h-8 lg:w-8 text-red-500" />
         </div>
         <div className="text-center">
-          <h3 className="text-base lg:text-lg font-semibold text-slate-900">Unable to load dashboard</h3>
-          <p className="text-sm lg:text-base text-slate-500 mt-2 max-w-md">{error}</p>
-          <Button onClick={fetchData} className="mt-4 bg-slate-900 hover:bg-slate-800 h-11 lg:h-10">
+          <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">Unable to load dashboard</h3>
+          <p className="text-sm lg:text-base text-[hsl(var(--muted-foreground))] mt-2 max-w-md">{error}</p>
+          <Button onClick={fetchData} className="mt-4 bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))] h-11 lg:h-10">
             Try Again
           </Button>
         </div>
@@ -292,9 +292,9 @@ export default function EmployeeDashboard() {
           <AlertTriangle className="h-6 w-6 lg:h-8 lg:w-8 text-amber-500" />
         </div>
         <div className="text-center">
-          <h3 className="text-base lg:text-lg font-semibold text-slate-900">Company information missing</h3>
-          <p className="text-sm lg:text-base text-slate-500 mt-2">Your account is not associated with a company.</p>
-          <p className="text-sm lg:text-base text-slate-500">Please contact support.</p>
+          <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">Company information missing</h3>
+          <p className="text-sm lg:text-base text-[hsl(var(--muted-foreground))] mt-2">Your account is not associated with a company.</p>
+          <p className="text-sm lg:text-base text-[hsl(var(--muted-foreground))]">Please contact support.</p>
         </div>
       </div>
     )
@@ -306,20 +306,20 @@ export default function EmployeeDashboard() {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1 lg:space-y-2">
           <div className="flex items-center gap-2 lg:gap-3 mb-1 lg:mb-2">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold dark:text-white text-slate-900">My Dashboard</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold dark:text-[hsl(var(--card-foreground))] text-[hsl(var(--foreground))]">My Dashboard</h1>
             <Badge className="bg-blue-100 text-blue-800 border-0 px-2 lg:px-3 py-1 text-xs lg:text-sm">
               Employee
             </Badge>
           </div>
-          <p className="text-xs sm:text-sm lg:text-base dark:text-white/80 text-slate-500">
-            Welcome back, <span className="font-medium dark:text-white text-slate-700">{user?.full_name}</span>
+          <p className="text-xs sm:text-sm lg:text-base dark:text-[hsl(var(--card-foreground))]/80 text-[hsl(var(--muted-foreground))]">
+            Welcome back, <span className="font-medium dark:text-[hsl(var(--card-foreground))] text-[hsl(var(--muted-foreground))]">{user?.full_name}</span>
           </p>
         </div>
 
         {company && (
           <div className="text-right">
-            <p className="text-xs sm:text-sm font-medium dark:text-white text-slate-900">{company.name}</p>
-            <p className="text-xs dark:text-white/70 text-slate-500 mt-1">
+            <p className="text-xs sm:text-sm font-medium dark:text-[hsl(var(--card-foreground))] text-[hsl(var(--foreground))]">{company.name}</p>
+            <p className="text-xs dark:text-[hsl(var(--card-foreground))]/70 text-[hsl(var(--muted-foreground))] mt-1">
               {stats.totalAssets} assets • {stats.totalTickets} tickets
             </p>
           </div>
@@ -348,46 +348,46 @@ export default function EmployeeDashboard() {
         <TabsContent value="overview" className="space-y-6 lg:space-y-8">
           {/* Key Metrics */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 text-white">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+            <Card variant="glass" className="relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[hsla(0,0%,100%,0.1)] rounded-full -mr-12 -mt-12 blur-2xl" />
               <div className="relative p-3 sm:p-4">
                 <div className="space-y-2">
-                  <p className="text-xs sm:text-sm dark:text-white/80 text-slate-300 font-medium">My Tickets</p>
-                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.totalTickets}</h3>
-                  <p className="text-xs dark:text-white/60 text-slate-400">All requests submitted</p>
+                  <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))] font-medium">My Tickets</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[hsl(var(--foreground))]">{stats.totalTickets}</h3>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))]">All requests submitted</p>
                 </div>
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600 dark:from-blue-700 dark:via-blue-600 dark:to-blue-700 text-white">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+            <Card variant="glass" className="relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[hsla(0,0%,100%,0.1)] rounded-full -mr-12 -mt-12 blur-2xl" />
               <div className="relative p-3 sm:p-4">
                 <div className="space-y-2">
-                  <p className="text-xs sm:text-sm dark:text-white/80 text-blue-100 font-medium">My Assets</p>
-                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.totalAssets}</h3>
-                  <p className="text-xs dark:text-white/60 text-blue-100">Assigned to me</p>
+                  <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))] font-medium">My Assets</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[hsl(var(--foreground))]">{stats.totalAssets}</h3>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))]">Assigned to me</p>
                 </div>
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-amber-600 via-amber-500 to-amber-600 dark:from-amber-700 dark:via-amber-600 dark:to-amber-700 text-white">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+            <Card variant="glass" className="relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[hsla(0,0%,100%,0.1)] rounded-full -mr-12 -mt-12 blur-2xl" />
               <div className="relative p-3 sm:p-4">
                 <div className="space-y-2">
-                  <p className="text-xs sm:text-sm dark:text-white/80 text-amber-100 font-medium">Active Tickets</p>
-                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.openTickets + stats.inProgressTickets}</h3>
-                  <p className="text-xs dark:text-white/60 text-amber-100">{stats.resolvedTickets} resolved</p>
+                  <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))] font-medium">Active Tickets</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[hsl(var(--foreground))]">{stats.openTickets + stats.inProgressTickets}</h3>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))]">{stats.resolvedTickets} resolved</p>
                 </div>
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-600 dark:from-emerald-700 dark:via-emerald-600 dark:to-emerald-700 text-white">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+            <Card variant="glass" className="relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[hsla(0,0%,100%,0.1)] rounded-full -mr-12 -mt-12 blur-2xl" />
               <div className="relative p-3 sm:p-4">
                 <div className="space-y-2">
-                  <p className="text-xs sm:text-sm dark:text-white/80 text-emerald-100 font-medium">Resolution Rate</p>
-                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.resolutionRate}%</h3>
-                  <p className="text-xs dark:text-white/60 text-emerald-100">Ticket resolution efficiency</p>
+                  <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))] font-medium">Resolution Rate</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[hsl(var(--foreground))]">{stats.resolutionRate}%</h3>
+                  <p className="text-xs dark:text-[hsl(var(--card-foreground))]/60 text-emerald-100">Ticket resolution efficiency</p>
                 </div>
               </div>
             </Card>
@@ -396,63 +396,63 @@ export default function EmployeeDashboard() {
           {/* Quick Actions & Insights */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Quick Actions */}
-            <Card className="border-slate-200 shadow-md hover:shadow-lg transition-shadow">
+            <Card variant="glass" className="hover:shadow-lg transition-all">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-white" />
+                    <Sparkles className="h-5 w-5 text-[hsl(var(--card-foreground))]" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-900">Quick Actions</h3>
-                    <p className="text-xs text-slate-500">Stay productive from here</p>
+                    <h3 className="text-lg font-semibold text-[hsl(var(--foreground))]">Quick Actions</h3>
+                    <p className="text-xs text-[hsl(var(--muted-foreground))]">Stay productive from here</p>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <Button 
                     onClick={() => navigate('/app/assets')}
-                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-[hsl(var(--muted))] border border-[hsl(var(--border))]"
                     variant="ghost"
                   >
-                    <Package className="h-4 w-4 mr-3 text-slate-600" />
+                    <Package className="h-4 w-4 mr-3 text-[hsl(var(--muted-foreground))]" />
                     <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-xs sm:text-sm">Review My Assets</div>
-                      <div className="text-xs text-slate-500">Inspect assigned equipment</div>
+                      <div className="font-medium text-[hsl(var(--foreground))] text-xs sm:text-sm">Review My Assets</div>
+                      <div className="text-xs text-[hsl(var(--muted-foreground))]">Inspect assigned equipment</div>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
                   </Button>
                   <Button 
                     onClick={() => navigate('/app/tickets/new')}
-                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-[hsl(var(--muted))] border border-[hsl(var(--border))]"
                     variant="ghost"
                   >
-                    <Plus className="h-4 w-4 mr-3 text-slate-600" />
+                    <Plus className="h-4 w-4 mr-3 text-[hsl(var(--muted-foreground))]" />
                     <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-sm">Open Support Ticket</div>
-                      <div className="text-xs text-slate-500">Report an issue instantly</div>
+                      <div className="font-medium text-[hsl(var(--foreground))] text-sm">Open Support Ticket</div>
+                      <div className="text-xs text-[hsl(var(--muted-foreground))]">Report an issue instantly</div>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
                   </Button>
                   <Button 
                     onClick={() => navigate('/app/tickets')}
-                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-[hsl(var(--muted))] border border-[hsl(var(--border))]"
                     variant="ghost"
                   >
-                    <Ticket className="h-4 w-4 mr-3 text-slate-600" />
+                    <Ticket className="h-4 w-4 mr-3 text-[hsl(var(--muted-foreground))]" />
                     <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-sm">Track Requests</div>
-                      <div className="text-xs text-slate-500">Follow every update</div>
+                      <div className="font-medium text-[hsl(var(--foreground))] text-sm">Track Requests</div>
+                      <div className="text-xs text-[hsl(var(--muted-foreground))]">Follow every update</div>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
                   </Button>
                   <Button 
                     onClick={() => navigate('/app/profile')}
-                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-[hsl(var(--muted))] border border-[hsl(var(--border))]"
                     variant="ghost"
                   >
-                    <Activity className="h-4 w-4 mr-3 text-slate-600" />
+                    <Activity className="h-4 w-4 mr-3 text-[hsl(var(--muted-foreground))]" />
                     <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-sm">Attendance & Profile</div>
-                      <div className="text-xs text-slate-500">Clock-in guidance & details</div>
+                      <div className="font-medium text-[hsl(var(--foreground))] text-sm">Attendance & Profile</div>
+                      <div className="text-xs text-[hsl(var(--muted-foreground))]">Clock-in guidance & details</div>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
                   </Button>
@@ -461,21 +461,21 @@ export default function EmployeeDashboard() {
             </Card>
 
             {/* Performance Insights */}
-            <Card className="border-slate-200 shadow-md hover:shadow-lg transition-shadow lg:col-span-2">
+            <Card className="border-[hsl(var(--border))] shadow-md hover:shadow-lg transition-shadow lg:col-span-2">
               <div className="p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between gap-3 mb-4 lg:mb-6">
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center flex-shrink-0">
-                      <LineChart className="h-4 sm:h-5 w-4 sm:w-5 text-white" />
+                      <LineChart className="h-4 sm:h-5 w-4 sm:w-5 text-[hsl(var(--card-foreground))]" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900 dark:text-white truncate">Performance Snapshot</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">How your workstreams look today</p>
+                      <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-[hsl(var(--foreground))] dark:text-[hsl(var(--card-foreground))] truncate">Performance Snapshot</h3>
+                      <p className="text-xs text-[hsl(var(--muted-foreground))] dark:text-slate-400 hidden sm:block">How your workstreams look today</p>
                     </div>
                   </div>
                   <Button 
                     size="sm"
-                    className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 dark:bg-blue-900 dark:hover:bg-blue-800 text-white border-0 h-9 px-2 sm:px-3"
+                    className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 dark:bg-blue-900 dark:hover:bg-blue-800 text-[hsl(var(--card-foreground))] border-0 h-9 px-2 sm:px-3"
                   >
                     <Download className="h-4 w-4" />
                     <span className="hidden sm:inline ml-1 text-xs">Export</span>
@@ -483,71 +483,71 @@ export default function EmployeeDashboard() {
                 </div>
                 <div className="space-y-3 lg:space-y-4">
                   {/* First Row */}
-                  <div className="flex items-center gap-3 p-3 lg:p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/30">
+                  <div className="flex items-center gap-3 p-3 lg:p-4 rounded-lg border border-[hsl(var(--border))] dark:border-slate-700 bg-[hsl(var(--card))]/50 dark:bg-[hsl(var(--primary))]/30">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
                         <PieChart className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">Ticket Trend</p>
-                        <p className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white">
+                        <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] dark:text-slate-400 truncate">Ticket Trend</p>
+                        <p className="text-lg lg:text-xl font-bold text-[hsl(var(--foreground))] dark:text-[hsl(var(--card-foreground))]">
                           {stats.ticketGrowthPercentage >= 0 ? '+' : ''}{stats.ticketGrowthPercentage}%
                         </p>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 text-right whitespace-nowrap flex-shrink-0">
+                    <p className="text-xs text-[hsl(var(--muted-foreground))] dark:text-slate-400 text-right whitespace-nowrap flex-shrink-0">
                       vs last 30 days
                     </p>
                   </div>
 
                   {/* Second Row */}
-                  <div className="flex items-center gap-3 p-3 lg:p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/30">
+                  <div className="flex items-center gap-3 p-3 lg:p-4 rounded-lg border border-[hsl(var(--border))] dark:border-slate-700 bg-[hsl(var(--card))]/50 dark:bg-[hsl(var(--primary))]/30">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex-shrink-0">
                         <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">Active Tickets</p>
-                        <p className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white">
+                        <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] dark:text-slate-400 truncate">Active Tickets</p>
+                        <p className="text-lg lg:text-xl font-bold text-[hsl(var(--foreground))] dark:text-[hsl(var(--card-foreground))]">
                           {stats.openTickets + stats.inProgressTickets}
                         </p>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 text-right whitespace-nowrap flex-shrink-0">
+                    <p className="text-xs text-[hsl(var(--muted-foreground))] dark:text-slate-400 text-right whitespace-nowrap flex-shrink-0">
                       {stats.openTickets} waiting
                     </p>
                   </div>
 
                   {/* Third Row */}
-                  <div className="flex items-center gap-3 p-3 lg:p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/30">
+                  <div className="flex items-center gap-3 p-3 lg:p-4 rounded-lg border border-[hsl(var(--border))] dark:border-slate-700 bg-[hsl(var(--card))]/50 dark:bg-[hsl(var(--primary))]/30">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
                         <Package className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">Asset Coverage</p>
-                        <p className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white">
+                        <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] dark:text-slate-400 truncate">Asset Coverage</p>
+                        <p className="text-lg lg:text-xl font-bold text-[hsl(var(--foreground))] dark:text-[hsl(var(--card-foreground))]">
                           {stats.totalAssets > 0 ? stats.totalAssets : 'None'}
                         </p>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 text-right whitespace-nowrap flex-shrink-0">
+                    <p className="text-xs text-[hsl(var(--muted-foreground))] dark:text-slate-400 text-right whitespace-nowrap flex-shrink-0">
                       assigned to you
                     </p>
                   </div>
 
                   {/* Fourth Row */}
-                  <div className="flex items-center gap-3 p-3 lg:p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/30">
+                  <div className="flex items-center gap-3 p-3 lg:p-4 rounded-lg border border-[hsl(var(--border))] dark:border-slate-700 bg-[hsl(var(--card))]/50 dark:bg-[hsl(var(--primary))]/30">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex-shrink-0">
                         <Target className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">Resolution Rate</p>
-                        <p className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white">{stats.resolutionRate}%</p>
+                        <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] dark:text-slate-400 truncate">Resolution Rate</p>
+                        <p className="text-lg lg:text-xl font-bold text-[hsl(var(--foreground))] dark:text-[hsl(var(--card-foreground))]">{stats.resolutionRate}%</p>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 text-right whitespace-nowrap flex-shrink-0">
+                    <p className="text-xs text-[hsl(var(--muted-foreground))] dark:text-slate-400 text-right whitespace-nowrap flex-shrink-0">
                       success rate
                     </p>
                   </div>
@@ -558,16 +558,16 @@ export default function EmployeeDashboard() {
 
           {/* Recent Activity Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="border-slate-200 shadow-md">
-              <div className="p-4 lg:p-6 border-b border-slate-200">
+            <Card className="border-[hsl(var(--border))] shadow-md">
+              <div className="p-4 lg:p-6 border-b border-[hsl(var(--border))]">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center">
-                      <Package className="h-5 w-5 text-white" />
+                      <Package className="h-5 w-5 text-[hsl(var(--card-foreground))]" />
                     </div>
                     <div>
-                      <h3 className="text-base lg:text-lg font-semibold text-slate-900">Recent Assets</h3>
-                      <p className="text-xs text-slate-500">Latest equipment assigned to you</p>
+                      <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">Recent Assets</h3>
+                      <p className="text-xs text-[hsl(var(--muted-foreground))]">Latest equipment assigned to you</p>
                     </div>
                   </div>
                   <Button 
@@ -584,29 +584,29 @@ export default function EmployeeDashboard() {
               <div className="p-4 lg:p-6">
                 {assets.length === 0 ? (
                   <div className="text-center py-6 lg:py-8">
-                    <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <div className="w-12 h-12 bg-[hsl(var(--muted))] rounded-xl flex items-center justify-center mx-auto mb-3">
                       <Package className="h-6 w-6 text-slate-400" />
                     </div>
-                    <p className="text-sm text-slate-500">No assets assigned yet</p>
+                    <p className="text-sm text-[hsl(var(--muted-foreground))]">No assets assigned yet</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {assets.slice(0, 4).map((asset) => (
                       <div
                         key={asset.id}
-                        className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group"
+                        className="p-4 rounded-xl border border-[hsl(var(--border))] hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group"
                         onClick={() => navigate(`/app/assets/${asset.id}`)}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-slate-900 text-sm lg:text-base truncate">{asset.name}</div>
-                            <div className="text-xs text-slate-500 truncate">{asset.serial_number}</div>
+                            <div className="font-medium text-[hsl(var(--foreground))] text-sm lg:text-base truncate">{asset.name}</div>
+                            <div className="text-xs text-[hsl(var(--muted-foreground))] truncate">{asset.serial_number}</div>
                           </div>
                           <Badge className={`text-xs ${getAssetStatusColor(asset.status)}`}>
                             {asset.status}
                           </Badge>
                         </div>
-                        <p className="text-xs text-slate-500 truncate">{asset.category || 'Uncategorized asset'}</p>
+                        <p className="text-xs text-[hsl(var(--muted-foreground))] truncate">{asset.category || 'Uncategorized asset'}</p>
                       </div>
                     ))}
                   </div>
@@ -614,20 +614,20 @@ export default function EmployeeDashboard() {
               </div>
             </Card>
 
-            <Card className="border-slate-200 shadow-md">
-              <div className="p-4 lg:p-6 border-b border-slate-200">
+            <Card className="border-[hsl(var(--border))] shadow-md">
+              <div className="p-4 lg:p-6 border-b border-[hsl(var(--border))]">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
-                      <Ticket className="h-5 w-5 text-white" />
+                      <Ticket className="h-5 w-5 text-[hsl(var(--card-foreground))]" />
                     </div>
                     <div>
-                      <h3 className="text-base lg:text-lg font-semibold text-slate-900">Recent Tickets</h3>
-                      <p className="text-xs text-slate-500">Follow the latest updates</p>
+                      <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">Recent Tickets</h3>
+                      <p className="text-xs text-[hsl(var(--muted-foreground))]">Follow the latest updates</p>
                     </div>
                   </div>
                   <Button 
-                    className="bg-slate-900 hover:bg-slate-800 rounded-lg"
+                    className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))] rounded-lg"
                     size="sm"
                     onClick={() => navigate('/app/tickets/new')}
                   >
@@ -639,14 +639,14 @@ export default function EmployeeDashboard() {
               <div className="p-4 lg:p-6">
                 {tickets.length === 0 ? (
                   <div className="text-center py-6 lg:py-8">
-                    <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <div className="w-12 h-12 bg-[hsl(var(--muted))] rounded-xl flex items-center justify-center mx-auto mb-3">
                       <Ticket className="h-6 w-6 text-slate-400" />
                     </div>
-                    <p className="text-sm text-slate-500">No tickets submitted yet</p>
+                    <p className="text-sm text-[hsl(var(--muted-foreground))]">No tickets submitted yet</p>
                     <Button 
                       size="sm"
                       onClick={() => navigate('/app/tickets/new')}
-                      className="mt-3 bg-slate-900 hover:bg-slate-800"
+                      className="mt-3 bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))]"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Create Ticket
@@ -657,13 +657,13 @@ export default function EmployeeDashboard() {
                     {tickets.slice(0, 4).map((ticket) => (
                       <div
                         key={ticket.id}
-                        className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group"
+                        className="p-4 rounded-xl border border-[hsl(var(--border))] hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group"
                         onClick={() => navigate(`/app/tickets/${ticket.id}`)}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-slate-900 text-sm lg:text-base truncate">{ticket.title}</div>
-                            <div className="text-xs text-slate-500 line-clamp-1">{ticket.description}</div>
+                            <div className="font-medium text-[hsl(var(--foreground))] text-sm lg:text-base truncate">{ticket.title}</div>
+                            <div className="text-xs text-[hsl(var(--muted-foreground))] line-clamp-1">{ticket.description}</div>
                           </div>
                           <div className="flex flex-col gap-1 ml-3">
                             <Badge className={`text-xs ${getStatusBadgeColor(ticket.status)}`}>
@@ -675,7 +675,7 @@ export default function EmployeeDashboard() {
                           </div>
                         </div>
                         {ticket.assignee && (
-                          <p className="text-xs text-slate-500 truncate">Assigned to {ticket.assignee.full_name}</p>
+                          <p className="text-xs text-[hsl(var(--muted-foreground))] truncate">Assigned to {ticket.assignee.full_name}</p>
                         )}
                       </div>
                     ))}
@@ -688,11 +688,11 @@ export default function EmployeeDashboard() {
 
         {/* Assets Tab */}
         <TabsContent value="assets">
-          <Card className="border-slate-200">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-3 sm:p-4 lg:p-6 border-b border-slate-200">
+          <Card className="border-[hsl(var(--border))]">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-3 sm:p-4 lg:p-6 border-b border-[hsl(var(--border))]">
               <div className="space-y-1">
-                <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">My Assets</h3>
-                <p className="text-xs lg:text-sm text-slate-500">
+                <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">My Assets</h3>
+                <p className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))]">
                   {stats.totalAssets} assets assigned to you
                 </p>
               </div>
@@ -700,28 +700,28 @@ export default function EmployeeDashboard() {
             <div className="p-3 sm:p-4 lg:p-6">
               {assets.length === 0 ? (
                 <div className="text-center py-8 lg:py-12">
-                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-slate-100 rounded-xl lg:rounded-2xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-[hsl(var(--muted))] rounded-xl lg:rounded-2xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
                     <Package className="h-6 w-6 lg:h-8 lg:w-8 text-slate-400" />
                   </div>
-                  <h3 className="text-base lg:text-lg font-semibold text-slate-900 mb-1 lg:mb-2">No assets assigned</h3>
-                  <p className="text-sm text-slate-500">You don't have any assets assigned yet</p>
+                  <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--foreground))] mb-1 lg:mb-2">No assets assigned</h3>
+                  <p className="text-sm text-[hsl(var(--muted-foreground))]">You don't have any assets assigned yet</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
                   {assets.map((asset) => (
                     <div
                       key={asset.id}
-                      className="p-4 lg:p-5 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden"
+                      className="p-4 lg:p-5 rounded-xl border border-[hsl(var(--border))] hover:border-slate-300 hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden"
                       onClick={() => navigate(`/app/assets/${asset.id}`)}
                     >
                       <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       <div className="relative">
                         <div className="flex items-start justify-between mb-2 lg:mb-3">
                           <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-slate-900 text-sm lg:text-base mb-1 truncate">
+                            <div className="font-semibold text-[hsl(var(--foreground))] text-sm lg:text-base mb-1 truncate">
                               {asset.name}
                             </div>
-                            <div className="text-xs text-slate-500 mb-1 lg:mb-2 truncate">
+                            <div className="text-xs text-[hsl(var(--muted-foreground))] mb-1 lg:mb-2 truncate">
                               {asset.serial_number}
                             </div>
                           </div>
@@ -729,13 +729,13 @@ export default function EmployeeDashboard() {
                             {asset.status}
                           </Badge>
                         </div>
-                        <div className="text-xs lg:text-sm text-slate-600 mb-2 lg:mb-3 truncate">
+                        <div className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))] mb-2 lg:mb-3 truncate">
                           {asset.category || 'Uncategorized'}
                         </div>
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="w-full rounded-lg hover:bg-slate-100 h-8 lg:h-9"
+                          className="w-full rounded-lg hover:bg-[hsl(var(--muted))] h-8 lg:h-9"
                           onClick={(e) => {
                             e.stopPropagation()
                             navigate(`/app/assets/${asset.id}`)
@@ -755,17 +755,17 @@ export default function EmployeeDashboard() {
 
         {/* Tickets Tab */}
         <TabsContent value="tickets">
-          <Card className="border-slate-200">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-3 sm:p-4 lg:p-6 border-b border-slate-200">
+          <Card className="border-[hsl(var(--border))]">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-3 sm:p-4 lg:p-6 border-b border-[hsl(var(--border))]">
               <div className="space-y-1">
-                <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">My Tickets</h3>
-                <p className="text-xs lg:text-sm text-slate-500">
+                <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">My Tickets</h3>
+                <p className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))]">
                   {stats.totalTickets} tickets • {stats.openTickets} open • {stats.resolvedTickets} resolved
                 </p>
               </div>
               <Button 
                 onClick={() => navigate('/app/tickets/new')}
-                className="bg-slate-900 hover:bg-slate-800 rounded-lg h-11 lg:h-10 w-full lg:w-auto"
+                className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))] rounded-lg h-11 lg:h-10 w-full lg:w-auto"
               >
                 <Plus className="h-4 w-4 mr-1 lg:mr-2" />
                 <span className="text-sm">New Ticket</span>
@@ -774,14 +774,14 @@ export default function EmployeeDashboard() {
             <div className="p-3 sm:p-4 lg:p-6">
               {tickets.length === 0 ? (
                 <div className="text-center py-8 lg:py-12">
-                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-slate-100 rounded-xl lg:rounded-2xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-[hsl(var(--muted))] rounded-xl lg:rounded-2xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
                     <Ticket className="h-6 w-6 lg:h-8 lg:w-8 text-slate-400" />
                   </div>
-                  <h3 className="text-base lg:text-lg font-semibold text-slate-900 mb-1 lg:mb-2">No tickets submitted yet</h3>
-                  <p className="text-sm text-slate-500 mb-4 lg:mb-6">Create your first support ticket to get started</p>
+                  <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--foreground))] mb-1 lg:mb-2">No tickets submitted yet</h3>
+                  <p className="text-sm text-[hsl(var(--muted-foreground))] mb-4 lg:mb-6">Create your first support ticket to get started</p>
                   <Button 
                     onClick={() => navigate('/app/tickets/new')}
-                    className="bg-slate-900 hover:bg-slate-800 h-11 lg:h-10"
+                    className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))] h-11 lg:h-10"
                   >
                     <Plus className="h-4 w-4 mr-1 lg:mr-2" />
                     <span className="text-sm">Create Your First Ticket</span>
@@ -792,21 +792,21 @@ export default function EmployeeDashboard() {
                   {tickets.map((ticket) => (
                     <div
                       key={ticket.id}
-                      className="p-4 lg:p-5 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden"
+                      className="p-4 lg:p-5 rounded-xl border border-[hsl(var(--border))] hover:border-slate-300 hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden"
                       onClick={() => navigate(`/app/tickets/${ticket.id}`)}
                     >
                       <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       <div className="relative">
                         <div className="flex items-start justify-between mb-2 lg:mb-3">
                           <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-slate-900 text-sm lg:text-base mb-1 lg:mb-2">
+                            <div className="font-semibold text-[hsl(var(--foreground))] text-sm lg:text-base mb-1 lg:mb-2">
                               {ticket.title}
                             </div>
-                            <div className="text-xs lg:text-sm text-slate-600 mb-2 lg:mb-3 line-clamp-2">
+                            <div className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))] mb-2 lg:mb-3 line-clamp-2">
                               {ticket.description}
                             </div>
                             {ticket.asset && (
-                              <div className="text-xs text-slate-500 mb-1 lg:mb-2 truncate">
+                              <div className="text-xs text-[hsl(var(--muted-foreground))] mb-1 lg:mb-2 truncate">
                                 Asset: {ticket.asset.name} ({ticket.asset.serial_number})
                               </div>
                             )}
@@ -823,13 +823,13 @@ export default function EmployeeDashboard() {
                           </div>
                         </div>
                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between pt-2 lg:pt-3 border-t border-slate-100 gap-2 lg:gap-0">
-                          <span className="text-xs text-slate-500 truncate">
+                          <span className="text-xs text-[hsl(var(--muted-foreground))] truncate">
                             {ticket.assignee ? `Assigned to: ${ticket.assignee.full_name}` : 'Unassigned'}
                           </span>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="rounded-lg hover:bg-slate-100 h-8 lg:h-9 w-full lg:w-auto"
+                            className="rounded-lg hover:bg-[hsl(var(--muted))] h-8 lg:h-9 w-full lg:w-auto"
                             onClick={(e) => {
                               e.stopPropagation()
                               navigate(`/app/tickets/${ticket.id}`)

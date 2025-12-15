@@ -267,7 +267,7 @@ export default function HRDashboard() {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'admin':
-        return 'bg-slate-100 text-slate-800 border-slate-200'
+        return 'bg-[hsl(var(--muted))] text-slate-800 border-[hsl(var(--border))]'
       case 'manager':
         return 'bg-purple-100 text-purple-800 border-purple-200'
       case 'hr':
@@ -288,9 +288,9 @@ export default function HRDashboard() {
           <AlertTriangle className="h-6 w-6 lg:h-8 lg:w-8 text-red-500" />
         </div>
         <div className="text-center">
-          <h3 className="text-base lg:text-lg font-semibold text-slate-900">Unable to load dashboard</h3>
-          <p className="text-sm lg:text-base text-slate-500 mt-2 max-w-md">{error}</p>
-          <Button onClick={fetchData} className="mt-4 bg-slate-900 hover:bg-slate-800 h-11 lg:h-10">
+          <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">Unable to load dashboard</h3>
+          <p className="text-sm lg:text-base text-[hsl(var(--muted-foreground))] mt-2 max-w-md">{error}</p>
+          <Button onClick={fetchData} className="mt-4 bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))] h-11 lg:h-10">
             Try Again
           </Button>
         </div>
@@ -305,9 +305,9 @@ export default function HRDashboard() {
           <AlertTriangle className="h-6 w-6 lg:h-8 lg:w-8 text-amber-500" />
         </div>
         <div className="text-center">
-          <h3 className="text-base lg:text-lg font-semibold text-slate-900">Company information missing</h3>
-          <p className="text-sm lg:text-base text-slate-500 mt-2">Your account is not associated with a company.</p>
-          <p className="text-sm lg:text-base text-slate-500">Please contact support.</p>
+          <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">Company information missing</h3>
+          <p className="text-sm lg:text-base text-[hsl(var(--muted-foreground))] mt-2">Your account is not associated with a company.</p>
+          <p className="text-sm lg:text-base text-[hsl(var(--muted-foreground))]">Please contact support.</p>
         </div>
       </div>
     )
@@ -319,21 +319,21 @@ export default function HRDashboard() {
       <div className="flex flex-col gap-2 lg:gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1 lg:space-y-2">
           <div className="flex items-center gap-2 lg:gap-3 mb-1 lg:mb-2 flex-wrap">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold dark:text-white text-slate-900">Dashboard</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold dark:text-[hsl(var(--card-foreground))] text-[hsl(var(--foreground))]">Dashboard</h1>
             <Badge className="bg-pink-100 text-pink-800 border-0 px-2 lg:px-3 py-1 text-xs lg:text-sm">
               <Users className="h-3 w-3 mr-1" />
               Human Resources
             </Badge>
           </div>
-          <p className="text-xs sm:text-sm lg:text-base dark:text-white/80 text-slate-500">
-            Welcome back, <span className="font-medium dark:text-white text-slate-700">{user?.full_name}</span>
+          <p className="text-xs sm:text-sm lg:text-base dark:text-[hsl(var(--card-foreground))]/80 text-[hsl(var(--muted-foreground))]">
+            Welcome back, <span className="font-medium dark:text-[hsl(var(--card-foreground))] text-[hsl(var(--muted-foreground))]">{user?.full_name}</span>
           </p>
         </div>
 
         {company && (
           <div className="text-right">
-            <p className="text-xs sm:text-sm lg:text-base font-medium dark:text-white text-slate-900">{company.name}</p>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs sm:text-sm lg:text-base font-medium dark:text-[hsl(var(--card-foreground))] text-[hsl(var(--foreground))]">{company.name}</p>
+            <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">
               {stats.totalEmployees} employees • {stats.departments} departments
             </p>
           </div>
@@ -361,95 +361,95 @@ export default function HRDashboard() {
         <TabsContent value="overview" className="space-y-4 lg:space-y-6">
           {/* Key Metrics */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 text-white">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+            <Card variant="glass" className="relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[hsla(0,0%,100%,0.1)] rounded-full -mr-12 -mt-12 blur-2xl" />
               <div className="relative p-3 sm:p-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs sm:text-sm dark:text-white/80 text-slate-300 font-medium">Total Employees</p>
+                    <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))] font-medium">Total Employees</p>
                     {stats.employeeGrowthPercentage >= 0 ? (
-                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300">
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.3)] text-[hsl(var(--foreground))]">
                         <TrendingUp className="h-3 w-3" />
                         <span className="text-xs font-semibold">{stats.employeeGrowthPercentage}%</span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/20 text-red-300">
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.3)] text-[hsl(var(--foreground))]">
                         <TrendingDown className="h-3 w-3" />
                         <span className="text-xs font-semibold">{Math.abs(stats.employeeGrowthPercentage)}%</span>
                       </div>
                     )}
                   </div>
-                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.totalEmployees}</h3>
-                  <p className="text-xs dark:text-white/60 text-slate-400">{stats.activeEmployees} active right now</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[hsl(var(--foreground))]">{stats.totalEmployees}</h3>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))]">{stats.activeEmployees} active right now</p>
                 </div>
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600 dark:from-blue-700 dark:via-blue-600 dark:to-blue-700 text-white">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+            <Card variant="glass" className="relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[hsla(0,0%,100%,0.1)] rounded-full -mr-12 -mt-12 blur-2xl" />
               <div className="relative p-3 sm:p-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs sm:text-sm text-blue-100 font-medium">Departments</p>
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
+                    <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))] font-medium">Departments</p>
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.3)] text-[hsl(var(--foreground))]">
                       <CheckCircle2 className="h-3 w-3" />
                       <span className="text-xs font-semibold">{stats.departments} active</span>
                     </div>
                   </div>
-                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.departments}</h3>
-                  <p className="text-xs text-blue-100">Org structure up to date</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[hsl(var(--foreground))]">{stats.departments}</h3>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))]">Org structure up to date</p>
                 </div>
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-amber-600 via-amber-500 to-amber-600 dark:from-amber-700 dark:via-amber-600 dark:to-amber-700 text-white">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+            <Card variant="glass" className="relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[hsla(0,0%,100%,0.1)] rounded-full -mr-12 -mt-12 blur-2xl" />
               <div className="relative p-3 sm:p-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs sm:text-sm text-amber-100 font-medium">People Ops Tickets</p>
+                    <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))] font-medium">People Ops Tickets</p>
                     {stats.openTickets > 0 ? (
-                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.3)] text-[hsl(var(--foreground))]">
                         <Clock className="h-3 w-3" />
                         <span className="text-xs font-semibold">{stats.openTickets} open</span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/30 text-white">
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.3)] text-[hsl(var(--foreground))]">
                         <CheckCircle2 className="h-3 w-3" />
                         <span className="text-xs font-semibold">All resolved</span>
                       </div>
                     )}
                   </div>
-                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.totalTickets}</h3>
-                  <p className="text-xs text-amber-100">{stats.openTickets} currently pending</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[hsl(var(--foreground))]">{stats.totalTickets}</h3>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))]">{stats.openTickets} currently pending</p>
                 </div>
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-600 dark:from-emerald-700 dark:via-emerald-600 dark:to-emerald-700 text-white">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+            <Card variant="glass" className="relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[hsla(0,0%,100%,0.1)] rounded-full -mr-12 -mt-12 blur-2xl" />
               <div className="relative p-3 sm:p-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs sm:text-sm text-emerald-100 font-medium">Attendance Rate</p>
+                    <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))] font-medium">Attendance Rate</p>
                     {stats.attendanceRate >= 90 ? (
-                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.3)] text-[hsl(var(--foreground))]">
                         <Award className="h-3 w-3" />
                         <span className="text-xs font-semibold">Great</span>
                       </div>
                     ) : stats.attendanceRate >= 70 ? (
-                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 text-white">
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.3)] text-[hsl(var(--foreground))]">
                         <Activity className="h-3 w-3" />
                         <span className="text-xs font-semibold">On track</span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/30 text-white">
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.3)] text-[hsl(var(--foreground))]">
                         <AlertCircle className="h-3 w-3" />
                         <span className="text-xs font-semibold">Watch</span>
                       </div>
                     )}
                   </div>
-                  <h3 className="text-xl sm:text-2xl font-bold dark:text-white text-white">{stats.attendanceRate}%</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold dark:text-[hsl(var(--card-foreground))] text-[hsl(var(--card-foreground))]">{stats.attendanceRate}%</h3>
                   <p className="text-xs text-emerald-100">Based on last 30 days</p>
                 </div>
               </div>
@@ -458,63 +458,63 @@ export default function HRDashboard() {
 
           {/* Quick Actions & Insights */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-            <Card className="border-slate-200 shadow-md hover:shadow-lg transition-shadow">
+            <Card variant="glass" className="hover:shadow-lg transition-all">
               <div className="p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center gap-3 mb-4 lg:mb-6">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-white" />
+                    <Sparkles className="h-5 w-5 text-[hsl(var(--card-foreground))]" />
                   </div>
                   <div>
-                    <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">HR Quick Actions</h3>
-                    <p className="text-xs lg:text-sm text-slate-500">Common workflows, one tap away</p>
+                    <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">HR Quick Actions</h3>
+                    <p className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))]">Common workflows, one tap away</p>
                   </div>
                 </div>
                 <div className="space-y-2 lg:space-y-3">
                   <Button 
                     onClick={() => navigate('/app/users?create=true')}
-                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-[hsl(var(--muted))] border border-[hsl(var(--border))]"
                     variant="ghost"
                   >
-                    <UserCheck className="h-4 w-4 mr-3 text-slate-600" />
+                    <UserCheck className="h-4 w-4 mr-3 text-[hsl(var(--muted-foreground))]" />
                     <div className="flex-1 text-left hidden sm:block">
-                      <div className="font-medium text-slate-900 text-xs sm:text-sm">Add Employee</div>
-                      <div className="text-xs text-slate-500">Invite or onboard new hires</div>
+                      <div className="font-medium text-[hsl(var(--foreground))] text-xs sm:text-sm">Add Employee</div>
+                      <div className="text-xs text-[hsl(var(--muted-foreground))]">Invite or onboard new hires</div>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
                   </Button>
                   <Button 
                     onClick={() => navigate('/app/departments?create=true')}
-                    className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-auto py-3 px-4 rounded-xl hover:bg-[hsl(var(--muted))] border border-[hsl(var(--border))]"
                     variant="ghost"
                   >
-                    <Building2 className="h-4 w-4 mr-3 text-slate-600" />
+                    <Building2 className="h-4 w-4 mr-3 text-[hsl(var(--muted-foreground))]" />
                     <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900 text-sm">Create Department</div>
-                      <div className="text-xs text-slate-500">Organize teams & leads</div>
+                      <div className="font-medium text-[hsl(var(--foreground))] text-sm">Create Department</div>
+                      <div className="text-xs text-[hsl(var(--muted-foreground))]">Organize teams & leads</div>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
                   </Button>
                   <Button 
                     onClick={() => navigate('/app/profile')}
-                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-[hsl(var(--muted))] border border-[hsl(var(--border))]"
                     variant="ghost"
                   >
-                    <Calendar className="h-4 w-4 mr-3 text-slate-600" />
+                    <Calendar className="h-4 w-4 mr-3 text-[hsl(var(--muted-foreground))]" />
                     <div className="flex-1 text-left hidden sm:block">
-                      <div className="font-medium text-slate-900 text-xs sm:text-sm">Review Attendance</div>
-                      <div className="text-xs text-slate-500">Ensure compliance daily</div>
+                      <div className="font-medium text-[hsl(var(--foreground))] text-xs sm:text-sm">Review Attendance</div>
+                      <div className="text-xs text-[hsl(var(--muted-foreground))]">Ensure compliance daily</div>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
                   </Button>
                   <Button 
                     onClick={() => navigate('/app/tickets')}
-                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-slate-50 border border-slate-200"
+                    className="w-full justify-start h-12 md:h-auto md:py-3 px-4 rounded-xl hover:bg-[hsl(var(--muted))] border border-[hsl(var(--border))]"
                     variant="ghost"
                   >
-                    <Briefcase className="h-4 w-4 mr-3 text-slate-600" />
+                    <Briefcase className="h-4 w-4 mr-3 text-[hsl(var(--muted-foreground))]" />
                     <div className="flex-1 text-left hidden sm:block">
-                      <div className="font-medium text-slate-900 text-xs sm:text-sm">Manage HR Tickets</div>
-                      <div className="text-xs text-slate-500">Follow each employee request</div>
+                      <div className="font-medium text-[hsl(var(--foreground))] text-xs sm:text-sm">Manage HR Tickets</div>
+                      <div className="text-xs text-[hsl(var(--muted-foreground))]">Follow each employee request</div>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
                   </Button>
@@ -522,16 +522,16 @@ export default function HRDashboard() {
               </div>
             </Card>
 
-            <Card className="border-slate-200 shadow-md hover:shadow-lg transition-shadow lg:col-span-2">
+            <Card className="border-[hsl(var(--border))] shadow-md hover:shadow-lg transition-shadow lg:col-span-2">
               <div className="p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between gap-2 lg:gap-3 mb-4 lg:mb-6 flex-wrap">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                      <LineChart className="h-5 w-5 text-white" />
+                      <LineChart className="h-5 w-5 text-[hsl(var(--card-foreground))]" />
                     </div>
                     <div>
-                      <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">People Insights</h3>
-                      <p className="text-xs lg:text-sm text-slate-500">Health of your organization</p>
+                      <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">People Insights</h3>
+                      <p className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))]">Health of your organization</p>
                     </div>
                   </div>
                   <Button variant="outline" size="sm" className="rounded-lg text-xs sm:text-sm h-10">
@@ -540,39 +540,39 @@ export default function HRDashboard() {
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 gap-3 lg:gap-4">
-                  <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
+                  <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-[hsl(var(--border))]">
                     <div className="flex items-center gap-2 mb-2">
                       <PieChart className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
-                      <span className="text-xs font-medium text-slate-600">Growth Trend</span>
+                      <span className="text-xs font-medium text-[hsl(var(--muted-foreground))]">Growth Trend</span>
                     </div>
-                    <div className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 mb-1">
+                    <div className="text-lg sm:text-xl lg:text-2xl font-bold text-[hsl(var(--foreground))] mb-1">
                       {stats.employeeGrowthPercentage >= 0 ? '+' : ''}{stats.employeeGrowthPercentage}%
                     </div>
-                    <div className="text-xs text-slate-500">vs last month</div>
+                    <div className="text-xs text-[hsl(var(--muted-foreground))]">vs last month</div>
                   </div>
-                  <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
+                  <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-[hsl(var(--border))]">
                     <div className="flex items-center gap-2 mb-2">
                       <Users className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600" />
-                      <span className="text-xs font-medium text-slate-600">Active Employees</span>
+                      <span className="text-xs font-medium text-[hsl(var(--muted-foreground))]">Active Employees</span>
                     </div>
-                    <div className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 mb-1">{stats.activeEmployees}</div>
-                    <div className="text-xs text-slate-500">Eligible for scheduling</div>
+                    <div className="text-lg sm:text-xl lg:text-2xl font-bold text-[hsl(var(--foreground))] mb-1">{stats.activeEmployees}</div>
+                    <div className="text-xs text-[hsl(var(--muted-foreground))]">Eligible for scheduling</div>
                   </div>
-                  <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
+                  <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-[hsl(var(--border))]">
                     <div className="flex items-center gap-2 mb-2">
                       <Briefcase className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
-                      <span className="text-xs font-medium text-slate-600">Open Tickets</span>
+                      <span className="text-xs font-medium text-[hsl(var(--muted-foreground))]">Open Tickets</span>
                     </div>
-                    <div className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 mb-1">{stats.openTickets}</div>
-                    <div className="text-xs text-slate-500">Need HR attention</div>
+                    <div className="text-lg sm:text-xl lg:text-2xl font-bold text-[hsl(var(--foreground))] mb-1">{stats.openTickets}</div>
+                    <div className="text-xs text-[hsl(var(--muted-foreground))]">Need HR attention</div>
                   </div>
-                  <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200">
+                  <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-[hsl(var(--border))]">
                     <div className="flex items-center gap-2 mb-2">
                       <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-amber-600" />
-                      <span className="text-xs font-medium text-slate-600">Attendance Rate</span>
+                      <span className="text-xs font-medium text-[hsl(var(--muted-foreground))]">Attendance Rate</span>
                     </div>
-                    <div className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 mb-1">{stats.attendanceRate}%</div>
-                    <div className="text-xs text-slate-500">Check-ins recorded</div>
+                    <div className="text-lg sm:text-xl lg:text-2xl font-bold text-[hsl(var(--foreground))] mb-1">{stats.attendanceRate}%</div>
+                    <div className="text-xs text-[hsl(var(--muted-foreground))]">Check-ins recorded</div>
                   </div>
                 </div>
               </div>
@@ -581,16 +581,16 @@ export default function HRDashboard() {
 
           {/* Recent Activity Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-            <Card className="border-slate-200 shadow-md">
-              <div className="p-3 sm:p-4 lg:p-6 border-b border-slate-200">
+            <Card className="border-[hsl(var(--border))] shadow-md">
+              <div className="p-3 sm:p-4 lg:p-6 border-b border-[hsl(var(--border))]">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-white" />
+                      <Users className="h-5 w-5 text-[hsl(var(--card-foreground))]" />
                     </div>
                     <div>
-                      <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Recent Employees</h3>
-                      <p className="text-xs lg:text-sm text-slate-500">Latest people joining the team</p>
+                      <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">Recent Employees</h3>
+                      <p className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))]">Latest people joining the team</p>
                     </div>
                   </div>
                   <Button 
@@ -607,27 +607,27 @@ export default function HRDashboard() {
               <div className="p-3 sm:p-4 lg:p-6">
                 {employees.length === 0 ? (
                   <div className="text-center py-4 lg:py-6">
-                    <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <div className="w-12 h-12 bg-[hsl(var(--muted))] rounded-xl flex items-center justify-center mx-auto mb-3">
                       <Users className="h-6 w-6 text-slate-400" />
                     </div>
-                    <p className="text-xs sm:text-sm text-slate-500">No employees yet</p>
+                    <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))]">No employees yet</p>
                   </div>
                 ) : (
                   <div className="space-y-2 lg:space-y-3">
                     {employees.slice(0, 5).map((employee) => (
                       <div
                         key={employee.id}
-                        className="p-3 sm:p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all"
+                        className="p-3 sm:p-4 rounded-xl border border-[hsl(var(--border))] hover:border-slate-300 hover:shadow-md transition-all"
                       >
                         <div className="flex items-center gap-3 mb-2">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center text-white font-semibold text-sm">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center text-[hsl(var(--card-foreground))] font-semibold text-sm">
                             {employee.full_name?.charAt(0) || 'E'}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-slate-900 text-xs sm:text-sm truncate">
+                            <div className="font-medium text-[hsl(var(--foreground))] text-xs sm:text-sm truncate">
                               {employee.full_name}
                             </div>
-                            <div className="text-xs text-slate-500 truncate">{employee.email}</div>
+                            <div className="text-xs text-[hsl(var(--muted-foreground))] truncate">{employee.email}</div>
                           </div>
                         </div>
                         <div className="flex items-center justify-between gap-2">
@@ -635,7 +635,7 @@ export default function HRDashboard() {
                             {employee.role}
                           </Badge>
                           {employee.department && (
-                            <span className="text-xs text-slate-500 truncate">{employee.department.name}</span>
+                            <span className="text-xs text-[hsl(var(--muted-foreground))] truncate">{employee.department.name}</span>
                           )}
                         </div>
                       </div>
@@ -645,16 +645,16 @@ export default function HRDashboard() {
               </div>
             </Card>
 
-            <Card className="border-slate-200 shadow-md">
-              <div className="p-3 sm:p-4 lg:p-6 border-b border-slate-200">
+            <Card className="border-[hsl(var(--border))] shadow-md">
+              <div className="p-3 sm:p-4 lg:p-6 border-b border-[hsl(var(--border))]">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
-                      <Building2 className="h-5 w-5 text-white" />
+                      <Building2 className="h-5 w-5 text-[hsl(var(--card-foreground))]" />
                     </div>
                     <div>
-                      <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Departments</h3>
-                      <p className="text-xs lg:text-sm text-slate-500">Structure & headcount overview</p>
+                      <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">Departments</h3>
+                      <p className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))]">Structure & headcount overview</p>
                     </div>
                   </div>
                   <Button 
@@ -671,26 +671,26 @@ export default function HRDashboard() {
               <div className="p-3 sm:p-4 lg:p-6">
                 {departments.length === 0 ? (
                   <div className="text-center py-4 lg:py-6">
-                    <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <div className="w-12 h-12 bg-[hsl(var(--muted))] rounded-xl flex items-center justify-center mx-auto mb-3">
                       <Building2 className="h-6 w-6 text-slate-400" />
                     </div>
-                    <p className="text-xs sm:text-sm text-slate-500">No departments yet</p>
+                    <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))]">No departments yet</p>
                   </div>
                 ) : (
                   <div className="space-y-2 lg:space-y-3">
                     {departments.map((dept) => (
                       <div
                         key={dept.id}
-                        className="p-3 sm:p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer"
+                        className="p-3 sm:p-4 rounded-xl border border-[hsl(var(--border))] hover:border-slate-300 hover:shadow-md transition-all cursor-pointer"
                         onClick={() => navigate(`/app/departments/${dept.id}`)}
                       >
                         <div className="flex items-center justify-between mb-1 gap-2">
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-slate-900 text-xs sm:text-sm truncate">
+                            <div className="font-medium text-[hsl(var(--foreground))] text-xs sm:text-sm truncate">
                               {dept.name}
                             </div>
                             {dept.description && (
-                              <div className="text-xs text-slate-500 mt-1 line-clamp-1">
+                              <div className="text-xs text-[hsl(var(--muted-foreground))] mt-1 line-clamp-1">
                                 {dept.description}
                               </div>
                             )}
@@ -710,17 +710,17 @@ export default function HRDashboard() {
 
         {/* Employees Tab */}
         <TabsContent value="employees">
-          <Card className="border-slate-200">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 lg:p-6 border-b border-slate-200">
+          <Card className="border-[hsl(var(--border))]">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 lg:p-6 border-b border-[hsl(var(--border))]">
               <div className="space-y-1">
-                <h3 className="text-base lg:text-lg font-semibold text-slate-900">All Employees</h3>
-                <p className="text-xs lg:text-sm text-slate-500">
+                <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">All Employees</h3>
+                <p className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))]">
                   {stats.totalEmployees} employees • {stats.activeEmployees} active
                 </p>
               </div>
               <Button 
                 onClick={() => navigate('/app/users')}
-                className="bg-slate-900 hover:bg-slate-800 rounded-lg h-11 lg:h-10 w-full lg:w-auto"
+                className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))] rounded-lg h-11 lg:h-10 w-full lg:w-auto"
               >
                 <span className="text-sm">Manage Employees</span>
               </Button>
@@ -728,28 +728,28 @@ export default function HRDashboard() {
             <div className="p-4 lg:p-6">
               {employees.length === 0 ? (
                 <div className="text-center py-8 lg:py-12">
-                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-slate-100 rounded-xl lg:rounded-2xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-[hsl(var(--muted))] rounded-xl lg:rounded-2xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
                     <Users className="h-6 w-6 lg:h-8 lg:w-8 text-slate-400" />
                   </div>
-                  <h3 className="text-base lg:text-lg font-semibold text-slate-900 mb-1 lg:mb-2">No employees</h3>
-                  <p className="text-sm text-slate-500">No employees have been added yet</p>
+                  <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--foreground))] mb-1 lg:mb-2">No employees</h3>
+                  <p className="text-sm text-[hsl(var(--muted-foreground))]">No employees have been added yet</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
                   {employees.map((employee) => (
                     <div
                       key={employee.id}
-                      className="p-4 lg:p-5 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all"
+                      className="p-4 lg:p-5 rounded-xl border border-[hsl(var(--border))] hover:border-slate-300 hover:shadow-lg transition-all"
                     >
                       <div className="flex items-center gap-3 mb-2 lg:mb-3">
-                        <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center text-white font-semibold text-sm lg:text-base">
+                        <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center text-[hsl(var(--card-foreground))] font-semibold text-sm lg:text-base">
                           {employee.full_name?.charAt(0) || 'E'}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-slate-900 text-sm lg:text-base truncate">
+                          <div className="font-semibold text-[hsl(var(--foreground))] text-sm lg:text-base truncate">
                             {employee.full_name}
                           </div>
-                          <div className="text-xs text-slate-500 truncate">{employee.email}</div>
+                          <div className="text-xs text-[hsl(var(--muted-foreground))] truncate">{employee.email}</div>
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
@@ -757,7 +757,7 @@ export default function HRDashboard() {
                           {employee.role}
                         </Badge>
                         {employee.department && (
-                          <span className="text-xs text-slate-500 truncate">
+                          <span className="text-xs text-[hsl(var(--muted-foreground))] truncate">
                             {employee.department.name}
                           </span>
                         )}
@@ -772,17 +772,17 @@ export default function HRDashboard() {
 
         {/* Departments Tab */}
         <TabsContent value="departments">
-          <Card className="border-slate-200">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 lg:p-6 border-b border-slate-200">
+          <Card className="border-[hsl(var(--border))]">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 lg:p-6 border-b border-[hsl(var(--border))]">
               <div className="space-y-1">
-                <h3 className="text-base lg:text-lg font-semibold text-slate-900">All Departments</h3>
-                <p className="text-xs lg:text-sm text-slate-500">
+                <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--foreground))]">All Departments</h3>
+                <p className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))]">
                   {stats.departments} departments
                 </p>
               </div>
               <Button 
                 onClick={() => navigate('/app/departments')}
-                className="bg-slate-900 hover:bg-slate-800 rounded-lg h-11 lg:h-10 w-full lg:w-auto"
+                className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))] rounded-lg h-11 lg:h-10 w-full lg:w-auto"
               >
                 <span className="text-sm">Manage Departments</span>
               </Button>
@@ -790,30 +790,30 @@ export default function HRDashboard() {
             <div className="p-4 lg:p-6">
               {departments.length === 0 ? (
                 <div className="text-center py-8 lg:py-12">
-                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-slate-100 rounded-xl lg:rounded-2xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-[hsl(var(--muted))] rounded-xl lg:rounded-2xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
                     <Building2 className="h-6 w-6 lg:h-8 lg:w-8 text-slate-400" />
                   </div>
-                  <h3 className="text-base lg:text-lg font-semibold text-slate-900 mb-1 lg:mb-2">No departments</h3>
-                  <p className="text-sm text-slate-500">No departments have been created yet</p>
+                  <h3 className="text-base lg:text-lg font-semibold text-[hsl(var(--foreground))] mb-1 lg:mb-2">No departments</h3>
+                  <p className="text-sm text-[hsl(var(--muted-foreground))]">No departments have been created yet</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
                   {departments.map((dept) => (
                     <div
                       key={dept.id}
-                      className="p-4 lg:p-5 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all cursor-pointer"
+                      className="p-4 lg:p-5 rounded-xl border border-[hsl(var(--border))] hover:border-slate-300 hover:shadow-lg transition-all cursor-pointer"
                       onClick={() => navigate(`/app/departments/${dept.id}`)}
                     >
                       <div className="flex items-center gap-3 mb-2 lg:mb-3">
-                        <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white">
+                        <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-[hsl(var(--card-foreground))]">
                           <Building2 className="h-5 w-5 lg:h-6 lg:w-6" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-slate-900 text-sm lg:text-base truncate">
+                          <div className="font-semibold text-[hsl(var(--foreground))] text-sm lg:text-base truncate">
                             {dept.name}
                           </div>
                           {dept.description && (
-                            <div className="text-xs text-slate-500 truncate mt-1">
+                            <div className="text-xs text-[hsl(var(--muted-foreground))] truncate mt-1">
                               {dept.description}
                             </div>
                           )}

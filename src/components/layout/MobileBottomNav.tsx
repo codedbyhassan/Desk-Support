@@ -80,45 +80,11 @@ export function MobileBottomNav() {
         aria-label="Mobile navigation"
       >
         <div className={`
-          relative overflow-hidden
+          glass-surface relative overflow-hidden
           rounded-3xl
-          ${theme === 'dark' 
-            ? 'bg-gradient-to-br from-indigo-950/80 via-purple-900/80 to-violet-950/80 border-indigo-800/40' 
-            : 'bg-gradient-to-br from-indigo-50 via-purple-50 to-violet-50 border-indigo-200/60'
-          }
           border
-          shadow-2xl ${theme === 'dark' ? 'shadow-purple-900/30' : 'shadow-purple-200/40'}
-          backdrop-blur-2xl
+          shadow-2xl
         `}>
-          {/* Premium gradient overlay */}
-          <div className={`
-            absolute inset-0 
-            ${theme === 'dark'
-              ? 'bg-gradient-to-t from-purple-900/40 via-indigo-900/20 to-transparent'
-              : 'bg-gradient-to-t from-purple-200/30 via-indigo-100/20 to-transparent'
-            }
-            pointer-events-none
-          `} />
-
-          {/* Accent glow effect */}
-          <div className={`
-            absolute -top-12 -right-12 w-24 h-24
-            ${theme === 'dark'
-              ? 'bg-purple-500/20'
-              : 'bg-purple-300/30'
-            }
-            rounded-full blur-3xl
-            pointer-events-none
-          `} />
-          <div className={`
-            absolute -bottom-8 -left-8 w-20 h-20
-            ${theme === 'dark'
-              ? 'bg-indigo-500/20'
-              : 'bg-indigo-300/30'
-            }
-            rounded-full blur-3xl
-            pointer-events-none
-          `} />
 
           <div className="relative flex items-center justify-around h-20 px-2">
             {navItems.map((item) => {
@@ -137,26 +103,23 @@ export function MobileBottomNav() {
                     active:scale-90
                     group
                     ${active
-                      ? 'text-white'
-                      : theme === 'dark'
-                      ? 'text-indigo-300 hover:text-purple-200'
-                      : 'text-indigo-600 hover:text-purple-700'
+                      ? 'text-[hsl(var(--foreground))]'
+                      : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'
                     }
                   `}
                   aria-label={item.label}
                   aria-current={active ? 'page' : undefined}
                 >
-                  {/* Active gradient background */}
+                  {/* Active glass background */}
                   {active && (
                     <div className={`
                       absolute inset-x-1 inset-y-1.5
                       rounded-xl
-                      ${theme === 'dark'
-                        ? 'bg-gradient-to-br from-purple-600/60 via-indigo-600/50 to-violet-600/60'
-                        : 'bg-gradient-to-br from-purple-500/70 via-indigo-500/60 to-violet-500/70'
-                      }
+                      bg-[hsla(0,0%,100%,0.25)]
+                      backdrop-blur-md
+                      border border-[hsla(0,0%,100%,0.3)]
                       animate-in fade-in zoom-in-95 duration-300
-                      group-hover:shadow-lg group-hover:shadow-purple-500/30
+                      shadow-lg
                     `} />
                   )}
 
@@ -166,12 +129,8 @@ export function MobileBottomNav() {
                       p-2.5 rounded-xl
                       transition-all duration-300 ease-out
                       ${active
-                        ? theme === 'dark'
-                          ? 'bg-white/15 scale-125 shadow-lg shadow-purple-400/30'
-                          : 'bg-white/40 scale-125 shadow-lg shadow-purple-400/40'
-                        : theme === 'dark'
-                        ? 'group-hover:bg-purple-500/20 scale-100'
-                        : 'group-hover:bg-purple-200/40 scale-100'
+                        ? 'bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm scale-125 shadow-lg'
+                        : 'group-hover:bg-[hsla(0,0%,100%,0.1)] backdrop-blur-sm scale-100'
                       }
                     `}>
                       <Icon 
@@ -203,10 +162,8 @@ export function MobileBottomNav() {
                     <div className={`
                       absolute bottom-0.5 h-1 w-6
                       rounded-full
-                      ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-purple-400 via-indigo-300 to-violet-400'
-                        : 'bg-gradient-to-r from-purple-600 via-indigo-500 to-violet-600'
-                      }
+                      bg-[hsla(0,0%,100%,0.4)]
+                      backdrop-blur-sm
                       animate-pulse
                     `} />
                   )}

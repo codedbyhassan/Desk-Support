@@ -51,13 +51,13 @@ const Loader: React.FC<LoaderProps> = ({ size = 'md', fullPage = false }) => {
           xmlns="http://www.w3.org/2000/svg"
         >
           {/* Top dot */}
-          <circle cx="25" cy="5" r="3" fill="#3b82f6" />
+          <circle cx="25" cy="5" r="3" fill="hsl(var(--chart-blue))" />
           {/* Right dot */}
-          <circle cx="45" cy="25" r="3" fill="#3b82f6" />
+          <circle cx="45" cy="25" r="3" fill="hsl(var(--chart-blue))" />
           {/* Bottom dot */}
-          <circle cx="25" cy="45" r="3" fill="#3b82f6" />
+          <circle cx="25" cy="45" r="3" fill="hsl(var(--chart-blue))" />
           {/* Left dot */}
-          <circle cx="5" cy="25" r="3" fill="#3b82f6" />
+          <circle cx="5" cy="25" r="3" fill="hsl(var(--chart-blue))" />
         </svg>
 
         {/* Inner rotating ring */}
@@ -75,7 +75,7 @@ const Loader: React.FC<LoaderProps> = ({ size = 'md', fullPage = false }) => {
               cy="25"
               r="18"
               fill="none"
-              stroke="#60a5fa"
+              stroke="hsl(var(--chart-blue-light))"
               strokeWidth="2"
               strokeDasharray="17 60"
               opacity="0.8"

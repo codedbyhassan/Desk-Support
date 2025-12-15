@@ -133,8 +133,15 @@ export function Header({
 
   return (
     <>
-      <header className="fixed top-0 right-0 left-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border dark:bg-[#0d1117]/95 dark:border-[#151a1f]">
-        <div className="flex h-full">
+      <header className="glass-header fixed top-0 right-0 left-0 z-40 h-14 lg:h-16 overflow-hidden">
+        {/* Light mode gradient */}
+        <div className="dark:hidden absolute inset-0" style={{ background: 'var(--bg-gradient-header)' }} />
+        {/* Dark mode gradient */}
+        <div className="hidden dark:block absolute inset-0" style={{ background: 'var(--bg-gradient-header-dark, linear-gradient(90deg, hsl(var(--primary-900)) 0%, hsl(var(--secondary-900)) 50%, hsl(var(--primary-900)) 100%))' }} />
+        {/* Subtle radial gradient for depth */}
+        <div className="absolute top-1/2 left-1/4 w-48 h-48 rounded-full blur-2xl pointer-events-none opacity-25" style={{ background: `radial-gradient(circle, hsl(var(--primary-200)) 0%, transparent 70%)` }} />
+        <div className="absolute top-1/2 right-1/4 w-40 h-40 rounded-full blur-2xl pointer-events-none opacity-20" style={{ background: `radial-gradient(circle, hsl(var(--secondary-200)) 0%, transparent 70%)` }} />
+        <div className="flex h-full relative z-10">
           {/* Sidebar spacer on desktop */}
           <div className="hidden lg:block w-16 flex-shrink-0" />
           
@@ -153,11 +160,8 @@ export function Header({
                 />
                 
                 <div className="hidden lg:flex items-center gap-2">
-                  <div 
-                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 dark:bg-[#0d1117] dark:border dark:border-[#151a1f]"
-                    style={{ backgroundColor: theme === 'dark' ? undefined : primaryColor }}
-                  >
-                    <BarChart3 className={`h-5 w-5 ${theme === 'dark' ? 'text-white' : 'text-white'}`} />
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-[hsla(0,0%,100%,0.15)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.2)]">
+                    <BarChart3 className="h-5 w-5 text-foreground" />
                   </div>
                   <div className="flex items-center gap-2">
                     <h1 className="text-lg font-semibold text-foreground">
@@ -174,11 +178,8 @@ export function Header({
                   </div>
                 </div>
 
-                <div 
-                  className="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 dark:bg-[#0d1117] dark:border dark:border-[#151a1f]"
-                  style={{ backgroundColor: theme === 'dark' ? undefined : primaryColor }}
-                >
-                  <BarChart3 className={`h-4 w-4 ${theme === 'dark' ? 'text-white' : 'text-white'}`} />
+                <div className="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[hsla(0,0%,100%,0.15)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.2)]">
+                  <BarChart3 className="h-4 w-4 text-foreground" />
                 </div>
 
                 <div className="lg:hidden min-w-0">
@@ -203,8 +204,8 @@ export function Header({
                             value={tab.value}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                               isTabActive
-                                ? 'bg-transparent text-slate-900 dark:bg-white dark:text-black shadow-md'
-                                : 'bg-transparent text-slate-900 dark:text-white/60 hover:text-slate-700 dark:hover:text-white/90'
+                                ? 'bg-[hsl(var(--primary))]/20 text-[hsl(var(--primary))] border border-[hsl(var(--primary))]/30 shadow-sm'
+                                : 'bg-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--primary))]/10'
                             }`}
                           >
                             <Icon className="h-4 w-4" />

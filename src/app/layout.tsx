@@ -168,7 +168,22 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <DashboardTabProvider>
-      <div className="min-h-screen bg-background transition-colors duration-300">
+      <div className="min-h-screen transition-colors duration-300 relative overflow-hidden">
+        {/* Light mode main background */}
+        <div className="dark:hidden fixed inset-0" style={{ background: 'var(--bg-gradient-main)' }} />
+        {/* Dark mode main background */}
+        <div className="hidden dark:block fixed inset-0" style={{ background: 'var(--bg-gradient-main-dark)' }} />
+        {/* Subtle gradient overlay for depth and glass effect enhancement */}
+        <div className="fixed inset-0 pointer-events-none z-0 opacity-30 dark:opacity-20" style={{ background: 'linear-gradient(135deg, hsl(var(--primary-100)) 0%, hsl(var(--secondary-100)) 50%, hsl(var(--primary-100)) 100%)' }} />
+        
+        {/* Subtle radial gradients for glass effect enhancement - creates depth */}
+        <div className="fixed top-0 left-1/4 w-[600px] h-[600px] bg-white/40 dark:bg-white/8 rounded-full blur-3xl pointer-events-none z-0 animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="fixed bottom-0 right-1/4 w-[500px] h-[500px] bg-white/30 dark:bg-white/6 rounded-full blur-3xl pointer-events-none z-0 animate-pulse" style={{ animationDuration: '10s', animationDelay: '1s' }} />
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-white/20 dark:bg-white/4 rounded-full blur-3xl pointer-events-none z-0 animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
+        
+        {/* Subtle shadow overlays for depth */}
+        <div className="fixed inset-0 bg-gradient-to-t from-black/5 via-transparent to-transparent dark:from-black/20 pointer-events-none z-0" />
+        
         <Sidebar navItems={navItems} primaryColor={primaryColor} />
         <Header 
           navItems={navItems}
@@ -177,8 +192,15 @@ export default function Layout({ children }: LayoutProps) {
           primaryColor={primaryColor}
         />
 
-        <main className="lg:ml-16 pt-3 lg:pt-4 pb-28 lg:pb-0 px-4 lg:px-8 py-4 lg:py-6 relative">
-          <div className="max-w-7xl mx-auto">
+        <main className="lg:ml-16 pt-3 lg:pt-4 pb-28 lg:pb-0 px-4 lg:px-8 py-4 lg:py-6 relative z-10 overflow-hidden">
+          {/* Gradient background for page content - Light mode */}
+          <div className="dark:hidden absolute inset-0 pointer-events-none opacity-25" style={{ background: 'var(--bg-gradient-card)' }} />
+          {/* Gradient background for page content - Dark mode */}
+          <div className="hidden dark:block absolute inset-0 pointer-events-none opacity-20" style={{ background: 'var(--bg-gradient-card-dark, linear-gradient(135deg, hsl(var(--primary-950)) 0%, hsl(var(--secondary-950)) 100%))' }} />
+          {/* Subtle radial gradients for depth in content area */}
+          <div className="absolute top-20 left-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none opacity-20" style={{ background: `radial-gradient(circle, hsl(var(--primary-200)) 0%, transparent 70%)` }} />
+          <div className="absolute bottom-20 right-1/4 w-80 h-80 rounded-full blur-3xl pointer-events-none opacity-15" style={{ background: `radial-gradient(circle, hsl(var(--secondary-200)) 0%, transparent 70%)` }} />
+          <div className="relative z-10 max-w-7xl mx-auto space-y-6">
             {children}
           </div>
         </main>

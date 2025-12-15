@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTheme } from '@/context/ThemeContext'
 import { NavItem } from './types'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface SidebarProps {
   navItems: NavItem[]
@@ -31,66 +32,62 @@ export function Sidebar({ navItems, primaryColor }: SidebarProps) {
   }
 
   return (
-    <aside className="hidden lg:block fixed left-0 top-0 h-screen z-50">
-      <div 
-        className={`relative h-full w-16 flex flex-col items-center py-6 gap-2 transition-colors duration-300 ${
-          theme === 'dark' 
-            ? 'bg-gradient-to-b from-[#0d1117] via-[#0d1117] to-[#0d1117] border-r border-[#151a1f]' 
-            : `bg-gradient-to-b from-[${primaryColor}] to-[${lightenColor(primaryColor, -10)}] border-r border-white/20`
-        }`}
-        style={theme === 'light' ? {
-          background: `linear-gradient(to bottom, ${primaryColor}, ${lightenColor(primaryColor, -10)})`,
-        } : undefined}
-      >
-        {/* Navigation Icons */}
-        <div className="flex flex-col items-center gap-2 w-full flex-1">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
-            const isSettings = item.id === 'settings' || item.name?.toLowerCase() === 'settings'
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNavChange(item.href)}
-                className={`relative w-10 h-10 rounded-full transition-all duration-300 flex items-center justify-center group ${
-                  isSettings ? 'mt-auto' : ''
-                } ${
-                  theme === 'dark'
-                    ? isActive 
-                      ? 'bg-white border-2 border-white shadow-lg' 
-                      : 'bg-transparent hover:bg-[#151a1f] border border-transparent hover:border-[#151a1f]'
-                    : isActive 
-                      ? 'bg-white shadow-md' 
-                      : 'bg-white/15 hover:bg-white/25'
-                }`}
-                title={item.name}
-              >
-                <Icon 
-                  size={18} 
-                  className={`transition-colors ${
-                    theme === 'dark'
-                      ? isActive ? 'text-black' : 'text-white/70 group-hover:text-white'
-                      : isActive ? 'text-slate-800' : 'text-white'
-                  }`}
-                  style={theme === 'light' && isActive ? { color: primaryColor } : undefined}
-                />
-                {item.badge && (
-                  <span 
-                    className="absolute -top-2 -right-2 flex items-center justify-center min-w-[20px] h-[20px] px-0.5 text-[10px] font-bold rounded-full text-white"
-                    style={{ 
-                      backgroundColor: theme === 'dark' 
-                        ? (isActive ? '#ef4444' : '#ef4444')
-                        : (isActive ? primaryColor : '#ef4444')
-                    }}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            )
-          })}
+    <TooltipProvider delayDuration={300}>
+      <aside className="hidden lg:block fixed left-0 top-0 h-screen z-50">
+        <div className="glass-sidebar relative h-full w-16 flex flex-col items-center py-6 gap-2 transition-colors duration-300 overflow-hidden">
+          {/* Light mode gradient */}
+          <div className="dark:hidden absolute inset-0" style={{ background: 'var(--bg-gradient-sidebar)' }} />
+          {/* Dark mode gradient */}
+          <div className="hidden dark:block absolute inset-0" style={{ background: 'var(--bg-gradient-sidebar-dark, linear-gradient(180deg, hsl(var(--primary-900)) 0%, hsl(var(--primary-950)) 50%, hsl(var(--secondary-900)) 100%))' }} />
+          {/* Subtle radial gradient for depth */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full blur-2xl pointer-events-none opacity-30" style={{ background: `radial-gradient(circle, hsl(var(--primary-200)) 0%, transparent 70%)` }} />
+          {/* Content with relative z-index */}
+          <div className="relative z-10 w-full h-full flex flex-col items-center py-6 gap-2">
+            {/* Navigation Icons */}
+            <div className="flex flex-col items-center gap-2 w-full flex-1">
+              {navItems.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href
+              const isSettings = item.id === 'settings' || item.name?.toLowerCase() === 'settings'
+              return (
+                <Tooltip key={item.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => handleNavChange(item.href)}
+                      className={`relative w-10 h-10 rounded-full transition-all duration-300 flex items-center justify-center group ${
+                        isSettings ? 'mt-auto' : ''
+                      } ${
+                        isActive 
+                          ? 'bg-[hsl(var(--primary))]/20 border-2 border-[hsl(var(--primary))]/40 shadow-lg backdrop-blur-sm' 
+                          : 'bg-transparent hover:bg-[hsl(var(--primary))]/10 border border-transparent hover:border-[hsl(var(--primary))]/20 backdrop-blur-sm'
+                      }`}
+                      aria-label={item.name}
+                    >
+                      <Icon 
+                        size={18} 
+                        className={`transition-colors ${
+                          isActive 
+                            ? 'text-[hsl(var(--primary))]' 
+                            : 'text-[hsl(var(--foreground))]/70 group-hover:text-[hsl(var(--primary))]'
+                        }`}
+                      />
+                      {item.badge && (
+                        <span className="absolute -top-2 -right-2 flex items-center justify-center min-w-[20px] h-[20px] px-0.5 text-[10px] font-bold rounded-full bg-[hsl(var(--primary))]/30 backdrop-blur-sm border border-[hsl(var(--primary))]/40 text-[hsl(var(--primary-foreground))]">
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="ml-2">
+                    <p>{item.name}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )
+              })}
+            </div>
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </TooltipProvider>
   )
 }

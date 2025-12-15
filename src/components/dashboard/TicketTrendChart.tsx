@@ -25,8 +25,8 @@ export function TicketTrendChart({ data }: TicketTrendChartProps) {
             <YAxis />
             <Tooltip />
             <Legend />
-            <Line type="monotone" dataKey="created" stroke="#3b82f6" name="Created" />
-            <Line type="monotone" dataKey="resolved" stroke="#10b981" name="Resolved" />
+            <Line type="monotone" dataKey="created" stroke="hsl(var(--chart-blue))" name="Created" />
+            <Line type="monotone" dataKey="resolved" stroke="hsl(var(--chart-green))" name="Resolved" />
           </LineChart>
         </ResponsiveContainer>
       </CardContent>
