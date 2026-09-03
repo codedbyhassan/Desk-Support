@@ -1,367 +1,84 @@
 import { useState } from 'react'
-import { 
-  Package, 
-  Ticket, 
-  BarChart3, 
-  Users, 
-  Shield, 
-  Clock,
-  ArrowRight,
-  CheckCircle2,
-  Sparkles,
-  Zap,
-  Star,
-  Menu,
-  X,
-  TrendingUp,
-  Bell,
-  Box,
-  Activity,
-  Target,
-  Building2,
-  Layers,
-  Play
-} from 'lucide-react'
-
+import { Activity, ArrowRight, BarChart3, Check, ChevronDown, Menu, Package, Shield, Ticket, Users, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import '../styles/marketing.css'
+
+const capabilities = [
+  { icon: Package, title: 'Asset management', text: 'Keep equipment, ownership, status and history in one operational record.' },
+  { icon: Ticket, title: 'Support tickets', text: 'Capture requests, assign responsibility and move work from open to resolved.' },
+  { icon: Users, title: 'Teams & departments', text: 'Give every team a clear workspace while keeping organisation-wide visibility.' },
+  { icon: BarChart3, title: 'Operational insight', text: 'Turn tickets and asset activity into information your team can act on.' },
+  { icon: Shield, title: 'Controlled access', text: 'Keep sensitive operational data behind role-aware access and permissions.' },
+  { icon: Activity, title: 'Live workspace', text: 'Keep activity visible across the people responsible for getting work done.' },
+]
+
+const plans = [
+  { name: 'Starter', price: 'Free', text: 'For small teams getting organised.', features: ['Core ticket management', 'Asset records', 'Team workspace'] },
+  { name: 'Business', price: 'Custom', text: 'For teams running day-to-day IT operations.', features: ['Everything in Starter', 'Advanced workflows', 'Reporting & permissions'], featured: true },
+  { name: 'Enterprise', price: 'Custom', text: 'For organisations with larger operational needs.', features: ['Everything in Business', 'Organisation-wide controls', 'Deployment support'] },
+]
 
 export default function LandingPage() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const navigate = useNavigate()
-
-  const handleNavigate = (path: string) => {
-    try {
-    navigate(path)
-    } catch (error) {
-      console.error('Navigation error:', error)
-      // Fallback to window location if navigate fails
-      window.location.hash = `#${path}`
-    }
-  }
-
-  const features = [
-    {
-      icon: Package,
-      title: 'Asset Management',
-      description: 'Track and manage all company assets with real-time status updates and comprehensive reporting',
-      color: 'emerald'
-    },
-    {
-      icon: Ticket,
-      title: 'Ticket System',
-      description: 'Create, assign, and resolve support tickets efficiently with automated workflows',
-      color: 'blue'
-    },
-    {
-      icon: Users,
-      title: 'Team Collaboration',
-      description: 'Organize teams and assign tasks with full visibility across your organization',
-      color: 'slate'
-    },
-    {
-      icon: BarChart3,
-      title: 'Analytics Dashboard',
-      description: 'Get deep insights into performance metrics and utilization trends',
-      color: 'amber'
-    },
-    {
-      icon: Shield,
-      title: 'Role-Based Access',
-      description: 'Secure access control with granular admin and employee permissions',
-      color: 'slate'
-    },
-    {
-      icon: Clock,
-      title: 'Real-Time Updates',
-      description: 'Live data synchronization keeps your entire team in perfect sync',
-      color: 'blue'
-    }
-  ]
-
-  const stats = [
-    { value: '99.9%', label: 'Uptime SLA', icon: Target },
-    { value: '50K+', label: 'Active Users', icon: Users },
-    { value: '<100ms', label: 'Response Time', icon: Zap },
-    { value: '24/7', label: 'Support', icon: Shield }
-  ]
-
-  const getColorClasses = (color: string) => {
-    const colors: Record<'emerald' | 'blue' | 'slate' | 'amber', string> = {
-      emerald: 'bg-emerald-500 shadow-emerald-500/20',
-      blue: 'bg-blue-500 shadow-blue-500/20',
-      slate: 'bg-slate-900 shadow-slate-900/20',
-      amber: 'bg-amber-500 shadow-amber-500/20'
-    }
-    return colors[color as 'emerald' | 'blue' | 'slate' | 'amber'] || colors.slate
-  }
+  const go = (path: string) => navigate(path)
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--background))]">
-      {/* Navigation */}
-      <nav className="border-b border-[hsl(var(--border))] sticky top-0 z-50 bg-[hsl(var(--card))] backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 lg:h-20">
-            <div className="flex items-center gap-3 group cursor-pointer" onClick={() => handleNavigate('/')}>
-              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-[hsl(var(--primary))] rounded-xl lg:rounded-2xl flex items-center justify-center shadow-lg shadow-[hsl(var(--primary))]/20 group-hover:scale-105 transition-transform">
-                <BarChart3 className="h-5 w-5 lg:h-6 lg:w-6 text-[hsl(var(--primary-foreground))]" />
-              </div>
-              <span className="text-lg lg:text-xl font-bold text-[hsl(var(--foreground))]">DeskSupport Pro</span>
-            </div>
-            
-            {/* Desktop Menu */}
-            <div className="hidden md:flex items-center gap-1">
-              <a href="#features" className="px-3 lg:px-4 py-2 rounded-lg lg:rounded-xl text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] font-medium transition-all text-sm lg:text-base">Features</a>
-              <a href="#benefits" className="px-3 lg:px-4 py-2 rounded-lg lg:rounded-xl text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] font-medium transition-all text-sm lg:text-base">Benefits</a>
-              <a href="#pricing" className="px-3 lg:px-4 py-2 rounded-lg lg:rounded-xl text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] font-medium transition-all text-sm lg:text-base">Pricing</a>
-              <div className="w-px h-6 bg-[hsl(var(--border))] mx-2" />
-              <button 
-                type="button"
-                onClick={() => handleNavigate('/login')}
-                className="px-3 lg:px-4 py-2 rounded-lg lg:rounded-xl text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] font-medium transition-all text-sm lg:text-base"
-              >
-                Sign In
-              </button>
-              <button 
-                type="button"
-                onClick={() => handleNavigate('/signup')}
-                className="ml-2 bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))] text-[hsl(var(--primary-foreground))] font-semibold px-4 lg:px-6 py-2 lg:py-2.5 rounded-lg lg:rounded-xl shadow-lg shadow-[hsl(var(--primary))]/20 hover:shadow-[hsl(var(--primary))]/30 transition-all text-sm lg:text-base"
-              >
-                Get Started
-              </button>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button 
-              type="button"
-              className="md:hidden p-2 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X className="h-5 w-5 text-[hsl(var(--foreground))]" /> : <Menu className="h-5 w-5 text-[hsl(var(--foreground))]" />}
-            </button>
+    <main className="marketing-page">
+      <nav className="marketing-nav">
+        <div className="marketing-container marketing-nav-inner">
+          <button className="marketing-brand" onClick={() => go('/')} aria-label="Desk-Support home">
+            <span className="marketing-brand-mark"><BarChart3 size={18} /></span>
+            <span>Desk-Support</span>
+          </button>
+          <div className="marketing-nav-links">
+            <a className="marketing-nav-link" href="#capabilities">Capabilities</a>
+            <a className="marketing-nav-link" href="#workflow">How it works</a>
+            <a className="marketing-nav-link" href="#pricing">Pricing</a>
           </div>
-
-          {/* Mobile Menu */}
-          {mobileMenuOpen && (
-            <div className="md:hidden py-4 space-y-2 border-t border-[hsl(var(--border))]">
-              <a href="#features" className="block py-2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] font-medium rounded-lg hover:bg-[hsl(var(--muted))] px-4 transition-colors text-sm" onClick={() => setMobileMenuOpen(false)}>Features</a>
-              <a href="#benefits" className="block py-2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] font-medium rounded-lg hover:bg-[hsl(var(--muted))] px-4 transition-colors text-sm" onClick={() => setMobileMenuOpen(false)}>Benefits</a>
-              <a href="#pricing" className="block py-2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] font-medium rounded-lg hover:bg-[hsl(var(--muted))] px-4 transition-colors text-sm" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
-              <div className="h-px bg-[hsl(var(--border))] my-2" />
-              <button 
-                type="button"
-                onClick={() => {
-                  handleNavigate('/login')
-                  setMobileMenuOpen(false)
-                }}
-                className="block w-full text-left py-2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] font-medium rounded-lg hover:bg-[hsl(var(--muted))] px-4 transition-colors text-sm"
-              >
-                Sign In
-              </button>
-              <button 
-                type="button"
-                onClick={() => {
-                  handleNavigate('/signup')
-                  setMobileMenuOpen(false)
-                }}
-                className="w-full bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))] text-[hsl(var(--primary-foreground))] font-semibold px-6 py-3 rounded-lg shadow-lg transition-all text-sm mt-2"
-              >
-                Get Started
-              </button>
-            </div>
-          )}
+          <div className="marketing-nav-actions">
+            <button className="marketing-nav-link" onClick={() => go('/login')}>Sign in</button>
+            <button className="marketing-button marketing-button-primary" onClick={() => go('/signup')}>Get started <ArrowRight size={15} /></button>
+          </div>
+          <button className="marketing-mobile-toggle" onClick={() => setMobileOpen(v => !v)} aria-label="Toggle navigation">
+            {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
         </div>
+        {mobileOpen && <div className="marketing-container" style={{ padding: '12px 0 18px' }}><div style={{ display: 'grid', gap: 4 }}>
+          <a className="marketing-nav-link" href="#capabilities" onClick={() => setMobileOpen(false)}>Capabilities</a>
+          <a className="marketing-nav-link" href="#workflow" onClick={() => setMobileOpen(false)}>How it works</a>
+          <a className="marketing-nav-link" href="#pricing" onClick={() => setMobileOpen(false)}>Pricing</a>
+          <button className="marketing-button marketing-button-secondary" onClick={() => go('/login')}>Sign in</button>
+          <button className="marketing-button marketing-button-primary" onClick={() => go('/signup')}>Get started</button>
+        </div></div>}
       </nav>
 
-      {/* Hero Section */}
-      <section className="bg-[hsl(var(--card))]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 lg:py-24">
-          <div className="text-center max-w-4xl mx-auto mb-8 lg:mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-[hsl(var(--muted))] border border-[hsl(var(--border))] mb-4 lg:mb-6">
-              <Sparkles className="h-3 w-3 lg:h-4 lg:w-4 text-[hsl(var(--foreground))]" />
-              <span className="text-xs lg:text-sm text-[hsl(var(--foreground))] font-medium">Trusted by 50,000+ teams worldwide</span>
+      <section className="marketing-hero">
+        <div className="marketing-container marketing-hero-grid">
+          <div>
+            <div className="marketing-eyebrow">IT operations, without the clutter</div>
+            <h1>Run your support desk with <span>clarity.</span></h1>
+            <p className="marketing-hero-copy">Desk-Support brings tickets, assets, teams and operational activity into one focused workspace built for organisations that need work to stay visible.</p>
+            <div className="marketing-hero-actions">
+              <button className="marketing-button marketing-button-primary" onClick={() => go('/signup')}>Create your workspace <ArrowRight size={16} /></button>
+              <a className="marketing-button marketing-button-secondary" href="#workflow">See how it works <ChevronDown size={15} /></a>
             </div>
-            
-            <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-[hsl(var(--foreground))] leading-tight mb-4 lg:mb-6">
-              The complete platform for
-              <span className="block mt-1 lg:mt-2 text-[hsl(var(--muted-foreground))]">IT management</span>
-            </h1>
-            
-            <p className="text-xs sm:text-sm lg:text-base text-[hsl(var(--muted-foreground))] leading-relaxed mb-6 lg:mb-8 max-w-3xl mx-auto px-4">
-              Unified asset tracking, intelligent support tickets, and powerful team collaboration. Everything your IT team needs in one beautiful platform.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 justify-center mb-8 lg:mb-12 px-4">
-              <button 
-                type="button"
-                onClick={() => handleNavigate('/signup')}
-                className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))] text-[hsl(var(--primary-foreground))] font-semibold px-6 lg:px-8 py-3 lg:py-4 rounded-lg lg:rounded-xl shadow-lg shadow-[hsl(var(--primary))]/20 hover:shadow-[hsl(var(--primary))]/30 transition-all flex items-center justify-center gap-2 group text-sm lg:text-base"
-              >
-                Start Free Trial
-                <ArrowRight className="h-4 w-4 lg:h-5 lg:w-5 group-hover:translate-x-1 transition-transform" />
-              </button>
-              <button 
-                type="button"
-                onClick={() => handleNavigate('/demo')}
-                className="border-2 border-[hsl(var(--border))] hover:border-[hsl(var(--primary))] text-[hsl(var(--foreground))] font-semibold px-6 lg:px-8 py-3 lg:py-4 rounded-lg lg:rounded-xl hover:bg-[hsl(var(--muted))] transition-all flex items-center justify-center gap-2 group text-sm lg:text-base"
-              >
-                <Play className="h-4 w-4 lg:h-5 lg:w-5 group-hover:scale-110 transition-transform" />
-                Watch Demo
-              </button>
-            </div>
-
-            {/* Stats Bar */}
-            <div className="flex flex-wrap justify-center gap-4 lg:gap-8 pt-6 lg:pt-8 border-t border-[hsl(var(--border))] px-4">
-              {stats.map((stat, idx) => {
-                const Icon = stat.icon
-                return (
-                  <div key={idx} className="flex items-center gap-2 lg:gap-3">
-                    <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl bg-[hsl(var(--muted))] flex items-center justify-center">
-                      <Icon className="h-3 w-3 lg:h-4 lg:w-4 text-[hsl(var(--foreground))]" />
-                    </div>
-                    <div className="text-left">
-                      <div className="text-lg lg:text-2xl font-bold text-[hsl(var(--foreground))]">{stat.value}</div>
-                      <div className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))]">{stat.label}</div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+            <div className="marketing-trust">Built around the work your support team already does — not another generic dashboard.</div>
           </div>
-        </div>
-      </section>
-
-      {/* Dashboard Preview */}
-      <section className="py-12 lg:py-16 bg-[hsl(var(--background))]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative">
-            {/* Main Dashboard Card */}
-            <div className="relative rounded-2xl lg:rounded-3xl overflow-hidden shadow-xl lg:shadow-2xl border border-[hsl(var(--border))] glass-card">
-              <div className="bg-[hsl(var(--card))] p-4 lg:p-8">
-                {/* Dashboard Header */}
-                <div className="flex items-center justify-between mb-4 lg:mb-8">
-                  <div className="flex items-center gap-2 lg:gap-3">
-                    <div className="w-8 h-8 lg:w-12 lg:h-12 bg-[hsl(var(--primary))] rounded-lg lg:rounded-2xl flex items-center justify-center shadow-xl shadow-[hsl(var(--primary))]/20">
-                      <BarChart3 className="h-4 w-4 lg:h-6 lg:w-6 text-[hsl(var(--primary-foreground))]" />
-                    </div>
-                    <div>
-                      <div className="text-[hsl(var(--foreground))] font-semibold text-sm lg:text-lg">Dashboard Overview</div>
-                      <div className="text-[hsl(var(--muted-foreground))] text-xs lg:text-sm">Real-time insights at a glance</div>
-                    </div>
+          <div className="marketing-product-frame" aria-label="Desk-Support product preview">
+            <div className="marketing-window">
+              <div className="marketing-window-bar"><i className="marketing-window-dot" /><i className="marketing-window-dot" /><i className="marketing-window-dot" /></div>
+              <div className="marketing-window-body">
+                <aside className="marketing-product-sidebar">{['Overview', 'Tickets', 'Assets', 'Teams', 'Reports'].map((item, index) => <div key={item} className={`marketing-side-item ${index === 0 ? 'active' : ''}`}>{item}</div>)}</aside>
+                <div className="marketing-product-main">
+                  <div className="marketing-product-title"><strong>Operations overview</strong><span className="marketing-live"><i /> Live</span></div>
+                  <div className="marketing-kpis">
+                    <div className="marketing-kpi"><small>Open tickets</small><strong>24</strong><em>+8% this week</em></div>
+                    <div className="marketing-kpi"><small>Assets tracked</small><strong>342</strong><em>All records current</em></div>
+                    <div className="marketing-kpi"><small>In progress</small><strong>11</strong><em>Across 4 teams</em></div>
+                    <div className="marketing-kpi"><small>Resolved</small><strong>86%</strong><em>Current period</em></div>
                   </div>
-                  <div className="flex items-center gap-1 lg:gap-2">
-                    <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-[hsl(var(--success-500))] animate-pulse" />
-                    <span className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))]">Live</span>
-                  </div>
-                </div>
-                
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4 mb-4 lg:mb-6">
-                  {[
-                    { icon: CheckCircle2, value: '127', label: 'Active Tickets', change: '+12%', color: 'emerald' },
-                    { icon: Package, value: '342', label: 'Total Assets', change: '+8%', color: 'blue' },
-                    { icon: Users, value: '48', label: 'Team Members', change: '+3%', color: 'slate' },
-                    { icon: Target, value: '94%', label: 'Resolution Rate', change: '+5%', color: 'amber' }
-                  ].map((stat, i) => {
-                    const StatIcon = stat.icon
-                    return (
-                      <div key={i} className="glass-card rounded-xl lg:rounded-2xl p-3 lg:p-5 border border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]/50 transition-colors">
-                        <div className="flex items-center justify-between mb-2 lg:mb-4">
-                          <div className={`w-8 h-8 lg:w-10 lg:h-10 ${getColorClasses(stat.color)} rounded-lg lg:rounded-xl flex items-center justify-center`}>
-                            <StatIcon className="h-4 w-4 lg:h-5 lg:w-5 text-[hsl(var(--primary-foreground))]" />
-                          </div>
-                        </div>
-                        <div className="text-[hsl(var(--foreground))] text-xl lg:text-3xl font-bold mb-1">{stat.value}</div>
-                        <div className="text-[hsl(var(--muted-foreground))] text-xs lg:text-sm mb-1 lg:mb-2">{stat.label}</div>
-                        <div className="text-[hsl(var(--success-500))] text-xs flex items-center gap-1">
-                          <TrendingUp className="h-3 w-3" />
-                          {stat.change} this week
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* Activity & Chart */}
-                <div className="grid lg:grid-cols-2 gap-3 lg:gap-4">
-                  <div className="glass-card rounded-xl lg:rounded-2xl p-3 lg:p-5 border border-[hsl(var(--border))]">
-                    <div className="flex items-center justify-between mb-3 lg:mb-4">
-                      <span className="text-[hsl(var(--foreground))] font-semibold text-sm lg:text-base">Recent Activity</span>
-                      <Bell className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />
-                    </div>
-                    <div className="space-y-2 lg:space-y-3">
-                      {[
-                        { icon: Box, text: 'MacBook Pro assigned to Marketing', time: '2m ago' },
-                        { icon: Ticket, text: 'Support ticket #142 resolved', time: '5m ago' },
-                        { icon: Users, text: '3 new team members added', time: '12m ago' },
-                        { icon: Shield, text: 'Security audit completed', time: '1h ago' }
-                      ].map((item, i) => {
-                        const ItemIcon = item.icon
-                        return (
-                          <div key={i} className="flex items-center gap-2 lg:gap-3 p-2 rounded-lg lg:rounded-xl hover:bg-[hsl(var(--muted))]/50 transition-colors">
-                            <div className="w-6 h-6 lg:w-8 lg:h-8 bg-[hsl(var(--muted))] rounded-lg flex items-center justify-center flex-shrink-0">
-                              <ItemIcon className="h-3 w-3 lg:h-4 lg:w-4 text-[hsl(var(--muted-foreground))]" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-[hsl(var(--foreground))] text-xs lg:text-sm truncate">{item.text}</div>
-                              <div className="text-[hsl(var(--muted-foreground))] text-xs">{item.time}</div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="glass-card rounded-xl lg:rounded-2xl p-3 lg:p-5 border border-[hsl(var(--border))]">
-                    <div className="flex items-center justify-between mb-3 lg:mb-4">
-                      <span className="text-[hsl(var(--foreground))] font-semibold text-sm lg:text-base">Performance</span>
-                      <Activity className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />
-                    </div>
-                    <div className="space-y-3 lg:space-y-4">
-                      {[
-                        { label: 'Ticket Resolution', value: 94, color: 'emerald' },
-                        { label: 'Asset Utilization', value: 87, color: 'blue' },
-                        { label: 'Team Efficiency', value: 91, color: 'amber' }
-                      ].map((metric, i) => (
-                        <div key={i}>
-                          <div className="flex items-center justify-between mb-1 lg:mb-2">
-                            <span className="text-[hsl(var(--muted-foreground))] text-xs lg:text-sm">{metric.label}</span>
-                            <span className="text-[hsl(var(--foreground))] font-semibold text-xs lg:text-sm">{metric.value}%</span>
-                          </div>
-                          <div className="h-1.5 lg:h-2 bg-[hsl(var(--muted))] rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full bg-[hsl(var(--primary))] rounded-full transition-all`}
-                              style={{ width: `${metric.value}%` }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Floating Notification Cards - Hidden on mobile */}
-            <div className="absolute -bottom-2 left-4 lg:-bottom-4 lg:left-8 glass-card rounded-lg lg:rounded-xl shadow-lg p-3 lg:p-4 border border-[hsl(var(--border))] hover:shadow-xl transition-shadow hidden lg:block">
-              <div className="flex items-center gap-2 lg:gap-3">
-                <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl bg-[hsl(var(--success-500))] flex items-center justify-center">
-                  <CheckCircle2 className="h-4 w-4 lg:h-5 lg:w-5 text-[hsl(var(--primary-foreground))]" />
-                </div>
-                <div>
-                  <div className="text-xs lg:text-sm font-semibold text-[hsl(var(--foreground))]">Ticket Resolved</div>
-                  <div className="text-xs text-[hsl(var(--muted-foreground))]">2 minutes ago</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="absolute -top-2 right-4 lg:-top-4 lg:right-8 glass-card rounded-lg lg:rounded-xl shadow-lg p-3 lg:p-4 border border-[hsl(var(--border))] hover:shadow-xl transition-shadow hidden lg:block">
-              <div className="flex items-center gap-2 lg:gap-3">
-                <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl bg-[hsl(var(--primary))] flex items-center justify-center">
-                  <Package className="h-4 w-4 lg:h-5 lg:w-5 text-[hsl(var(--primary-foreground))]" />
-                </div>
-                <div>
-                  <div className="text-xs lg:text-sm font-semibold text-[hsl(var(--foreground))]">Asset Added</div>
-                  <div className="text-xs text-[hsl(var(--muted-foreground))]">Just now</div>
+                  <div className="marketing-chart"><div className="marketing-chart-lines">{[34,52,43,70,57,84,64,91,76].map((h, i) => <i key={i} style={{ height: `${h}%` }} />)}</div></div>
                 </div>
               </div>
             </div>
@@ -369,250 +86,32 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Social Proof Banner */}
-      <section className="py-6 lg:py-8 bg-[hsl(var(--card))] border-y border-[hsl(var(--border))]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap justify-center items-center gap-6 lg:gap-12">
-            {[
-              { icon: Zap, text: 'Lightning Fast' },
-              { icon: Shield, text: 'Enterprise Security' },
-              { icon: Star, text: '4.9/5 Rating' },
-              { icon: Users, text: '50K+ Users' }
-            ].map((item, i) => {
-              const Icon = item.icon
-              return (
-                <div key={i} className="flex items-center gap-1.5 lg:gap-2 group">
-                  <div className="w-6 h-6 lg:w-8 lg:h-8 rounded-lg bg-[hsl(var(--muted))] flex items-center justify-center group-hover:bg-[hsl(var(--primary))] transition-colors">
-                    <Icon className="h-3 w-3 lg:h-4 lg:w-4 text-[hsl(var(--foreground))] group-hover:text-[hsl(var(--primary-foreground))] transition-colors" />
-                  </div>
-                  <span className="text-xs lg:text-sm font-medium text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--foreground))] transition-colors">{item.text}</span>
-                </div>
-              )
-            })}
-          </div>
+      <section id="capabilities" className="marketing-section marketing-section-soft">
+        <div className="marketing-container">
+          <div className="marketing-section-heading"><small>Core capabilities</small><h2>One system for the work behind every request.</h2><p>Desk-Support connects the operational pieces that normally live across spreadsheets, chat threads and disconnected tools.</p></div>
+          <div className="marketing-capabilities">{capabilities.map(({ icon: Icon, title, text }) => <article className="marketing-capability" key={title}><div className="marketing-capability-icon"><Icon size={19} /></div><h3>{title}</h3><p>{text}</p></article>)}</div>
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section id="features" className="py-16 lg:py-32 bg-[hsl(var(--background))]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12 lg:mb-16 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-[hsl(var(--card))] border border-[hsl(var(--border))] mb-4 lg:mb-6 shadow-sm">
-              <Layers className="h-3 w-3 lg:h-4 lg:w-4 text-[hsl(var(--foreground))]" />
-              <span className="text-xs lg:text-sm text-[hsl(var(--foreground))] font-medium">Powerful Features</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-[hsl(var(--foreground))] mb-3 lg:mb-4">
-              Everything you need, nothing you don't
-            </h2>
-            <p className="text-sm lg:text-base text-[hsl(var(--muted-foreground))] px-4">
-              Built with modern teams in mind. Powerful, intuitive, and designed to scale with you.
-            </p>
+      <section id="workflow" className="marketing-section">
+        <div className="marketing-container marketing-workflow">
+          <div>
+            <div className="marketing-section-heading" style={{ marginBottom: 28 }}><small>How it works</small><h2>Less chasing. More resolving.</h2><p>Give every request a clear owner, every asset a record and every team a shared operational picture.</p></div>
+            <div className="marketing-workflow-list">{[['01', 'Capture the request', 'Create a ticket with the context your team needs from the start.'], ['02', 'Assign the work', 'Route the request to the right person, team or department.'], ['03', 'Track the outcome', 'Keep activity, status and resolution history visible until the work is complete.']].map(([step, title, text]) => <div className="marketing-workflow-item" key={step}><div className="marketing-step">{step}</div><div><h3>{title}</h3><p>{text}</p></div></div>)}</div>
           </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-            {features.map((feature, idx) => {
-              const Icon = feature.icon
-              return (
-                <div 
-                  key={idx} 
-                  className="group glass-card rounded-xl lg:rounded-2xl p-4 lg:p-8 border border-[hsl(var(--border))] hover:border-[hsl(var(--primary))]/30 hover:shadow-lg lg:hover:shadow-xl transition-all duration-300 cursor-pointer"
-                >
-                  <div className={`inline-flex p-2 lg:p-3 ${getColorClasses(feature.color)} rounded-lg lg:rounded-xl mb-3 lg:mb-5 group-hover:scale-110 transition-transform shadow-lg`}>
-                    <Icon className="h-4 w-4 lg:h-6 lg:w-6 text-[hsl(var(--primary-foreground))]" />
-                  </div>
-                  <h3 className="text-base lg:text-lg font-bold text-[hsl(var(--foreground))] mb-2 lg:mb-3">{feature.title}</h3>
-                  <p className="text-[hsl(var(--muted-foreground))] leading-relaxed text-xs sm:text-sm lg:text-base">{feature.description}</p>
-                </div>
-              )
-            })}
-          </div>
+          <div className="marketing-feature-panel"><span className="label">Operational foundation</span><h3>Make the state of your organisation obvious.</h3><p>The goal is not more screens. It is a dependable source of truth for what needs attention, who owns it and what happened.</p><ul>{['Tickets connected to people and teams', 'Assets with accountable ownership', 'Role-aware operational access', 'A workspace designed for daily use'].map(item => <li key={item}><Check size={15} color="#93c5fd" />{item}</li>)}</ul></div>
         </div>
       </section>
 
-      {/* Benefits */}
-      <section id="benefits" className="py-16 lg:py-32 bg-[hsl(var(--card))]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="space-y-6 lg:space-y-8">
-              <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-[hsl(var(--muted))] border border-[hsl(var(--border))] mb-4 lg:mb-6">
-                  <CheckCircle2 className="h-3 w-3 lg:h-4 lg:w-4 text-[hsl(var(--foreground))]" />
-                  <span className="text-xs lg:text-sm text-[hsl(var(--foreground))] font-medium">Why Teams Choose Us</span>
-                </div>
-                <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-[hsl(var(--foreground))] mb-4 lg:mb-6">
-                  Built for teams that move fast
-                </h2>
-                <p className="text-sm lg:text-base text-[hsl(var(--muted-foreground))] leading-relaxed">
-                  Stop juggling multiple tools. Get everything you need in one powerful, intuitive platform designed for modern IT operations.
-                </p>
-              </div>
-
-              <div className="space-y-3 lg:space-y-4">
-                {[
-                  'Centralized asset and ticket management',
-                  'Real-time collaboration and updates',
-                  'Comprehensive analytics and reporting',
-                  'Secure multi-company isolation',
-                  'Intuitive user interface',
-                  'Scalable for teams of any size'
-                ].map((benefit, idx) => (
-                  <div key={idx} className="flex items-center gap-2 lg:gap-3 p-2 lg:p-3 rounded-lg lg:rounded-xl hover:bg-[hsl(var(--muted))] transition-colors group">
-                    <div className="p-1 lg:p-1.5 rounded-lg bg-[hsl(var(--success-500))]/20 group-hover:bg-[hsl(var(--success-500))]/30 transition-colors flex-shrink-0">
-                      <CheckCircle2 className="h-3 w-3 lg:h-4 lg:w-4 text-[hsl(var(--success-500))]" />
-                    </div>
-                    <span className="text-[hsl(var(--foreground))] font-medium text-xs sm:text-sm lg:text-base">{benefit}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className="space-y-4 lg:space-y-6">
-              {[
-                {
-                  title: 'For Small Teams',
-                  desc: 'Perfect for growing businesses starting their IT management journey',
-                  icon: Users,
-                  color: 'emerald',
-                  stats: 'Up to 25 users'
-                },
-                {
-                  title: 'For Enterprises',
-                  desc: 'Scale effortlessly with advanced features and dedicated support',
-                  icon: BarChart3,
-                  color: 'blue',
-                  stats: 'Unlimited users'
-                },
-                {
-                  title: 'For MSPs',
-                  desc: 'Manage multiple clients with complete data isolation and white-labeling',
-                  icon: Building2,
-                  color: 'slate',
-                  stats: 'Multi-tenant'
-                }
-              ].map((item, idx) => {
-                const ItemIcon = item.icon
-                return (
-                  <div 
-                    key={idx} 
-                    className="group glass-card rounded-xl lg:rounded-2xl p-4 lg:p-6 border border-[hsl(var(--border))] hover:border-[hsl(var(--primary))]/30 hover:shadow-lg transition-all cursor-pointer"
-                  >
-                    <div className="flex items-start gap-3 lg:gap-4">
-                      <div className={`p-2 lg:p-3 rounded-lg lg:rounded-xl ${getColorClasses(item.color)} group-hover:scale-110 transition-transform shadow-lg flex-shrink-0`}>
-                        <ItemIcon className="h-4 w-4 lg:h-6 lg:w-6 text-[hsl(var(--primary-foreground))]" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1 lg:mb-2">
-                          <h3 className="font-bold text-base lg:text-lg text-[hsl(var(--foreground))]">{item.title}</h3>
-                          <span className="text-xs font-medium text-[hsl(var(--muted-foreground))] bg-[hsl(var(--muted))] px-2 py-1 rounded-full">{item.stats}</span>
-                        </div>
-                        <p className="text-[hsl(var(--muted-foreground))] text-sm lg:text-base">{item.desc}</p>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+      <section id="pricing" className="marketing-section marketing-section-soft">
+        <div className="marketing-container">
+          <div className="marketing-section-heading"><small>Pricing</small><h2>Start with the workflow. Scale when you need to.</h2><p>Simple plans for teams at different stages of operational maturity. Contact us when your requirements become more specific.</p></div>
+          <div className="marketing-pricing">{plans.map(plan => <article className={`marketing-price-card ${plan.featured ? 'featured' : ''}`} key={plan.name}><h3>{plan.name}</h3><div className="marketing-price">{plan.price}{plan.price !== 'Free' && <span> / plan</span>}</div><p>{plan.text}</p><ul>{plan.features.map(feature => <li key={feature}><Check size={15} color="#2563eb" />{feature}</li>)}</ul><button className={`marketing-button ${plan.featured ? 'marketing-button-primary' : 'marketing-button-secondary'}`} onClick={() => go('/signup')}>{plan.price === 'Free' ? 'Get started' : 'Talk to us'}</button></article>)}</div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 lg:py-24 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(59,130,246,0.1),transparent_50%),radial-gradient(circle_at_70%_50%,rgba(16,185,129,0.1),transparent_50%)]" />
-        
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold mb-4 lg:mb-6">
-            Ready to transform your workflow?
-          </h2>
-          <p className="text-sm lg:text-base text-[hsl(var(--primary-foreground))]/80 mb-6 lg:mb-10 max-w-2xl mx-auto leading-relaxed px-4">
-            Join thousands of teams already using DeskSupport Pro to streamline their IT operations and boost productivity.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 justify-center mb-6 lg:mb-8 px-4">
-            <button 
-              type="button"
-              onClick={() => handleNavigate('/signup')}
-              className="bg-[hsl(var(--primary-foreground))] hover:bg-[hsl(var(--primary-foreground))]/90 text-[hsl(var(--primary))] font-semibold px-6 lg:px-8 py-3 lg:py-4 rounded-lg lg:rounded-xl shadow-lg shadow-[hsl(var(--primary-foreground))]/10 hover:shadow-[hsl(var(--primary-foreground))]/20 transition-all flex items-center justify-center gap-2 group text-sm lg:text-base"
-            >
-              Start Free Trial
-              <ArrowRight className="h-4 w-4 lg:h-5 lg:w-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button 
-              type="button"
-              onClick={() => handleNavigate('/demo')}
-              className="border-2 border-[hsl(var(--primary-foreground))]/20 hover:border-[hsl(var(--primary-foreground))]/30 text-[hsl(var(--primary-foreground))] font-semibold px-6 lg:px-8 py-3 lg:py-4 rounded-lg lg:rounded-xl hover:bg-[hsl(var(--primary-foreground))]/5 transition-all text-sm lg:text-base"
-            >
-              Schedule Demo
-            </button>
-          </div>
-          <p className="text-xs lg:text-sm text-[hsl(var(--primary-foreground))]/60">
-            No credit card required • Free 14-day trial • Cancel anytime
-          </p>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-[hsl(var(--card))] border-t border-[hsl(var(--border))] py-12 lg:py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-5 gap-8 lg:gap-12 mb-8 lg:mb-12">
-            <div className="md:col-span-2">
-              <div className="flex items-center gap-2 mb-3 lg:mb-4">
-                <div className="w-8 h-8 lg:w-10 lg:h-10 bg-[hsl(var(--primary))] rounded-lg lg:rounded-xl flex items-center justify-center shadow-lg shadow-[hsl(var(--primary))]/20">
-                  <BarChart3 className="h-4 w-4 lg:h-5 lg:w-5 text-[hsl(var(--primary-foreground))]" />
-                </div>
-                <span className="font-bold text-base lg:text-lg text-[hsl(var(--foreground))]">DeskSupport Pro</span>
-              </div>
-              <p className="text-[hsl(var(--muted-foreground))] mb-4 lg:mb-6 leading-relaxed text-sm lg:text-base">
-                Enterprise-grade IT management platform designed for modern teams. Manage assets, resolve tickets, and collaborate seamlessly.
-              </p>
-              <div className="flex gap-2 lg:gap-3">
-                {['Twitter', 'LinkedIn', 'GitHub'].map((social) => (
-                  <a key={social} href="#" className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl bg-[hsl(var(--muted))] hover:bg-[hsl(var(--primary))] flex items-center justify-center transition-colors group">
-                    <span className="text-xs font-medium text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--primary-foreground))] transition-colors">{social[0]}</span>
-                  </a>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-3 lg:mb-4 text-[hsl(var(--foreground))] text-sm lg:text-base">Product</h4>
-              <ul className="space-y-2 lg:space-y-3 text-xs lg:text-sm">
-                {['Features', 'Pricing', 'Documentation', 'API', 'Changelog'].map((item) => (
-                  <li key={item}>
-                    <a href="#" className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors">{item}</a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-3 lg:mb-4 text-[hsl(var(--foreground))] text-sm lg:text-base">Company</h4>
-              <ul className="space-y-2 lg:space-y-3 text-xs lg:text-sm">
-                {['About', 'Blog', 'Careers', 'Contact', 'Press'].map((item) => (
-                  <li key={item}>
-                    <a href="#" className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors">{item}</a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-3 lg:mb-4 text-[hsl(var(--foreground))] text-sm lg:text-base">Legal</h4>
-              <ul className="space-y-2 lg:space-y-3 text-xs lg:text-sm">
-                {['Privacy', 'Terms', 'Security', 'Compliance', 'Cookies'].map((item) => (
-                  <li key={item}>
-                    <a href="#" className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors">{item}</a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-[hsl(var(--border))] pt-6 lg:pt-8 flex flex-col md:flex-row justify-between items-center gap-3 lg:gap-4">
-            <p className="text-xs lg:text-sm text-[hsl(var(--muted-foreground))] text-center md:text-left">&copy; 2025 DeskSupport Pro. All rights reserved.</p>
-            <div className="flex items-center gap-4 lg:gap-6 text-xs lg:text-sm text-[hsl(var(--muted-foreground))]">
-              <a href="#" className="hover:text-[hsl(var(--foreground))] transition-colors">Status</a>
-              <a href="#" className="hover:text-[hsl(var(--foreground))] transition-colors">Sitemap</a>
-              <a href="#" className="hover:text-[hsl(var(--foreground))] transition-colors">Accessibility</a>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+      <section className="marketing-cta"><div className="marketing-container marketing-cta-inner"><div><h2>Your support operation deserves a system built around it.</h2><p>Bring your tickets, assets and teams into one workspace.</p></div><button className="marketing-button marketing-button-primary" onClick={() => go('/signup')}>Get started <ArrowRight size={16} /></button></div></section>
+      <footer className="marketing-footer"><div className="marketing-container marketing-footer-inner"><span>© {new Date().getFullYear()} Desk-Support</span><span>Support operations, organised.</span></div></footer>
+    </main>
   )
 }
