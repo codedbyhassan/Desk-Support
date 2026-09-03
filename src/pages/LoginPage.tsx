@@ -69,7 +69,6 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
             </div>
             <p className="auth-eyebrow">Support operations</p>
             <h1 className="auth-title">{isSignUp ? 'Create your workspace.' : 'Welcome back.'}</h1>
-            <p className="auth-copy">{isSignUp ? 'Set up your support workspace and start managing requests in one place.' : 'Sign in to continue to your support workspace.'}</p>
 
             <form className="auth-form" onSubmit={handleSubmit} noValidate>
               {isSignUp && <>
@@ -96,7 +95,6 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
             </form>
 
             <p className="auth-switch">{isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}<button type="button" className="auth-link" onClick={toggleMode} disabled={loading}>{isSignUp ? 'Sign in' : 'Create one'}</button></p>
-            <div className="auth-security"><Shield size={14} /><span>Your account is protected with secure authentication.</span></div>
           </div>
         </main>
         <aside className="auth-side">
