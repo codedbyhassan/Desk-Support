@@ -1,9 +1,43 @@
-#root {
-  min-height: 100vh;
+/* ===========================
+   SAFE AREA SUPPORT (Notches)
+   =========================== */
+
+@supports (padding: max(0px)) {
+  main {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-top: max(0, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .fixed-header {
+    padding-left: max(0, env(safe-area-inset-left));
+    padding-right: max(0, env(safe-area-inset-right));
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  .fixed-footer {
+    padding-left: max(0, env(safe-area-inset-left));
+    padding-right: max(0, env(safe-area-inset-right));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
 }
 
-.app-shell {
-  min-height: 100vh;
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
+input,
+textarea,
+select,
+button {
+  font-size: 16px;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  button,
+  a[role='button'],
+  [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
 }
