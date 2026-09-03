@@ -39,7 +39,8 @@ create table public.ticket_categories (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint ticket_categories_name_not_blank check (length(trim(name)) > 0),
-  constraint ticket_categories_company_name_key unique (company_id, name)
+  constraint ticket_categories_company_name_key unique (company_id, name),
+  constraint ticket_categories_company_id_id_key unique (company_id, id)
 );
 
 create table public.tickets (
@@ -71,8 +72,7 @@ create table public.tickets (
   ),
   constraint tickets_resolution_consistency check (
     (status in ('resolved', 'closed') and resolved_at is not null)
-    or (status not in ('resolved', 'closed'))
-    or status = 'closed'
+    or status not in ('resolved', 'closed')
   ),
   constraint tickets_closed_consistency check (
     (status = 'closed' and closed_at is not null)
@@ -136,16 +136,12 @@ create table public.ticket_status_history (
   )
 );
 
--- Keep category and ticket ownership aligned without duplicating company_id on categories.
+-- Keep category and ticket ownership aligned without duplicating company_id on tickets/categories.
 alter table public.tickets
   add constraint tickets_category_same_company_fk
   foreign key (company_id, category_id)
   references public.ticket_categories(company_id, id)
   on delete set null;
-
--- Cross-tenant identity checks. A profile may belong to several companies, so all ticket actors
--- are validated by membership at write time through the application/RLS layer rather than by
--- duplicating company_id into every child row.
 
 create index idx_ticket_categories_company_active
   on public.ticket_categories(company_id, is_active);
