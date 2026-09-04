@@ -22,9 +22,39 @@
   display: none;
 }
 
-/* Covers pages whose first content wrapper is itself the identity block. */
 [data-page-content] > :first-child:has(> h1) {
   display: none;
+}
+
+/* App-wide readable typography. Component-specific Tailwind sizes still win
+   where a deliberately compact label is required. */
+[data-page-content] {
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+[data-page-content] p,
+[data-page-content] label,
+[data-page-content] td,
+[data-page-content] th,
+[data-page-content] li,
+[data-page-content] a {
+  font-size: 15px;
+}
+
+[data-page-content] h1 {
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+
+[data-page-content] h2 {
+  font-size: 1.35rem;
+  line-height: 1.3;
+}
+
+[data-page-content] h3 {
+  font-size: 1.125rem;
+  line-height: 1.35;
 }
 
 input,
