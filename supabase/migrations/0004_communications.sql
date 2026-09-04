@@ -94,7 +94,6 @@ alter table public.video_calls enable row level security;
 alter table public.call_participants enable row level security;
 alter table public.call_recordings enable row level security;
 
--- Baseline policies are intentionally narrow. Migration 0010 hardens and normalizes the complete policy set.
 create policy team_messages_select_team_member on public.team_messages for select to authenticated using (exists (select 1 from public.team_members tm where tm.team_id = team_messages.team_id and tm.user_id = (select auth.uid())));
 create policy team_messages_insert_team_member on public.team_messages for insert to authenticated with check (author_id = (select auth.uid()) and exists (select 1 from public.team_members tm where tm.team_id = team_messages.team_id and tm.user_id = (select auth.uid())));
 create policy team_messages_update_author on public.team_messages for update to authenticated using (author_id = (select auth.uid())) with check (author_id = (select auth.uid()));
@@ -108,12 +107,12 @@ create policy message_reads_select_self on public.message_reads for select to au
 create policy message_reads_insert_self on public.message_reads for insert to authenticated with check (user_id=(select auth.uid()));
 create policy message_reads_update_self on public.message_reads for update to authenticated using (user_id=(select auth.uid())) with check (user_id=(select auth.uid()));
 
-create policy video_calls_select_member on public.video_calls for select to authenticated using (company_id = any (public.current_company_id_array()));
-create policy video_calls_insert_member on public.video_calls for insert to authenticated with check (created_by=(select auth.uid()) and company_id = any (public.current_company_id_array()));
-create policy video_calls_update_member on public.video_calls for update to authenticated using (company_id = any (public.current_company_id_array())) with check (company_id = any (public.current_company_id_array()));
+create policy video_calls_select_member on public.video_calls for select to authenticated using (company_id in (select public.current_company_ids()));
+create policy video_calls_insert_member on public.video_calls for insert to authenticated with check (created_by=(select auth.uid()) and company_id in (select public.current_company_ids()));
+create policy video_calls_update_member on public.video_calls for update to authenticated using (company_id in (select public.current_company_ids())) with check (company_id in (select public.current_company_ids()));
 
-create policy call_participants_select_member on public.call_participants for select to authenticated using (exists (select 1 from public.video_calls c where c.id=call_participants.call_id and c.company_id=any(public.current_company_id_array())));
-create policy call_participants_insert_member on public.call_participants for insert to authenticated with check (exists (select 1 from public.video_calls c where c.id=call_participants.call_id and c.company_id=any(public.current_company_id_array())));
+create policy call_participants_select_member on public.call_participants for select to authenticated using (exists (select 1 from public.video_calls c where c.id=call_participants.call_id and c.company_id in (select public.current_company_ids())));
+create policy call_participants_insert_member on public.call_participants for insert to authenticated with check (exists (select 1 from public.video_calls c where c.id=call_participants.call_id and c.company_id in (select public.current_company_ids())));
 create policy call_participants_update_self on public.call_participants for update to authenticated using (user_id=(select auth.uid())) with check (user_id=(select auth.uid()));
 
-create policy call_recordings_select_member on public.call_recordings for select to authenticated using (exists (select 1 from public.video_calls c where c.id=call_recordings.call_id and c.company_id=any(public.current_company_id_array())));
+create policy call_recordings_select_member on public.call_recordings for select to authenticated using (exists (select 1 from public.video_calls c where c.id=call_recordings.call_id and c.company_id in (select public.current_company_ids())));
