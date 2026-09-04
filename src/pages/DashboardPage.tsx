@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Activity, ArrowUpRight, Bell, CheckCircle2, Clock3, Package, Plus, Ticket, Users } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
@@ -9,7 +9,37 @@ import Loader from '@/components/Loader'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
-const EMPTY_COUNTS: ExactCompanyCounts = { users_total:0, users_unique:0, departments_total:0, teams_total:0, ticket_categories_total:0, tickets_total:0, tickets_open:0, tickets_in_progress:0, tickets_pending:0, tickets_resolved:0, tickets_closed:0, tickets_unresolved:0, tickets_overdue:0, assets_total:0, asset_assignments_active:0, ticket_assignments_active:0, ticket_comments_total:0, ticket_attachments_total:0, workspace_folders_total:0, workspace_files_total:0, notifications_unread:0, attendance_today:0, qr_codes_active:0, qr_scans_today:0, video_calls_total:0, video_calls_active:0, subscriptions_total:0, payments_total:0, audit_logs_total:0 }
+const EMPTY_COUNTS: ExactCompanyCounts = {
+  users_total: 0,
+  users_unique: 0,
+  departments_total: 0,
+  teams_total: 0,
+  ticket_categories_total: 0,
+  tickets_total: 0,
+  tickets_open: 0,
+  tickets_in_progress: 0,
+  tickets_pending: 0,
+  tickets_resolved: 0,
+  tickets_closed: 0,
+  tickets_unresolved: 0,
+  tickets_overdue: 0,
+  assets_total: 0,
+  asset_assignments_active: 0,
+  ticket_assignments_active: 0,
+  ticket_comments_total: 0,
+  ticket_attachments_total: 0,
+  workspace_folders_total: 0,
+  workspace_files_total: 0,
+  notifications_unread: 0,
+  attendance_today: 0,
+  qr_codes_active: 0,
+  qr_scans_today: 0,
+  video_calls_total: 0,
+  video_calls_active: 0,
+  subscriptions_total: 0,
+  payments_total: 0,
+  audit_logs_total: 0,
+}
 
 export default function DashboardPage() {
   const { user, company } = useAuth()
@@ -19,34 +49,62 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     if (!user?.company_id) return
-    try { setCounts(await getExactCompanyCounts(user.company_id)); await fetchAnalytics() }
-    catch (err) { setError(err instanceof Error ? err.message : 'Unable to load dashboard') }
-  }
+
+    try {
+      setError(null)
+      setCounts(await getExactCompanyCounts(user.company_id))
+      await fetchAnalytics()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load dashboard')
+    }
+  }, [fetchAnalytics, user?.company_id])
 
   useEffect(() => {
     if (!user?.company_id) return
+
     let cancelled = false
     setLoading(true)
-    Promise.all([getExactCompanyCounts(user.company_id), fetchAnalytics()]).then(([nextCounts]) => { if (!cancelled) setCounts(nextCounts) }).catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : 'Unable to load dashboard') }).finally(() => { if (!cancelled) setLoading(false) })
-    const channel = supabase.channel(`dashboard-${user.company_id}`).on('postgres_changes', { event:'*', schema:'public', table:'tickets', filter:`company_id=eq.${user.company_id}` }, loadDashboard).on('postgres_changes', { event:'*', schema:'public', table:'assets', filter:`company_id=eq.${user.company_id}` }, loadDashboard).on('postgres_changes', { event:'*', schema:'public', table:'company_memberships', filter:`company_id=eq.${user.company_id}` }, loadDashboard).subscribe()
-    return () => { cancelled = true; supabase.removeChannel(channel) }
-  }, [user?.company_id, fetchAnalytics])
+    setError(null)
+
+    Promise.all([getExactCompanyCounts(user.company_id), fetchAnalytics()])
+      .then(([nextCounts]) => {
+        if (!cancelled) setCounts(nextCounts)
+      })
+      .catch(err => {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Unable to load dashboard')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    const channel = supabase
+      .channel(`dashboard-${user.company_id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets', filter: `company_id=eq.${user.company_id}` }, loadDashboard)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assets', filter: `company_id=eq.${user.company_id}` }, loadDashboard)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'company_memberships', filter: `company_id=eq.${user.company_id}` }, loadDashboard)
+      .subscribe()
+
+    return () => {
+      cancelled = true
+      supabase.removeChannel(channel)
+    }
+  }, [fetchAnalytics, loadDashboard, user?.company_id])
 
   if (!user || loading || analyticsLoading) return <Loader />
 
   const resolved = counts.tickets_resolved + counts.tickets_closed
   const active = counts.tickets_open + counts.tickets_in_progress + counts.tickets_pending
   const recentTrend = ticketTrend.slice(-7)
-  const maxTrend = Math.max(1, ...recentTrend.map(p => Math.max(p.created, p.resolved)))
+  const maxTrend = Math.max(1, ...recentTrend.map(point => Math.max(point.created, point.resolved)))
   const canManageUsers = user.role === 'admin' || user.role === 'hr'
 
   const stats = [
-    { label:'Total tickets', value:counts.tickets_total, note:`${active} active`, icon:Ticket, href:'/app/tickets' },
-    { label:'Resolved', value:resolved, note:`${counts.tickets_total ? Math.round(resolved / counts.tickets_total * 100) : 0}% of all tickets`, icon:CheckCircle2, href:'/app/tickets' },
-    { label:'Assets', value:counts.assets_total, note:`${metrics.availableAssets} available`, icon:Package, href:'/app/assets' },
-    { label:'Team members', value:counts.users_total, note:`${counts.teams_total} teams`, icon:Users, href:canManageUsers ? '/app/users' : undefined },
+    { label: 'Total tickets', value: counts.tickets_total, note: `${active} active`, icon: Ticket, href: '/app/tickets' },
+    { label: 'Resolved', value: resolved, note: `${counts.tickets_total ? Math.round(resolved / counts.tickets_total * 100) : 0}% of all tickets`, icon: CheckCircle2, href: '/app/tickets' },
+    { label: 'Assets', value: counts.assets_total, note: `${metrics.availableAssets} available`, icon: Package, href: '/app/assets' },
+    { label: 'Team members', value: counts.users_total, note: `${counts.teams_total} teams`, icon: Users, href: canManageUsers ? '/app/users' : undefined },
   ]
 
   return <div className="space-y-6">
