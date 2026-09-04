@@ -16,6 +16,12 @@
   }
 }
 
+/* Authenticated pages use content-first layouts. Hide redundant page identity
+   blocks when the page already starts with its actual workspace content. */
+[data-page-content] > :first-child:has(h1) {
+  display: none;
+}
+
 input,
 textarea,
 select,
