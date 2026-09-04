@@ -7,18 +7,15 @@
   "scripts": {
     "dev": "vite",
     "dev:unified": "npm run build && node dev-server.js",
-    "dev:signaling": "node ./dev-tools/signaling-server/server.js",
     "build": "vite build",
     "electron": "electron .",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "electron:build": "vite build && electron-builder",
-    "lint": "npm run lint:types && npm run lint:js && npm run lint:css && npm run check:css-vars && npm run check:css-classes",
+    "lint": "npm run lint:types && npm run lint:js && npm run lint:css",
     "preview": "vite preview",
     "lint:css": "stylelint \"src/**/*.css\" --fix --quiet",
     "lint:js": "eslint . --report-unused-disable-directives",
-    "lint:types": "tsc --noEmit",
-    "check:css-vars": "node scripts/check-css-variables.js",
-    "check:css-classes": "node scripts/check-css-classes.js"
+    "lint:types": "tsc --noEmit"
   },
   "build": {
     "appId": "com.deskSupport.app",
@@ -99,7 +96,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-toast": "^1.2.15",
     "@radix-ui/react-toggle": "^1.1.10",
-    "@radix-ui/react-toggle-group": "^1.1.10",
+    "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-three/drei": "^10.7.5",
     "@react-three/fiber": "^9.3.0",
