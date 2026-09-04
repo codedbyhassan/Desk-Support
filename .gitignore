@@ -6,7 +6,4 @@ out/
 Desk-Support-main/
 *.log
 .DS_Store
-.env
-.env.*
-!.env.example
 .expo/
