@@ -1,53 +1,56 @@
 # Desk-Support database migrations
 
-The database is being reconstructed from the legacy `schema.md` into real, ordered PostgreSQL migrations.
+The database is reconstructed from the legacy `schema.md` into ordered PostgreSQL migrations. The live Supabase project is the runtime source of truth.
 
 ## Rules
 
 1. `auth.users` is the authentication source of truth.
 2. `public.profiles` contains application profile data only.
 3. `public.company_memberships` is the source of truth for company membership and company-scoped roles.
-4. Child records should reference their owning aggregate directly; do not copy `company_id` everywhere unless it is required for a proven query/security boundary.
-5. Every relationship that can be represented with a foreign key must use one.
-6. Do not use polymorphic `entity_type/entity_id` references where referential integrity matters.
-7. Store one fact once. Derive status, counts, and context from canonical records where practical.
-8. Prefer `timestamptz`, UUIDs, `NOT NULL`, `CHECK`, `UNIQUE`, and explicit foreign-key delete behavior.
-9. RLS policies must express tenant membership and least privilege; application code must not be trusted to supply a correct tenant ID.
-10. Functions and triggers are added only when the invariant genuinely belongs in the database.
-11. Legacy schema objects are not silently dropped by the redesign. Migration/deprecation steps will be explicit.
-12. `schema.md` is documentation of the legacy design and is not itself an executable migration.
+4. Child records reference their owning aggregate directly; do not duplicate `company_id` without a proven query/security need.
+5. Every relationship that can be represented with a foreign key uses one.
+6. Do not use polymorphic references where referential integrity matters.
+7. Store each fact once. Derive status, counts, and context from canonical records.
+8. Prefer `timestamptz`, UUIDs, `NOT NULL`, `CHECK`, `UNIQUE`, and explicit foreign-key behaviour.
+9. RLS expresses tenant membership and least privilege; client-supplied tenant IDs are never trusted for authorization.
+10. Functions/triggers exist only for database-owned invariants or privileged workflows.
+11. Applied migrations are immutable. Corrections are new migrations.
+12. `schema.md` is legacy documentation, not executable migration SQL.
 
 ## Migration order
 
-- `0001_foundation.sql` — tenancy, identity, organisation foundation, membership roles, and baseline RLS.
-- `0002_support.sql` — support tickets and their normalized child records.
+- `0001_foundation.sql` — tenancy, identity, organisation, memberships, and baseline RLS.
+- `0002_support.sql` — tickets and normalized support children.
 - `0003_assets.sql` — assets, assignments, history, and asset/ticket relationships.
 - `0004_communications.sql` — teams, messages, reactions, reads, and calls.
 - `0005_workspace.sql` — folders, files, versions, shares, and favorites.
-- `0006_notifications.sql` — notifications, preferences, devices, and delivery records.
-- `0007_attendance_qr.sql` — attendance, QR definitions, restrictions, and scan records.
-- `0008_billing.sql` — subscriptions, subscription events, and payments.
-- `0009_audit.sql` — append-oriented audit records and retention indexes.
-- `0010_rls.sql` — final least-privilege policies after all tables exist.
-- `0011_views.sql` — only views that materially simplify stable application queries.
+- `0006_notifications.sql` — notifications, preferences, devices, and deliveries.
+- `0007_attendance_qr.sql` — attendance, QR definitions, restrictions, and scans.
+- `0008_billing.sql` — subscriptions, events, and payments.
+- `0009_audit.sql` — append-oriented audit records.
+- `0010_security_hardening.sql` — final least-privilege RLS/grants/security corrections.
+- `0011_cache.sql` — application/server-state caching infrastructure only.
+- `0012_exact_counts_and_large_dataset_access.sql` — exact company counts and high-volume access support.
 
-The later migration names are the target architecture and will be added incrementally after each domain is reconciled with the application code. No legacy table should be dropped until its consumers and data migration are verified.
+`0011` is intentionally reserved for cache work. Views are not part of the canonical schema unless a later migration proves they materially simplify a stable query.
+
+## Data-access contract
+
+Dashboard/stat cards use database-side exact counts rather than the number of rows currently rendered. Lists use explicit PostgREST ranges and a bounded render window. A screen must never assume the API's default response limit is the total dataset.
+
+The frontend data-access layer uses a 1,000-row request page, controlled concurrency for explicit bulk reads, and a 500,000-row safety ceiling. Normal screens should render a much smaller window.
 
 ## Foundation decisions
 
-The first migration deliberately removes several legacy design problems:
-
-- user email/password data is not duplicated into an application `users` table;
-- a user can belong to more than one company without changing identity records;
-- company role is a membership concern, not a global user attribute;
-- subscription fields are not duplicated on `companies`;
-- settings are one-to-one with a company;
-- membership is represented by a real junction table;
-- tenant discovery is centralized in `current_company_ids()`;
-- timestamps use one shared database trigger;
-- no trigger silently overwrites caller-supplied `company_id`;
-- tenant context is derived from authenticated membership for RLS.
+- user email/password data is not duplicated into `public.users`;
+- company roles live on memberships;
+- subscriptions are not duplicated on companies;
+- settings are one-to-one with companies;
+- tenant context is derived from authenticated active memberships;
+- timestamps use shared database triggers where appropriate;
+- no trigger silently overwrites caller-supplied tenant ownership;
+- child tables inherit tenant boundaries through their real parent relationships.
 
 ## Important
 
-`0001_foundation.sql` is the beginning of the canonical schema, not a claim that the legacy database can be migrated by simply running every new file. The application must be moved domain-by-domain, followed by a controlled data migration and explicit removal of obsolete objects.
+Do not edit an applied migration to repair application behaviour. Reconcile the application to the live canonical schema first; any database correction gets a new ordered migration and is verified against the live project before the client is changed to depend on it.
