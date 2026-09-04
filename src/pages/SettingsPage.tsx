@@ -78,6 +78,7 @@ const themePalettes: ThemePalettes = {
       secondary: '15 40% 50%',
       background: '40 30% 96%',
       foreground: '30 20% 25%',
+      card: '0 0% 100%',
       muted: '50 25% 90%',
       mutedForeground: '45 10% 45%',
     },
@@ -86,6 +87,7 @@ const themePalettes: ThemePalettes = {
       secondary: '30 30% 55%',
       background: '45 20% 94%',
       foreground: '210 20% 15%',
+      card: '0 0% 100%',
       muted: '45 20% 90%',
       mutedForeground: '215 10% 45%',
     },
@@ -337,17 +339,20 @@ export default function SettingsPage() {
 
   // Load theme from settings
   useEffect(() => {
-    if (settings?.theme) {
-      try {
-        const savedTheme = JSON.parse(settings.theme)
-        setLocalTheme(savedTheme)
-        applyThemeToDOM(savedTheme)
-        syncThemeContext(savedTheme)
-      } catch (error) {
-        console.error('Error loading theme:', error)
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('desk-support-theme')
+      if (savedTheme) {
+        try {
+          const parsedTheme = JSON.parse(savedTheme)
+          setLocalTheme(parsedTheme)
+          applyThemeToDOM(parsedTheme)
+          syncThemeContext(parsedTheme)
+        } catch (error) {
+          console.error('Error loading theme:', error)
+        }
       }
     }
-  }, [settings])
+  }, [])
 
   const applyThemeToDOM = (themeObj: typeof theme) => {
     const root = document.documentElement
@@ -497,7 +502,7 @@ export default function SettingsPage() {
       destructiveForeground: '0 0% 100%',
     }
 
-    setTheme(newTheme)
+    setLocalTheme(newTheme)
     applyThemeToDOM(newTheme)
     setSelectedCategory(category)
     setSelectedPalette(paletteName)
@@ -568,68 +573,6 @@ export default function SettingsPage() {
       syncThemeContext(darkTheme)
       setThemeMode('dark')
     }
-  }
-
-  const handleSaveTheme = async () => {
-    if (!isAdmin) {
-      toast({
-        title: 'Access Denied',
-        description: 'Only admins can update theme settings',
-        variant: 'destructive'
-      })
-      return
-    }
-
-    setSaving(true)
-    try {
-      await updateSettings({
-        theme: JSON.stringify(theme)
-      })
-      toast({
-        title: 'Success',
-        description: 'Theme saved successfully'
-      })
-    } catch (error) {
-      console.error('Error saving theme:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to save theme',
-        variant: 'destructive'
-      })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const resetTheme = () => {
-    const defaultTheme = {
-      primary: '217 91% 60%',
-      primaryForeground: '0 0% 100%',
-      secondary: '162 73% 46%',
-      secondaryForeground: '0 0% 100%',
-      background: '0 0% 100%',
-      foreground: '222 47% 11%',
-      card: '0 0% 100%',
-      cardForeground: '222 47% 11%',
-      popover: '0 0% 100%',
-      popoverForeground: '222 47% 11%',
-      muted: '210 40% 96%',
-      mutedForeground: '215 16% 47%',
-      accent: '210 40% 96%',
-      accentForeground: '222 47% 11%',
-      destructive: '0 84% 60%',
-      destructiveForeground: '0 0% 100%',
-      border: '214 32% 91%',
-      input: '214 32% 91%',
-      ring: '217 91% 60%',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      fontSize: '16',
-      fontWeight: '400',
-      radius: '0.5',
-    }
-    setLocalTheme(defaultTheme)
-    applyThemeToDOM(defaultTheme)
-    syncThemeContext(defaultTheme)
   }
 
   const handleUpdateCompany = async () => {

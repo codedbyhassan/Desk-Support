@@ -1,7 +1,7 @@
 // src/components/NotificationBell.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useNotifications } from '@/context/NotificationContext'
+import { useNotifications, type AppNotification } from '@/context/NotificationContext'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -22,20 +22,8 @@ import {
   Activity,
 } from 'lucide-react'
 
-type Notification = {
-  id: string
-  title: string
-  message: string
-  type: string
-  read: boolean
-  created_at: string
-  link?: string
-  entity_id?: string
-  entity_type?: string
-}
-
 // ✅ Helper function to generate navigation links from notification data
-const generateNotificationLink = (entityType?: string, entityId?: string): string | undefined => {
+const generateNotificationLink = (entityType?: string | null, entityId?: string | null): string | undefined => {
   if (!entityType || !entityId) return undefined
   
   switch (entityType) {
@@ -77,7 +65,7 @@ export function NotificationBell() {
     setPrevUnreadCount(unreadCount)
   }, [unreadCount])
 
-  const handleNotificationClick = async (notification: Notification) => {
+  const handleNotificationClick = async (notification: AppNotification) => {
     // Mark as read if not already read
     if (!notification.read) {
       try {
@@ -199,7 +187,7 @@ export function NotificationBell() {
                 variant="secondary"
                 size="sm"
                 onClick={deleteAllRead}
-                disabled={notifications.filter((n: Notification) => n.read).length === 0}
+                disabled={notifications.filter((n: AppNotification) => n.read).length === 0}
                 className="flex-1 text-[10px] sm:text-xs bg-white/90 hover:bg-white text-orange-600 font-semibold px-1 sm:px-2 py-1 h-7 sm:h-8"
               >
                 <Trash2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
@@ -231,7 +219,7 @@ export function NotificationBell() {
             </div>
           ) : (
             <div>
-              {notifications.map((notification: Notification) => (
+              {notifications.map((notification: AppNotification) => (
                 <div
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}

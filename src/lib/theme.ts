@@ -167,6 +167,7 @@ export const darkTheme = {
 export const colors = {
   // Primary colors
   primary: {
+    main: 'bg-blue-500',
     light: 'bg-blue-50',
     lighter: 'bg-blue-100',
     medium: 'bg-blue-500',
@@ -182,6 +183,7 @@ export const colors = {
 
   // Success/Emerald colors
   success: {
+    main: 'bg-emerald-500',
     light: 'bg-emerald-50',
     lighter: 'bg-emerald-100',
     medium: 'bg-emerald-500',
@@ -208,6 +210,7 @@ export const colors = {
 
   // Warning/Amber colors
   warning: {
+    main: 'bg-amber-500',
     light: 'bg-amber-50',
     lighter: 'bg-amber-100',
     medium: 'bg-amber-500',
@@ -222,6 +225,7 @@ export const colors = {
 
   // Danger/Red colors
   danger: {
+    main: 'bg-red-500',
     light: 'bg-red-50',
     lighter: 'bg-red-100',
     medium: 'bg-red-500',
@@ -236,6 +240,7 @@ export const colors = {
 
   // Neutral/Gray colors
   neutral: {
+    main: 'bg-gray-500',
     light: 'bg-gray-50',
     lighter: 'bg-gray-100',
     lightish: 'bg-gray-200',
@@ -245,6 +250,7 @@ export const colors = {
     darkest: 'bg-gray-900',
     text: 'text-gray-600',
     textLight: 'text-gray-500',
+    textLighter: 'text-gray-400',
     textDark: 'text-gray-900',
     border: 'border-gray-500',
     borderLight: 'border-gray-200',
@@ -252,6 +258,7 @@ export const colors = {
 
   // Purple colors
   purple: {
+    main: 'bg-purple-500',
     light: 'bg-purple-50',
     lighter: 'bg-purple-100',
     medium: 'bg-purple-500',

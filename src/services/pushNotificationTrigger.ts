@@ -41,13 +41,24 @@ export class PushNotificationTrigger {
     console.log('[Push Trigger] Initializing notification listener for user:', userId)
 
     // Subscribe to new notifications
-    const subscription = supabase
-      .from(`notifications:user_id=eq.${userId}`)
-      .on('INSERT', (payload) => {
-        console.log('[Push Trigger] New notification received:', payload)
-        this.handleNewNotification(payload.new as NotificationTrigger)
-      })
-      .subscribe((status) => {
+    const subscription = (supabase
+      .channel(`notifications:${userId}`) as any)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload: { new?: NotificationTrigger }) => {
+          console.log('[Push Trigger] New notification received:', payload)
+          if (payload.new) {
+            void this.handleNewNotification(payload.new)
+          }
+        }
+      )
+      .subscribe((status: string) => {
         if (status === 'CLOSED') {
           console.log('[Push Trigger] Subscription closed')
         } else if (status === 'CHANNEL_ERROR') {

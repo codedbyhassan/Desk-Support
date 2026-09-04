@@ -193,23 +193,23 @@ export default function UsersTable() {
                 >
                   <div className="flex items-center gap-4">
                     <Avatar>
-                      <AvatarImage src={user.avatar_url} alt={user.full_name} />
+                      <AvatarImage src={user.avatar_url ?? undefined} alt={user.full_name ?? 'User'} />
                       <AvatarFallback>
-                        {user.full_name.charAt(0).toUpperCase() || 'U'}
+                        {(user.full_name ?? 'U').charAt(0).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <div className="font-medium text-gray-900 dark:text-white">
-                        {user.full_name}
+                        {user.full_name ?? 'Unknown user'}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {user.full_name} ({user.email})
+                        {(user.full_name ?? 'Unknown user')} ({user.email ?? 'No email'})
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <Badge className={getRoleBadgeColor(user.role)}>
-                      {user.role}
+                    <Badge className={getRoleBadgeColor(user.role ?? 'employee')}>
+                      {user.role ?? 'employee'}
                     </Badge>
                     <Button
                       variant="ghost"
@@ -233,7 +233,7 @@ export default function UsersTable() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{userToDelete?.full_name}</strong>? 
+              Are you sure you want to delete <strong>{userToDelete?.full_name ?? 'this user'}</strong>? 
               This action cannot be undone and will remove all their tickets and assigned assets.
             </AlertDialogDescription>
           </AlertDialogHeader>

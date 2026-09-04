@@ -10,7 +10,7 @@
 
 export class PushDeduplicationService {
   private static windowFocused = true
-  private static appVisibilityListener: ((visible: boolean) => void) | null = null
+  private static appVisibilityListener: (() => void) | null = null
   private static windowFocusListener: (() => void) | null = null
   private static windowBlurListener: (() => void) | null = null
   private static recentNotificationIds = new Set<string>()
@@ -35,6 +35,7 @@ export class PushDeduplicationService {
     // Track document visibility
     this.appVisibilityListener = () => {
       const isVisible = document.visibilityState === 'visible'
+      this.windowFocused = isVisible
       console.log('[Dedup] Visibility changed:', isVisible)
     }
 
@@ -69,7 +70,9 @@ export class PushDeduplicationService {
     // Keep set size manageable
     if (this.recentNotificationIds.size > this.maxRecentNotifications) {
       const first = this.recentNotificationIds.values().next().value
-      this.recentNotificationIds.delete(first)
+      if (typeof first === 'string') {
+        this.recentNotificationIds.delete(first)
+      }
     }
 
     return true

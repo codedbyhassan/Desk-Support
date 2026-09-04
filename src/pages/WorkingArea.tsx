@@ -47,7 +47,7 @@ interface WorkingAreaPageProps {
   onFolderSelect?: (folderId: string) => void;
 }
 
-export const WorkingAreaPage: React.FC<WorkingAreaPageProps> = ({ onFolderSelect }) => {
+export const WorkingAreaPage: React.FC<WorkingAreaPageProps> = () => {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -220,7 +220,7 @@ export const WorkingAreaPage: React.FC<WorkingAreaPageProps> = ({ onFolderSelect
       let currentId: string | null = folderId;
 
       while (currentId) {
-        const { data: f, error: e } = await supabase
+        const { data: f, error: e }: { data: { id: string; name: string; parent_folder_id: string | null } | null; error: Error | null } = await supabase
           .from('working_area_folders')
           .select('id, name, parent_folder_id')
           .eq('id', currentId)
@@ -252,10 +252,10 @@ export const WorkingAreaPage: React.FC<WorkingAreaPageProps> = ({ onFolderSelect
 
       if (filesError) throw filesError;
 
-      const items = [
-        ...(subfolders || []).map(f => ({ ...f, is_folder: true })),
-        ...(folderFiles || []).map(f => ({ ...f, is_folder: false }))
-      ];
+      const items: Array<{ is_folder: boolean } & (typeof subfolders extends Array<infer T> ? T : never)> = [
+        ...(subfolders || []).map((f: any) => ({ ...f, is_folder: true })),
+        ...(folderFiles || []).map((f: any) => ({ ...f, is_folder: false }))
+      ] as any;
 
       setState(prev => ({
         ...prev,
@@ -784,7 +784,7 @@ export const WorkingAreaPage: React.FC<WorkingAreaPageProps> = ({ onFolderSelect
                   {state.current_folder_id ? state.breadcrumbs[state.breadcrumbs.length - 1]?.name || 'Folder' : 'My Files'}
                 </p>
                 <p className="text-xs text-slate-500 dark:text-white mt-0.5">
-                  {state.items.filter(i => i.is_folder).length} folder{state.items.filter(i => i.is_folder).length !== 1 ? 's' : ''} • {state.items.filter(i => !i.is_folder).length} file{state.items.filter(i => !i.is_folder).length !== 1 ? 's' : ''}
+                  {state.items.filter((i: any) => i.is_folder).length} folder{state.items.filter((i: any) => i.is_folder).length !== 1 ? 's' : ''} • {state.items.filter((i: any) => !i.is_folder).length} file{state.items.filter((i: any) => !i.is_folder).length !== 1 ? 's' : ''}
                 </p>
               </div>
             </div>

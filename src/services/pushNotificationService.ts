@@ -107,7 +107,7 @@ export class PushNotificationService {
 
     try {
       // Register service worker if not already registered
-      let registration = await navigator.serviceWorker.getRegistration()
+      let registration: ServiceWorkerRegistration | null = (await navigator.serviceWorker.getRegistration()) ?? null
       if (!registration) {
         registration = await this.registerServiceWorker()
       }
@@ -130,7 +130,18 @@ export class PushNotificationService {
         console.log('[Push] Already subscribed to push notifications')
       }
 
-      return subscription.toJSON()
+      const json = subscription.toJSON()
+      if (!json.endpoint || !json.keys?.auth || !json.keys?.p256dh) {
+        throw new Error('Push subscription is missing required endpoints')
+      }
+
+      return {
+        endpoint: json.endpoint,
+        keys: {
+          auth: json.keys.auth,
+          p256dh: json.keys.p256dh,
+        },
+      }
     } catch (error) {
       console.error('[Push] Error subscribing to push:', error)
       return null

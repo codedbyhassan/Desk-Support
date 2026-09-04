@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { AlertCircle, CheckCircle2, Clock3, Download, Filter, Plus, Search, Trash2, X } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Clock3, Download, Filter, Plus, Search, Trash2, X, type LucideIcon } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
@@ -140,19 +140,19 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
       </section>
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[
+        {([
           ['Open', openTickets, AlertCircle, 'text-blue-600'],
           ['In progress', inProgressTickets, Clock3, 'text-amber-600'],
           ['Resolved', resolvedTickets, CheckCircle2, 'text-emerald-600'],
           ['High priority', highPriorityTickets, AlertCircle, 'text-red-600'],
-        ].map(([label, value, Icon, color]) => (
+        ] as Array<[string, number, LucideIcon, string]>).map(([label, value, Icon, color]) => (
           <Card key={String(label)} className="border-border bg-card shadow-none">
             <div className="flex items-center justify-between p-4">
               <div>
-                <p className="text-xs font-medium text-muted-foreground">{label as string}</p>
-                <p className="mt-1 text-xl font-semibold tracking-tight">{value as number}</p>
+                <p className="text-xs font-medium text-muted-foreground">{label}</p>
+                <p className="mt-1 text-xl font-semibold tracking-tight">{value}</p>
               </div>
-              <Icon className={`h-5 w-5 ${color as string}`} />
+              <Icon className={`h-5 w-5 ${color}`} />
             </div>
           </Card>
         ))}

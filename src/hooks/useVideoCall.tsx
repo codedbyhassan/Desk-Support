@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
  * Hook for WebRTC video calls using Supabase Realtime signaling
  * No separate server needed - uses Supabase Realtime for peer discovery and signaling
  */
-export function useVideoCall(roomId: string | null) {
+export function useVideoCall(_roomId: string | null) {
   const signalingRef = useRef<SupabaseSignalingClient | null>(null)
   const pcsRef = useRef<Record<string, RTCPeerConnection>>({})
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -55,6 +55,9 @@ export function useVideoCall(roomId: string | null) {
     
     return stream
   }, [])
+
+  const deviceConstraint = (deviceId: string | null | undefined): MediaTrackConstraints | boolean =>
+    deviceId ? { deviceId: { exact: deviceId } } : true
 
   const callPeer = useCallback(
     async (peerId: string) => {
@@ -122,6 +125,7 @@ export function useVideoCall(roomId: string | null) {
           if (type === 'offer') {
             const { from_user_id: fromUserId, payload: { sdp } } = msg
             const peerId = fromUserId
+            if (!peerId) return
 
             const pc = createPeerConnection(
               peerId,
@@ -154,6 +158,7 @@ export function useVideoCall(roomId: string | null) {
 
           if (type === 'answer') {
             const { from_user_id: fromUserId, payload: { sdp } } = msg
+            if (!fromUserId) return
             const pc = pcsRef.current[fromUserId]
             if (pc) {
               await pc.setRemoteDescription(new RTCSessionDescription(sdp))
@@ -162,6 +167,7 @@ export function useVideoCall(roomId: string | null) {
 
           if (type === 'ice-candidate') {
             const { from_user_id: fromUserId, payload: { candidate } } = msg
+            if (!fromUserId) return
             const pc = pcsRef.current[fromUserId]
             if (pc && candidate) {
               await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(console.error)
@@ -170,6 +176,7 @@ export function useVideoCall(roomId: string | null) {
 
           if (type === 'screen-share-start') {
             const { from_user_id: fromUserId } = msg
+            if (!fromUserId) return
             setScreenSharePeerId(fromUserId)
             console.debug('[useVideoCall] screen share started by:', fromUserId)
           }
@@ -234,8 +241,8 @@ export function useVideoCall(roomId: string | null) {
 
       // Get new audio stream with specified device
       const newStream = await getLocalMedia({
-        audio: { deviceId: { exact: deviceId } },
-        video: localStream ? { deviceId: { exact: currentVideoInput } } : true,
+        audio: deviceConstraint(deviceId),
+        video: deviceConstraint(currentVideoInput),
       })
 
       // Replace audio tracks in all peer connections
@@ -272,8 +279,8 @@ export function useVideoCall(roomId: string | null) {
 
       // Get new video stream with specified device
       const newStream = await getLocalMedia({
-        audio: localStream ? { deviceId: { exact: currentAudioInput } } : true,
-        video: { deviceId: { exact: deviceId } },
+        audio: deviceConstraint(currentAudioInput),
+        video: deviceConstraint(deviceId),
       })
 
       // Replace video tracks in all peer connections
@@ -337,7 +344,7 @@ export function useVideoCall(roomId: string | null) {
   const startScreenShare = useCallback(async () => {
     try {
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { cursor: 'always' },
+        video: { cursor: 'always' } as MediaTrackConstraints,
         audio: false,
       })
 

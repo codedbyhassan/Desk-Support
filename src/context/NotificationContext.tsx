@@ -21,10 +21,21 @@ export interface AppNotification {
   read: boolean
   created_at: string
 }
+
+export interface NotificationPreferences {
+  enableTicketUpdates: boolean
+  enableComments: boolean
+  enableSoundNotifications: boolean
+  enablePushNotifications: boolean
+  notificationMuteDuration: string
+}
+
 interface NotificationContextType {
   notifications: AppNotification[]
   unreadCount: number
   loading: boolean
+  preferences: NotificationPreferences
+  updatePreferences: (updates: Partial<NotificationPreferences>) => void
   toasts: Toast[]
   currentPath: string
   setCurrentPath: (path: string) => void
@@ -68,6 +79,13 @@ function normalizeNotification(row: Record<string, unknown>): AppNotification {
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const [notifications, setNotifications] = useState<AppNotification[]>([])
+  const [preferences, setPreferences] = useState<NotificationPreferences>({
+    enableTicketUpdates: true,
+    enableComments: true,
+    enableSoundNotifications: true,
+    enablePushNotifications: false,
+    notificationMuteDuration: 'never',
+  })
   const [toasts, setToasts] = useState<Toast[]>([])
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -153,8 +171,26 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [user?.company_id, user?.id])
 
   const dismissToast = useCallback((id: string) => setToasts((prev) => prev.filter((t) => t.id !== id)), [])
+  const updatePreferences = useCallback((updates: Partial<NotificationPreferences>) => {
+    setPreferences((prev) => ({ ...prev, ...updates }))
+  }, [])
   const unreadCount = useMemo(() => notifications.reduce((count, n) => count + (n.read ? 0 : 1), 0), [notifications])
 
-  return <NotificationContext.Provider value={{ notifications, unreadCount, loading, toasts, currentPath, setCurrentPath, markAsRead, markAllAsRead, deleteNotification, deleteAllRead, refreshNotifications, dismissToast, fetchError }}>{children}</NotificationContext.Provider>
+  useEffect(() => {
+    const stored = localStorage.getItem('notification-preferences')
+    if (stored) {
+      try {
+        setPreferences((prev) => ({ ...prev, ...JSON.parse(stored) }))
+      } catch {
+        // ignore malformed saved preferences
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem('notification-preferences', JSON.stringify(preferences))
+  }, [preferences])
+
+  return <NotificationContext.Provider value={{ notifications, unreadCount, loading, preferences, updatePreferences, toasts, currentPath, setCurrentPath, markAsRead, markAllAsRead, deleteNotification, deleteAllRead, refreshNotifications, dismissToast, fetchError }}>{children}</NotificationContext.Provider>
 }
 export function useNotifications() { const value = useContext(NotificationContext); if (!value) throw new Error('useNotifications must be used within NotificationProvider'); return value }

@@ -12,8 +12,12 @@ interface TrashViewProps {
 }
 
 interface TrashItemDisplay extends WorkingAreaTrash {
+  item_type: 'file' | 'folder';
+  original_item_id: string;
+  entity_type: 'file' | 'folder';
   autoDeletesIn: string;
   daysRemaining: number;
+  metadata: Record<string, any>;
 }
 
 export const TrashView: React.FC<TrashViewProps> = ({
@@ -64,6 +68,9 @@ export const TrashView: React.FC<TrashViewProps> = ({
         
         return {
           ...item,
+          item_type: item.entity_type,
+          original_item_id: item.entity_id,
+          entity_type: item.entity_type,
           daysRemaining: Math.max(0, daysRemaining),
           autoDeletesIn: daysRemaining > 0 
             ? `${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}`

@@ -13,7 +13,8 @@ import { supabase } from '@/lib/supabase'
 import { RealtimeChannel } from '@supabase/supabase-js'
 
 export type SignalMessage = {
-  type: 'offer' | 'answer' | 'ice-candidate' | 'mute' | 'unmute' | 'screen-share' | 'join' | 'leave'
+  type: 'offer' | 'answer' | 'ice-candidate' | 'mute' | 'unmute' | 'screen-share' | 'screen-share-start' | 'screen-share-stop' | 'join' | 'leave' | 'chat-message' | 'typing-indicator'
+  from_user_id?: string
   payload?: any
 }
 
@@ -205,7 +206,7 @@ export class SupabaseSignalingClient {
    */
   isConnected(): boolean {
     // Consider connected if either realtime OR polling is active
-    return (this.isSubscribed && this.channel?.state === 'SUBSCRIBED') || !!this.pollingInterval
+    return this.isSubscribed || !!this.pollingInterval
   }
 
   /**

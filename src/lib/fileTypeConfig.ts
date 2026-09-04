@@ -323,7 +323,7 @@ export const isPreviewable = (fileName: string, mimeType?: string): boolean => {
   if (config.label === 'Archive') return false;
 
   // All other configured file types are previewable
-  return (
+  return Boolean(
     config.label === 'Image' ||
     config.label === 'PDF Document' ||
     config.label === 'Word Document' ||

@@ -48,6 +48,7 @@ type SupabaseQuery = {
   order: (column: string, options: { ascending: boolean }) => SupabaseQuery
   eq: (column: string, value: unknown) => SupabaseQuery
   is: (column: string, value: null) => SupabaseQuery
+  or: (condition: string) => SupabaseQuery
   not: (column: string, operator: string, value: unknown) => SupabaseQuery
   range: (from: number, to: number) => Promise<{ data: unknown[] | null; error: { message: string } | null }>
 }

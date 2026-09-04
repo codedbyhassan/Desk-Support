@@ -12,8 +12,8 @@ export class SignalingClient {
   private handlers: ((msg: SignalMessage) => void)[] = []
   private isConnecting: boolean = false
   private messageQueue: SignalMessage[] = []
-  private maxQueueTime: number = 5000 // max time to queue messages (5 seconds)
-  private queueStartTime: number = 0
+  private _maxQueueTime: number = 5000 // max time to queue messages (5 seconds)
+  private _queueStartTime: number = 0
   // marker for whether we've already registered a single message handler
   public _messageHandlerRegistered: boolean = false
 
@@ -34,7 +34,7 @@ export class SignalingClient {
     }
 
     this.isConnecting = true
-    this.queueStartTime = Date.now()
+    this._queueStartTime = Date.now()
 
     return new Promise((resolve, reject) => {
       console.debug('[Signaling] connecting to', this.url)

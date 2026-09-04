@@ -1,5 +1,6 @@
 // src/lib/daily.ts
 import { supabase } from './supabase'
+import { config } from '@/config/env'
 
 export interface DailyCall {
   id: string
@@ -93,13 +94,13 @@ export class DailyClient {
       }
 
       const response = await fetch(
-        `${supabase.supabaseUrl}/functions/v1/create-daily-room`,
+        `${config.supabaseUrl}/functions/v1/create-daily-room`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`,
-            'apikey': supabase.supabaseKey,
+            'apikey': config.supabaseKey,
           },
           body: JSON.stringify({
             teamId,
@@ -137,13 +138,13 @@ export class DailyClient {
       }
 
       const response = await fetch(
-        `${supabase.supabaseUrl}/functions/v1/end-daily-room`,
+        `${config.supabaseUrl}/functions/v1/end-daily-room`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`,
-            'apikey': supabase.supabaseKey,
+            'apikey': config.supabaseKey,
           },
           body: JSON.stringify({ callId }),
         }

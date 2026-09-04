@@ -663,7 +663,7 @@ export default function ManagerDashboard() {
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-[hsl(var(--foreground))] text-xs sm:text-sm truncate">{ticket.title}</div>
+                            <div className="font-medium text-[hsl(var(--foreground))] text-xs sm:text-sm truncate">{ticket.subject}</div>
                             <div className="text-xs text-[hsl(var(--muted-foreground))] line-clamp-1">{ticket.description}</div>
                           </div>
                           <div className="flex flex-col gap-1 ml-3">
@@ -675,8 +675,8 @@ export default function ManagerDashboard() {
                             </Badge>
                           </div>
                         </div>
-                        {ticket.assignee && (
-                          <p className="text-xs text-[hsl(var(--muted-foreground))] truncate">Assigned to {ticket.assignee.full_name}</p>
+                        {(ticket as any).assignee && (
+                          <p className="text-xs text-[hsl(var(--muted-foreground))] truncate">Assigned to {(ticket as any).assignee.full_name}</p>
                         )}
                       </div>
                     ))}

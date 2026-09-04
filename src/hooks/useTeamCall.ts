@@ -50,11 +50,6 @@ export function useTeamCall(teamId: string, teamName: string) {
   // Subscribe to participant changes when in a call
   // Participants are not tracked server-side in this simplified flow.
 
-  const loadActiveCall = async () => {
-    // placeholder for future server-backed active call lookup
-    setLoading(false)
-  }
-
   const startCall = async () => {
     if (!user || !teamId || !teamName) return
 

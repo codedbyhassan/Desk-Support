@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import Loader from '@/components/Loader'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import type { LucideIcon } from 'lucide-react'
 
 const EMPTY_COUNTS: ExactCompanyCounts = {
   users_total: 0,
@@ -100,10 +101,10 @@ export default function DashboardPage() {
   const maxTrend = Math.max(1, ...recentTrend.map(point => Math.max(point.created, point.resolved)))
   const canManageUsers = user.role === 'admin' || user.role === 'hr'
 
-  const stats = [
+  const stats: Array<{ label: string; value: number; note: string; icon: LucideIcon; href?: string }> = [
     { label: 'Total tickets', value: counts.tickets_total, note: `${active} active`, icon: Ticket, href: '/app/tickets' },
     { label: 'Resolved', value: resolved, note: `${counts.tickets_total ? Math.round(resolved / counts.tickets_total * 100) : 0}% of all tickets`, icon: CheckCircle2, href: '/app/tickets' },
-    { label: 'Assets', value: counts.assets_total, note: `${metrics.availableAssets} available`, icon: Package, href: '/app/assets' },
+    { label: 'Assets', value: counts.assets_total, note: `${metrics.availableAssets ?? 0} available`, icon: Package, href: '/app/assets' },
     { label: 'Team members', value: counts.users_total, note: `${counts.teams_total} teams`, icon: Users, href: canManageUsers ? '/app/users' : undefined },
   ]
 
@@ -119,7 +120,7 @@ export default function DashboardPage() {
 
     <section className="grid gap-5 xl:grid-cols-[minmax(0,1.8fr)_360px]">
       <Card className="overflow-hidden border-border bg-card shadow-none"><div className="flex items-center justify-between border-b border-border px-5 py-4"><div><h2 className="text-sm font-semibold">Ticket activity</h2><p className="mt-0.5 text-xs text-muted-foreground">Created vs resolved over the last 7 recorded days</p></div><Activity className="h-4 w-4 text-muted-foreground"/></div><div className="p-5"><div className="flex h-56 items-end gap-2 sm:gap-4">{recentTrend.map(point => <div key={point.date} className="flex min-w-0 flex-1 flex-col items-center gap-2"><div className="flex h-44 w-full items-end justify-center gap-1 rounded-md bg-muted/30 px-1"><div className="w-2.5 rounded-t bg-primary/25" style={{height:`${Math.max(4, point.created / maxTrend * 100)}%`}}/><div className="w-2.5 rounded-t bg-primary" style={{height:`${Math.max(4, point.resolved / maxTrend * 100)}%`}}/></div><span className="text-[10px] text-muted-foreground">{new Date(point.date).toLocaleDateString(undefined,{weekday:'short'})}</span></div>)}{!recentTrend.length && <div className="grid w-full place-items-center text-sm text-muted-foreground">No ticket activity yet.</div>}</div><div className="mt-4 flex gap-5 text-xs text-muted-foreground"><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-primary/25"/>Created</span><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-primary"/>Resolved</span></div></div></Card>
-      <Card className="border-border bg-card shadow-none"><div className="border-b border-border px-5 py-4"><h2 className="text-sm font-semibold">Operational snapshot</h2><p className="mt-0.5 text-xs text-muted-foreground">Current workload at a glance</p></div><div className="divide-y divide-border">{[['Open tickets',counts.tickets_open,'/app/tickets',Clock3],['In progress',counts.tickets_in_progress,'/app/tickets',Activity],['Active assignments',counts.ticket_assignments_active,'/app/tickets',Users],['Available assets',metrics.availableAssets,'/app/assets',Package]].map(([label,value,href,Icon]) => <button key={String(label)} onClick={()=>navigate(String(href))} className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-muted/40"><span className="grid h-8 w-8 place-items-center rounded-lg bg-muted"><Icon className="h-4 w-4 text-muted-foreground"/></span><span className="flex-1"><span className="block text-sm font-medium">{label}</span><span className="block text-[11px] text-muted-foreground">View details</span></span><span className="text-sm font-semibold">{value as number}</span><ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground"/></button>)}</div></Card>
+      <Card className="border-border bg-card shadow-none"><div className="border-b border-border px-5 py-4"><h2 className="text-sm font-semibold">Operational snapshot</h2><p className="mt-0.5 text-xs text-muted-foreground">Current workload at a glance</p></div><div className="divide-y divide-border">{([['Open tickets',counts.tickets_open,'/app/tickets',Clock3],['In progress',counts.tickets_in_progress,'/app/tickets',Activity],['Active assignments',counts.ticket_assignments_active,'/app/tickets',Users],['Available assets',metrics.availableAssets,'/app/assets',Package]] as [string, number, string, LucideIcon][]).map(([label,value,href,Icon]) => <button key={label} onClick={()=>navigate(href)} className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-muted/40"><span className="grid h-8 w-8 place-items-center rounded-lg bg-muted"><Icon className="h-4 w-4 text-muted-foreground"/></span><span className="flex-1"><span className="block text-sm font-medium">{label}</span><span className="block text-[11px] text-muted-foreground">View details</span></span><span className="text-sm font-semibold">{value}</span><ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground"/></button>)}</div></Card>
     </section>
   </div>
 }

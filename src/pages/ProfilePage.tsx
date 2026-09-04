@@ -47,8 +47,8 @@ interface Department {
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth()
   const { toast } = useToast()
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
   // QR Code and Attendance hooks
   const { isScanning, startScanning, stopScanning, scannedData } = useQRCode()
@@ -406,8 +406,16 @@ export default function ProfilePage() {
       bgColor: 'bg-amber-50',
       borderColor: 'border-amber-200',
     },
+    on_break: {
+      icon: Clock,
+      label: 'On Break',
+      color: 'bg-sky-500',
+      textColor: 'text-sky-600',
+      bgColor: 'bg-sky-50',
+      borderColor: 'border-sky-200',
+    },
   }
-  const status = statusConfig[attendanceStatus.status]
+  const status = statusConfig[attendanceStatus.status as keyof typeof statusConfig] ?? statusConfig.not_started
   const StatusIcon = status.icon
 
   return (
@@ -420,7 +428,7 @@ export default function ProfilePage() {
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <div className="relative flex-shrink-0">
                 <Avatar className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24 ring-4 ring-white/20 shadow-2xl">
-                  <AvatarImage src={user.avatar_url} />
+                  <AvatarImage src={user.avatar_url ?? undefined} />
                   <AvatarFallback className="text-lg sm:text-xl lg:text-3xl bg-gradient-to-br from-blue-400 to-cyan-400 text-[hsl(var(--card-foreground))] font-bold">
                     {user.full_name.substring(0, 2).toUpperCase()}
                   </AvatarFallback>

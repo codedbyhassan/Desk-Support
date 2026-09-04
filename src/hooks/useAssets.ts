@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth'
 import { useToast } from '@/hooks/use-toast'
 import { fetchSupabasePage } from '@/lib/dataAccess'
 
-export type AssetStatus = 'active' | 'assigned' | 'maintenance' | 'retired' | 'lost'
+export type AssetStatus = 'available' | 'active' | 'assigned' | 'maintenance' | 'retired' | 'lost'
 export type AssetCondition = 'new' | 'good' | 'fair' | 'poor' | 'damaged'
 
 /** UI-facing asset shape. Legacy display names are adapters; persistence uses
@@ -33,6 +33,7 @@ export interface Asset {
   created_at: string
   updated_at: string
   metadata: Record<string, unknown>
+  assigned_user?: { id?: string; full_name?: string | null; email?: string | null; avatar_url?: string | null; role?: string | null } | null
 }
 
 export type AssetFilters = {

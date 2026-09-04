@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useAuth } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,7 @@ interface ReportsPanelProps {
 
 export default function ReportsPanel({ noCard = false }: ReportsPanelProps) {
   const { toast } = useToast()
+  const { user } = useAuth()
   const [loading, setLoading] = useState<string | null>(null)
 
   const downloadCSV = (data: any[], filename: string) => {

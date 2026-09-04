@@ -27,13 +27,14 @@ export function TicketStatusHistory({ entries }: Props) {
 				<div className="space-y-3">
 					{entries.map((entry) => {
 						const statusStyle = getTicketStatusStyle(entry.status)
+						const badgeClass = 'badge' in statusStyle && typeof statusStyle.badge === 'string' ? statusStyle.badge : 'bg-slate-100 text-slate-800'
 						return (
 							<div
 								key={entry.id}
 								className={`flex justify-between items-center p-3 ${colors.neutral.light} ${darkMode.bgSecondary} rounded`}
 							>
 								<div>
-									<Badge className={statusStyle.badge || 'bg-slate-100 text-slate-800'}>
+									<Badge className={badgeClass}>
 										{statusStyle.label}
 									</Badge>
 									<p className={`${typography.xs} ${colors.neutral.text} ${darkMode.textSecondary} mt-1`}>

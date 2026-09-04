@@ -4,8 +4,8 @@ import { useQRCode } from '@/context/QRCodeContext'
 import { useToast } from './use-toast'
 
 interface UseQRScannerOptions {
-  videoRef: React.RefObject<HTMLVideoElement>
-  canvasRef: React.RefObject<HTMLCanvasElement>
+  videoRef: React.RefObject<HTMLVideoElement | null>
+  canvasRef: React.RefObject<HTMLCanvasElement | null>
   onScanSuccess?: (data: string) => void
   onScanError?: (error: string) => void
   continuous?: boolean
