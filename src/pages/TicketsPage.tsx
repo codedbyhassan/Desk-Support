@@ -6,47 +6,15 @@ import { TicketForm } from '@/components/Ticket/TicketForm'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { PageHeader } from '@/components/ui/PageHeader'
-import { 
-  AlertCircle, 
-  CheckCircle2, 
-  Clock, 
-  Plus, 
-  Search, 
-  Ticket,
-  Trash2,
-  Download,
-  Filter,
-  TrendingUp,
-  Activity,
-  Users,
-  Target,
-  Zap,
-  Calendar,
-  ArrowUpRight,
-  X
-} from 'lucide-react'
+import { AlertCircle, CheckCircle2, Clock3, Download, Filter, Plus, Search, Trash2, X } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 
-interface TicketsPageProps {
-  newTicket?: boolean
-}
+interface TicketsPageProps { newTicket?: boolean }
 
 export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
   const navigate = useNavigate()
@@ -62,422 +30,92 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [ticketToDelete, setTicketToDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
-  
-  // Ensure activeTab is set to incoming when page loads
-  useEffect(() => {
-    if (!activeTab || (activeTab !== 'incoming' && activeTab !== 'outgoing')) {
-      setActiveTab('incoming')
-    }
-  }, [])
 
-  useEffect(() => {
-    if (user?.company_id) {
-      fetchTickets()
-    }
-  }, [user?.company_id])
-
-  const handleTicketCreated = (ticketId: string) => {
-    setShowForm(false)
-    fetchTickets()
-    navigate(`/app/tickets/${ticketId}`)
-  }
+  useEffect(() => { if (activeTab !== 'incoming' && activeTab !== 'outgoing') setActiveTab('incoming') }, [activeTab, setActiveTab])
+  useEffect(() => { if (user?.company_id) fetchTickets() }, [user?.company_id, fetchTickets])
 
   const toggleForm = () => {
     if (showForm) {
       setShowForm(false)
-      if (location.pathname === '/app/tickets/new') {
-        navigate('/app/tickets')
-      }
+      if (location.pathname === '/app/tickets/new') navigate('/app/tickets')
     } else {
       setShowForm(true)
       navigate('/app/tickets/new')
     }
   }
 
-  const handleDeleteClick = (ticketId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    setTicketToDelete(ticketId)
-    setDeleteDialogOpen(true)
-  }
+  const handleTicketCreated = (ticketId: string) => { setShowForm(false); fetchTickets(); navigate(`/app/tickets/${ticketId}`) }
+
+  const handleDeleteClick = (ticketId: string, e: React.MouseEvent) => { e.stopPropagation(); setTicketToDelete(ticketId); setDeleteDialogOpen(true) }
 
   const handleDeleteConfirm = async () => {
     if (!ticketToDelete || !user?.company_id) return
-
     setDeleting(true)
     try {
-      const { error: commentsError } = await supabase
-        .from('ticket_comments')
-        .delete()
-        .eq('ticket_id', ticketToDelete)
-        .eq('company_id', user.company_id)
-
+      const { error: commentsError } = await supabase.from('ticket_comments').delete().eq('ticket_id', ticketToDelete).eq('company_id', user.company_id)
       if (commentsError) throw commentsError
-
-      const { error: historyError } = await supabase
-        .from('ticket_status_history')
-        .delete()
-        .eq('ticket_id', ticketToDelete)
-        .eq('company_id', user.company_id)
-
+      const { error: historyError } = await supabase.from('ticket_status_history').delete().eq('ticket_id', ticketToDelete).eq('company_id', user.company_id)
       if (historyError) throw historyError
-
-      const { error: ticketError } = await supabase
-        .from('tickets')
-        .delete()
-        .eq('id', ticketToDelete)
-        .eq('company_id', user.company_id)
-
+      const { error: ticketError } = await supabase.from('tickets').delete().eq('id', ticketToDelete).eq('company_id', user.company_id)
       if (ticketError) throw ticketError
-
-      toast({
-        title: 'Success',
-        description: 'Ticket deleted successfully'
-      })
-
+      toast({ title: 'Ticket deleted', description: 'The ticket and its history were removed.' })
       fetchTickets()
     } catch (error) {
       console.error('Error deleting ticket:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to delete ticket',
-        variant: 'destructive'
-      })
-    } finally {
-      setDeleting(false)
-      setDeleteDialogOpen(false)
-      setTicketToDelete(null)
-    }
+      toast({ title: 'Could not delete ticket', description: 'Please try again.', variant: 'destructive' })
+    } finally { setDeleting(false); setDeleteDialogOpen(false); setTicketToDelete(null) }
   }
 
-  // Filter tickets for personal view (tickets created by user)
-  const personalTickets = tickets.filter(ticket => {
-    const matchesSearch = searchQuery.trim() === '' || 
-      ticket.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ticket.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ticket.id?.toLowerCase().includes(searchQuery.toLowerCase())
+  const matchesFilters = (ticket: typeof tickets[number]) => {
+    const q = searchQuery.trim().toLowerCase()
+    const matchesSearch = !q || ticket.title?.toLowerCase().includes(q) || ticket.description?.toLowerCase().includes(q) || ticket.id?.toLowerCase().includes(q)
+    return matchesSearch && (statusFilter === 'all' || ticket.status === statusFilter) && (priorityFilter === 'all' || ticket.priority === priorityFilter)
+  }
 
-    const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter
-    const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter
-    const isCreatedByUser = ticket.created_by === user?.id
-
-    return matchesSearch && matchesStatus && matchesPriority && isCreatedByUser
-  })
-
-  // Filter tickets for department view (tickets assigned to user)
-  const departmentTickets = tickets.filter(ticket => {
-    const matchesSearch = searchQuery.trim() === '' || 
-      ticket.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ticket.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ticket.id?.toLowerCase().includes(searchQuery.toLowerCase())
-
-    const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter
-    const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter
-    const isAssignedToUser = ticket.assigned_to === user?.id
-
-    return matchesSearch && matchesStatus && matchesPriority && isAssignedToUser
-  })
-
-  // Get the currently displayed tickets based on active tab
-  // Incoming = tickets assigned to me, Outgoing = tickets created by me
+  const personalTickets = tickets.filter(ticket => ticket.created_by === user?.id && matchesFilters(ticket))
+  const departmentTickets = tickets.filter(ticket => ticket.assigned_to === user?.id && matchesFilters(ticket))
   const displayedTickets = activeTab === 'incoming' ? departmentTickets : personalTickets
+  const openTickets = tickets.filter(t => t.status === 'open').length
+  const inProgressTickets = tickets.filter(t => t.status === 'in_progress').length
+  const resolvedTickets = tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length
+  const highPriorityTickets = tickets.filter(t => t.priority === 'high' && !['resolved','closed'].includes(t.status)).length
 
-  // Old filtered tickets (for backwards compatibility if needed)
-  const filteredTickets = tickets.filter(ticket => {
-    const matchesSearch = searchQuery.trim() === '' || 
-      ticket.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ticket.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ticket.id?.toLowerCase().includes(searchQuery.toLowerCase())
+  return <div className="space-y-6">
+    <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p className="mb-1 text-xs font-medium text-muted-foreground">Workspace / Tickets</p>
+        <h1 className="text-2xl font-semibold tracking-tight">Tickets</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Manage requests, assignments and resolution.</p>
+      </div>
+      <div className="flex gap-2">
+        <Button variant="outline" className="h-9 rounded-lg"><Download className="mr-2 h-4 w-4"/>Export</Button>
+        <Button onClick={toggleForm} className="h-9 rounded-lg"><Plus className="mr-2 h-4 w-4"/>New ticket</Button>
+      </div>
+    </section>
 
-    const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter
-    const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter
+    <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {[['Open',openTickets,AlertCircle,'text-blue-600'],['In progress',inProgressTickets,Clock3,'text-amber-600'],['Resolved',resolvedTickets,CheckCircle2,'text-emerald-600'],['High priority',highPriorityTickets,AlertCircle,'text-red-600']].map(([label,value,Icon,color]) => <Card key={String(label)} className="border-border bg-card shadow-none"><div className="flex items-center justify-between p-4"><div><p className="text-xs font-medium text-muted-foreground">{label as string}</p><p className="mt-1 text-xl font-semibold tracking-tight">{value as number}</p></div><Icon className={`h-5 w-5 ${color as string}`} /></div></Card>)}
+    </section>
 
-    return matchesSearch && matchesStatus && matchesPriority
-  })
+    {showForm && <Card className="border-border shadow-none"><div className="flex items-center justify-between border-b border-border px-5 py-4"><div><h2 className="font-semibold">New ticket</h2><p className="text-xs text-muted-foreground">Create a support request.</p></div><Button variant="ghost" size="icon" onClick={toggleForm}><X className="h-4 w-4"/></Button></div><div className="p-5"><TicketForm onSubmit={handleTicketCreated}/></div></Card>}
 
-  const openTickets = tickets.filter(t => t.status === 'open')
-  const inProgressTickets = tickets.filter(t => t.status === 'in_progress')
-  const resolvedTickets = tickets.filter(t => t.status === 'resolved')
-  const highPriorityTickets = tickets.filter(t => t.priority === 'high' && t.status !== 'resolved')
-  
-  // Calculate resolution rate
-  const totalActiveTickets = tickets.filter(t => t.status !== 'closed').length
-  const resolutionRate = totalActiveTickets > 0 
-    ? Math.round((resolvedTickets.length / totalActiveTickets) * 100) 
-    : 0
-
-  // Calculate average response time (mock data for demonstration)
-  const avgResponseTime = '2.4h'
-
-  return (
-    <div className="space-y-4 lg:space-y-6">
-      {/* Header */}
-      <PageHeader
-        title="Support Tickets"
-        description="Track, manage, and resolve customer support requests"
-        actions={
-          <div className="flex gap-2 flex-shrink-0 w-full sm:w-auto">
-            <Button variant="outline" className="rounded-lg lg:rounded-xl border-[hsl(var(--border))] h-10 sm:h-11 lg:h-10 flex-1 sm:flex-none text-xs sm:text-sm">
-              <Download className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
-              <span className="hidden sm:inline">Export</span>
-              <span className="sm:hidden">Export</span>
-            </Button>
-            <Button
-              onClick={toggleForm}
-              className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary-hover))] rounded-lg lg:rounded-xl shadow-lg shadow-[hsl(var(--primary))]/20 h-10 sm:h-11 lg:h-10 flex-1 sm:flex-none text-xs sm:text-sm"
-            >
-              <Plus className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
-              <span className="hidden sm:inline">New Ticket</span>
-              <span className="sm:hidden">New</span>
-            </Button>
-          </div>
-        }
-      />
-
-      {/* Ticket View Tabs - Incoming vs Outgoing */}
-      <Tabs
-        value={activeTab}
-        onValueChange={(val) => setActiveTab(val as 'incoming' | 'outgoing')}
-        className="w-full px-4 sm:px-0"
-      >
-        <TabsList className="hidden">
-          <TabsTrigger 
-            value="incoming" 
-            className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground"
-          >
-            Incoming
-            <Badge variant="secondary" className="ml-2">{departmentTickets.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="outgoing" 
-            className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm text-foreground"
-          >
-            Outgoing
-            <Badge variant="secondary" className="ml-1 sm:ml-2 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">{personalTickets.length}</Badge>
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {/* Premium Insights Banner */}
-      <Card className="border-slate-200 bg-gradient-to-r from-slate-900 to-slate-800 text-white overflow-hidden relative">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(59,130,246,0.1),transparent_50%)]" />
-        <div className="p-4 lg:p-6 relative">
-          <div className="flex flex-col lg:flex-row lg:items-start gap-4 lg:gap-6">
-            <div className="flex items-start gap-3 lg:gap-4">
-              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white/10 backdrop-blur-sm rounded-lg lg:rounded-xl flex items-center justify-center border border-white/20 flex-shrink-0">
-                <TrendingUp className="h-5 w-5 lg:h-6 lg:w-6 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-base lg:text-lg font-semibold mb-1">Performance Insights</h3>
-                <p className="text-slate-300 text-xs lg:text-sm mb-3 lg:mb-4">
-                  Your team resolved {resolvedTickets.length} tickets with {avgResponseTime} avg response
-                </p>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 lg:gap-6">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-3 w-3 lg:h-4 lg:w-4 text-slate-400" />
-                    <span className="text-xs lg:text-sm text-slate-300">{tickets.length} total tickets</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Zap className="h-3 w-3 lg:h-4 lg:w-4 text-emerald-400" />
-                    <span className="text-xs lg:text-sm text-emerald-300">Above target</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+    <Card className="overflow-hidden border-border bg-card shadow-none">
+      <div className="border-b border-border p-4 sm:p-5">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div><h2 className="font-semibold">{activeTab === 'incoming' ? 'Incoming tickets' : 'My tickets'}</h2><p className="text-xs text-muted-foreground">{displayedTickets.length} matching {displayedTickets.length === 1 ? 'ticket' : 'tickets'}</p></div>
+          <div className="inline-flex w-fit rounded-lg border border-border bg-muted/50 p-1">
+            <button onClick={() => setActiveTab('incoming')} className={`rounded-md px-3 py-1.5 text-xs font-medium ${activeTab === 'incoming' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}>Assigned to me <span className="ml-1 opacity-60">{departmentTickets.length}</span></button>
+            <button onClick={() => setActiveTab('outgoing')} className={`rounded-md px-3 py-1.5 text-xs font-medium ${activeTab === 'outgoing' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}>Created by me <span className="ml-1 opacity-60">{personalTickets.length}</span></button>
           </div>
         </div>
-      </Card>
-
-      {/* Create Ticket Form */}
-      {showForm && (
-        <Card variant="glass" className="mx-4 sm:mx-0">
-          <div className="p-3 sm:p-4 lg:p-6 border-b border-[hsl(var(--border))] bg-[hsl(var(--muted))]">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-[hsl(var(--primary))] rounded-lg lg:rounded-xl flex items-center justify-center shadow-lg shadow-[hsl(var(--primary))]/20 flex-shrink-0">
-                <Plus className="h-4 w-4 lg:h-5 lg:w-5 text-[hsl(var(--primary-foreground))]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h2 className="text-base sm:text-lg lg:text-xl font-semibold text-[hsl(var(--foreground))] truncate">Create New Ticket</h2>
-                <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))] truncate">Submit a new support request</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleForm}
-                className="h-8 w-8 p-0 flex-shrink-0 rounded-lg"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          <div className="p-3 sm:p-4 lg:p-6 overflow-y-auto max-h-[70vh]">
-            <TicketForm onSubmit={handleTicketCreated} />
-          </div>
-        </Card>
-      )}
-
-      {/* Tickets Table */}
-      <Card variant="glass">
-        <div className="p-4 lg:p-6 border-b border-[hsl(var(--border))]">
-          <div className="flex flex-col gap-3 lg:gap-4 mb-3 lg:mb-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="space-y-1">
-                <h2 className="text-base sm:text-lg font-semibold text-[hsl(var(--foreground))]">
-                  {activeTab === 'incoming'
-                    ? 'Incoming Tickets (Assigned to Me)'
-                    : 'Outgoing Tickets (My Tickets)'}
-                </h2>
-                <p className="text-xs sm:text-sm text-[hsl(var(--muted-foreground))]">
-                  {displayedTickets.length} {displayedTickets.length === 1 ? 'ticket' : 'tickets'} found
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(var(--muted-foreground))] flex-shrink-0" />
-                <Input
-                  placeholder="Search tickets..."
-                  className="pl-9 rounded-lg border-[hsl(var(--border))] text-xs sm:text-sm h-10 sm:h-11"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2 flex-shrink-0">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="rounded-lg border-[hsl(var(--border))] text-xs sm:text-sm h-10 sm:h-11 flex-1 sm:flex-none min-w-fit">
-                    <Filter className="h-4 w-4 mr-1 flex-shrink-0" />
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="resolved">Resolved</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                  <SelectTrigger className="rounded-lg border-[hsl(var(--border))] text-xs sm:text-sm h-10 sm:h-11 flex-1 sm:flex-none min-w-fit">
-                    <Filter className="h-4 w-4 mr-1 flex-shrink-0" />
-                    <SelectValue placeholder="Priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Priority</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* Filter Pills */}
-          {(statusFilter !== 'all' || priorityFilter !== 'all' || searchQuery) && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-[hsl(var(--muted-foreground))]">Active filters:</span>
-              {searchQuery && (
-                <Badge variant="secondary" className="rounded-full text-xs">
-                  Search: {searchQuery}
-                  <button 
-                    onClick={() => setSearchQuery('')}
-                    className="ml-1 hover:text-[hsl(var(--foreground))]"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              )}
-              {statusFilter !== 'all' && (
-                <Badge variant="secondary" className="rounded-full text-xs">
-                  Status: {statusFilter}
-                  <button 
-                    onClick={() => setStatusFilter('all')}
-                    className="ml-1 hover:text-[hsl(var(--foreground))]"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              )}
-              {priorityFilter !== 'all' && (
-                <Badge variant="secondary" className="rounded-full text-xs">
-                  Priority: {priorityFilter}
-                  <button 
-                    onClick={() => setPriorityFilter('all')}
-                    className="ml-1 hover:text-[hsl(var(--foreground))]"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              )}
-              <button 
-                onClick={() => {
-                  setSearchQuery('')
-                  setStatusFilter('all')
-                  setPriorityFilter('all')
-                }}
-                className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] font-medium"
-              >
-                Clear all
-              </button>
-            </div>
-          )}
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="relative min-w-0 flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/><Input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Search tickets" className="h-10 rounded-lg pl-9"/></div>
+          <div className="flex gap-2"><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="h-10 w-[145px] rounded-lg"><Filter className="mr-2 h-4 w-4"/><SelectValue/></SelectTrigger><SelectContent><SelectItem value="all">All status</SelectItem><SelectItem value="open">Open</SelectItem><SelectItem value="in_progress">In progress</SelectItem><SelectItem value="resolved">Resolved</SelectItem><SelectItem value="closed">Closed</SelectItem></SelectContent></Select><Select value={priorityFilter} onValueChange={setPriorityFilter}><SelectTrigger className="h-10 w-[145px] rounded-lg"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="all">All priority</SelectItem><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem></SelectContent></Select></div>
         </div>
+      </div>
+      <div className="min-h-[280px] overflow-x-auto"><TicketList tickets={displayedTickets} loading={loading} onRowClick={id=>navigate(`/app/tickets/${id}`)} actions={user && (user.role === 'admin' || user.role === 'manager') ? (ticket)=><Button variant="ghost" size="icon" onClick={e=>handleDeleteClick(ticket.id,e)} className="h-8 w-8 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4"/></Button> : undefined}/></div>
+    </Card>
 
-        <div className="overflow-x-auto">
-          <TicketList
-            tickets={displayedTickets}
-            loading={loading}
-            onRowClick={(id) => navigate(`/app/tickets/${id}`)}
-            actions={user && (user.role === 'admin' || user.role === 'manager')
-              ? (ticket) => (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => handleDeleteClick(ticket.id, e)}
-                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )
-              : undefined}
-          />
-        </div>
-      </Card>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="max-w-[90vw] sm:max-w-[500px] lg:max-w-lg rounded-2xl lg:rounded-3xl mx-4">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg lg:text-xl text-[hsl(var(--foreground))]">Delete Ticket</AlertDialogTitle>
-            <AlertDialogDescription className="text-xs sm:text-sm lg:text-base text-[hsl(var(--muted-foreground))]">
-              Are you sure you want to delete this ticket? This action cannot be undone.
-              All comments and history associated with this ticket will also be deleted.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-0">
-            <AlertDialogCancel disabled={deleting} className="rounded-lg lg:rounded-xl h-10 sm:h-11">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConfirm}
-              disabled={deleting}
-              className="bg-red-600 hover:bg-red-700 rounded-lg lg:rounded-xl h-10 sm:h-11"
-            >
-              {deleting ? (
-                <>
-                  <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Ticket
-                </>
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  )
+    <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete ticket?</AlertDialogTitle><AlertDialogDescription>This removes the ticket, comments and status history. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDeleteConfirm} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{deleting ? 'Deleting…' : 'Delete ticket'}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+  </div>
 }
