@@ -9,7 +9,7 @@
     "dev:unified": "npm run build && node dev-server.js",
     "build": "vite build",
     "electron": "electron .",
-    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
+    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:4000 && cross-env NODE_ENV=development electron .\"",
     "electron:build": "vite build && electron-builder",
     "lint": "npm run lint:types && npm run lint:js && npm run lint:css",
     "preview": "vite preview",
@@ -20,46 +20,12 @@
   "build": {
     "appId": "com.deskSupport.app",
     "productName": "Desk Support",
-    "files": [
-      "dist/**/*",
-      "electron.cjs",
-      "package.json"
-    ],
-    "directories": {
-      "output": "release",
-      "buildResources": "build"
-    },
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "build/icon.ico"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
-    },
-    "mac": {
-      "target": [
-        "dmg"
-      ],
-      "icon": "build/icon.icns",
-      "category": "public.app-category.productivity"
-    },
-    "linux": {
-      "target": [
-        "AppImage"
-      ],
-      "icon": "build/icon.png",
-      "category": "Utility"
-    }
+    "files": ["dist/**/*", "electron.cjs", "package.json"],
+    "directories": {"output": "release", "buildResources": "build"},
+    "win": {"target": [{"target": "nsis", "arch": ["x64"]}], "icon": "build/icon.ico"},
+    "nsis": {"oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true},
+    "mac": {"target": ["dmg"], "icon": "build/icon.icns", "category": "public.app-category.productivity"},
+    "linux": {"target": ["AppImage"], "icon": "build/icon.png", "category": "Utility"}
   },
   "dependencies": {
     "@blinkdotnew/sdk": "^0.18.3",
@@ -148,9 +114,6 @@
     "eslint": "^9.33.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
-    "expo": "^49.0.23",
-    "expo-cli": "^6.3.12",
-    "glob": "^11.0.3",
     "globals": "^16.3.0",
     "postcss": "^8.4.31",
     "qrcode-terminal": "^0.12.0",
