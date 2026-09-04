@@ -1,39 +1,37 @@
-import { useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { lightTheme, darkTheme } from '@/lib/theme'
 
 /**
- * Hook to apply semantic color tokens to the document root
- * This hook works WITHOUT depending on useTheme() to avoid circular dependencies
- * It watches for theme changes via DOM class mutations
+ * Applies the semantic theme tokens to the document root.
+ * The active theme is read from the root's `dark` class so this hook
+ * stays independent from the ThemeContext implementation.
  */
 export function useThemeProvider() {
+  const [isDark, setIsDark] = useState(() =>
+    typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
+  )
+
   const applyTheme = useCallback(() => {
     const root = document.documentElement
-    
-    // Detect if dark mode is active by checking html class
-    const isDark = root.classList.contains('dark')
-    const themeVariables = isDark ? darkTheme : lightTheme
+    const dark = root.classList.contains('dark')
+    const themeVariables = dark ? darkTheme : lightTheme
 
-    // Apply CSS variables to root element
     Object.entries(themeVariables).forEach(([key, value]) => {
       root.style.setProperty(key, value)
     })
-
-    // Set data attribute for CSS selectors
-    root.setAttribute('data-theme', isDark ? 'dark' : 'light')
+    root.setAttribute('data-theme', dark ? 'dark' : 'light')
+    setIsDark(dark)
   }, [])
 
-  // Apply theme on initial mount
   useEffect(() => {
+    if (typeof document === 'undefined') return
     applyTheme()
   }, [applyTheme])
 
-  // Watch for theme class changes and reapply
   useEffect(() => {
-    const observer = new MutationObserver(() => {
-      applyTheme()
-    })
+    if (typeof document === 'undefined') return
 
+    const observer = new MutationObserver(applyTheme)
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['class'],
@@ -42,8 +40,5 @@ export function useThemeProvider() {
     return () => observer.disconnect()
   }, [applyTheme])
 
-  return { 
-    applyTheme,
-    isDark: document.documentElement.classList.contains('dark'),
-  }
+  return { applyTheme, isDark }
 }
