@@ -12,108 +12,24 @@ import { Label } from '@/components/ui/label'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/hooks/use-toast'
 
-type FolderRow = { id: string; name: string; parent_id: string | null; created_at: string; updated_at: string }
-type FileRow = { id: string; name: string; folder_id: string | null; kind: 'file' | 'folder'; storage_path: string | null; mime_type: string | null; size_bytes: number | null; description: string | null; metadata: Record<string, unknown>; created_at: string; updated_at: string }
-type Item = (FolderRow & { itemType: 'folder' }) | (FileRow & { itemType: 'file' })
+type FolderRow={id:string;name:string;parent_id:string|null;created_at:string;updated_at:string}; type FileRow={id:string;name:string;folder_id:string|null;kind:'file'|'folder';storage_path:string|null;mime_type:string|null;size_bytes:number|null;description:string|null;metadata:Record<string,unknown>;created_at:string;updated_at:string}; type Item=(FolderRow&{itemType:'folder'})|(FileRow&{itemType:'file'})
+const PAGE_SIZE=250
+const bytes=(n:number|null)=>n==null?'—':n<1024?`${n} B`:n<1024**2?`${(n/1024).toFixed(1)} KB`:n<1024**3?`${(n/1024**2).toFixed(1)} MB`:`${(n/1024**3).toFixed(1)} GB`
+const iconFor=(mime:string|null)=>mime?.startsWith('image/')?FileImage:mime?.includes('spreadsheet')||mime?.includes('excel')||mime?.includes('csv')?FileSpreadsheet:mime?.startsWith('text/')||mime?.includes('pdf')||mime?.includes('word')?FileText:File
 
-const PAGE_SIZE = 250
-const bytes = (n: number | null) => n == null ? '—' : n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(1)} KB` : n < 1024 ** 3 ? `${(n / 1024 ** 2).toFixed(1)} MB` : `${(n / 1024 ** 3).toFixed(1)} GB`
-const iconFor = (mime: string | null) => mime?.startsWith('image/') ? FileImage : mime?.includes('spreadsheet') || mime?.includes('excel') || mime?.includes('csv') ? FileSpreadsheet : mime?.startsWith('text/') || mime?.includes('pdf') || mime?.includes('word') ? FileText : File
-
-export default function WorkspacePage() {
-  const { user } = useAuth()
-  const { toast } = useToast()
-  const input = useRef<HTMLInputElement>(null)
-  const [folderId, setFolderId] = useState<string | null>(null)
-  const [crumbs, setCrumbs] = useState<Array<{ id: string | null; name: string }>>([{ id: null, name: 'My Files' }])
-  const [items, setItems] = useState<Item[]>([])
-  const [search, setSearch] = useState('')
-  const [view, setView] = useState<'grid' | 'list'>('grid')
-  const [loading, setLoading] = useState(true)
-  const [uploading, setUploading] = useState(false)
-  const [trash, setTrash] = useState(false)
-  const [favorites, setFavorites] = useState<Set<string>>(new Set())
-  const [newFolder, setNewFolder] = useState('')
-  const [folderDialog, setFolderDialog] = useState(false)
-  const [renameItem, setRenameItem] = useState<Item | null>(null)
-  const [rename, setRename] = useState('')
-
-  const load = useCallback(async () => {
-    if (!user?.company_id || !user.id) return
-    setLoading(true)
-    try {
-      const folders = await fetchSupabasePage<FolderRow>('workspace_folders', 0, { pageSize: PAGE_SIZE, columns: 'id,name,parent_id,created_at,updated_at', orderBy: 'name', ascending: true, filter: q => trash ? q.eq('company_id', user.company_id).eq('parent_id', folderId) : q.eq('company_id', user.company_id).eq('parent_id', folderId) })
-      const files = await fetchSupabasePage<FileRow>('workspace_files', 0, { pageSize: PAGE_SIZE, columns: 'id,name,folder_id,kind,storage_path,mime_type,size_bytes,description,metadata,created_at,updated_at', orderBy: 'name', ascending: true, filter: q => q.eq('company_id', user.company_id).eq('folder_id', folderId) })
-      setItems([...folders.data.map(x => ({ ...x, itemType: 'folder' as const })), ...files.data.map(x => ({ ...x, itemType: 'file' as const }))])
-      const { data } = await supabase.from('workspace_favorites').select('file_id').eq('user_id', user.id)
-      setFavorites(new Set((data ?? []).map(x => x.file_id)))
-    } catch (e) { toast({ title: 'Workspace unavailable', description: e instanceof Error ? e.message : 'Failed to load workspace.', variant: 'destructive' }) }
-    finally { setLoading(false) }
-  }, [folderId, toast, trash, user?.company_id, user?.id])
-
-  useEffect(() => { void load() }, [load])
-  const visible = useMemo(() => { const q = search.trim().toLowerCase(); return q ? items.filter(x => x.name.toLowerCase().includes(q)) : items }, [items, search])
-
-  const createFolder = async () => {
-    if (!user?.company_id || !user.id || !newFolder.trim()) return
-    const { error } = await supabase.from('workspace_folders').insert({ company_id: user.company_id, parent_id: folderId, name: newFolder.trim(), created_by: user.id })
-    if (error) return toast({ title: 'Could not create folder', description: error.message, variant: 'destructive' })
-    setFolderDialog(false); setNewFolder(''); await load()
-  }
-
-  const uploadFiles = async (list: FileList | null) => {
-    if (!list?.length || !folderId || !user?.company_id || !user.id) return
-    setUploading(true)
-    try {
-      for (const file of Array.from(list)) {
-        const id = crypto.randomUUID(); const path = `${user.company_id}/${id}/${file.name}`
-        const { data, error } = await supabase.functions.invoke('create-upload-url', { body: { company_id: user.company_id, bucket: 'workspace', path } })
-        if (error || !data?.upload?.token) throw error ?? new Error('Upload URL was not created.')
-        const uploaded = await supabase.storage.from('workspace').uploadToSignedUrl(path, data.upload.token, file)
-        if (uploaded.error) throw uploaded.error
-        const saved = await supabase.from('workspace_files').insert({ id, company_id: user.company_id, folder_id: folderId, name: file.name, kind: 'file', storage_path: path, mime_type: file.type || 'application/octet-stream', size_bytes: file.size, metadata: { original_name: file.name }, created_by: user.id })
-        if (saved.error) throw saved.error
-      }
-      toast({ title: `${list.length} file${list.length === 1 ? '' : 's'} uploaded` }); await load()
-    } catch (e) { toast({ title: 'Upload failed', description: e instanceof Error ? e.message : 'Request failed.', variant: 'destructive' }) }
-    finally { setUploading(false); if (input.current) input.current.value = '' }
-  }
-
-  const download = async (item: Item) => {
-    if (item.itemType !== 'file' || !item.storage_path || !user?.company_id) return
-    const { data, error } = await supabase.functions.invoke('create-download-url', { body: { company_id: user.company_id, bucket: 'workspace', path: item.storage_path, expires_in: 900 } })
-    if (error || !data?.url) return toast({ title: 'Download failed', description: error?.message ?? 'URL was not created.', variant: 'destructive' })
-    window.open(data.url, '_blank', 'noopener,noreferrer')
-  }
-
-  const toggleFavorite = async (item: Item) => {
-    if (item.itemType !== 'file' || !user?.id) return
-    const active = favorites.has(item.id)
-    const result = active ? await supabase.from('workspace_favorites').delete().eq('user_id', user.id).eq('file_id', item.id) : await supabase.from('workspace_favorites').insert({ user_id: user.id, file_id: item.id })
-    if (result.error) return toast({ title: 'Favorite update failed', description: result.error.message, variant: 'destructive' })
-    setFavorites(prev => { const next = new Set(prev); active ? next.delete(item.id) : next.add(item.id); return next })
-  }
-
-  const remove = async (item: Item) => {
-    const table = item.itemType === 'folder' ? 'workspace_folders' : 'workspace_files'
-    const { error } = await supabase.from(table).delete().eq('id', item.id)
-    if (error) return toast({ title: 'Delete failed', description: error.message, variant: 'destructive' })
-    await load()
-  }
-
-  const saveRename = async () => {
-    if (!renameItem || !rename.trim()) return
-    const table = renameItem.itemType === 'folder' ? 'workspace_folders' : 'workspace_files'
-    const { error } = await supabase.from(table).update({ name: rename.trim() }).eq('id', renameItem.id)
-    if (error) return toast({ title: 'Rename failed', description: error.message, variant: 'destructive' })
-    setRenameItem(null); await load()
-  }
-
-  return <div className="space-y-6">
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><p className="text-sm text-muted-foreground">Workspace</p><h1 className="text-2xl font-semibold">{trash ? 'Trash' : 'My Files'}</h1></div><div className="flex gap-2"><Button variant="outline" onClick={() => setFolderDialog(true)}><FolderPlus className="mr-2 h-4 w-4" />New folder</Button><Button disabled={uploading || !folderId || trash} onClick={() => input.current?.click()}><Upload className="mr-2 h-4 w-4" />{uploading ? 'Uploading…' : 'Upload'}</Button><input ref={input} type="file" multiple className="hidden" onChange={e => void uploadFiles(e.target.files)} /></div></div>
-    <Card className="p-3"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div className="flex items-center gap-2 overflow-x-auto text-sm">{crumbs.map((c, i) => <div key={`${c.id}-${i}`} className="flex items-center gap-2 whitespace-nowrap">{i > 0 && <span>/</span>}<button onClick={() => { setFolderId(c.id); setCrumbs(crumbs.slice(0, i + 1)); setTrash(false) }} className="hover:underline">{i === 0 && <Home className="mr-1 inline h-4 w-4" />}{c.name}</button></div>)}</div><div className="flex items-center gap-2"><div className="relative"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input className="w-56 pl-9" placeholder="Search" value={search} onChange={e => setSearch(e.target.value)} /></div><Button variant={trash ? 'default' : 'outline'} size="icon" onClick={() => { setTrash(v => !v); setFolderId(null); setCrumbs([{ id: null, name: 'My Files' }]) }}><Trash2 className="h-4 w-4" /></Button><Button variant={view === 'grid' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('grid')}><Grid3X3 className="h-4 w-4" /></Button><Button variant={view === 'list' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('list')}><List className="h-4 w-4" /></Button></div></div></Card>
-    {loading ? <Card className="p-12 text-center text-sm text-muted-foreground">Loading workspace…</Card> : visible.length === 0 ? <Card className="p-12 text-center"><Folder className="mx-auto mb-3 h-10 w-10 text-muted-foreground" /><p className="font-medium">Nothing here yet</p><p className="text-sm text-muted-foreground">Create a folder to begin.</p></Card> : view === 'grid' ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{visible.map(item => { const Icon = item.itemType === 'folder' ? Folder : iconFor(item.mime_type); return <Card key={`${item.itemType}-${item.id}`} className="p-4"><div className="flex items-center gap-3"><button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => item.itemType === 'folder' ? (setFolderId(item.id), setCrumbs(prev => [...prev, { id: item.id, name: item.name }])) : void download(item)}><Icon className="h-8 w-8 shrink-0 text-muted-foreground" /><span className="min-w-0"><span className="block truncate font-medium">{item.name}</span><span className="text-xs text-muted-foreground">{item.itemType === 'folder' ? 'Folder' : bytes(item.size_bytes)}</span></span></button><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">{item.itemType === 'file' && <DropdownMenuItem onClick={() => void download(item)}><Download className="mr-2 h-4 w-4" />Download</DropdownMenuItem>}{item.itemType === 'file' && <DropdownMenuItem onClick={() => void toggleFavorite(item)}><Star className="mr-2 h-4 w-4" />{favorites.has(item.id) ? 'Unfavorite' : 'Favorite'}</DropdownMenuItem>}<DropdownMenuItem onClick={() => { setRenameItem(item); setRename(item.name) }}><Pencil className="mr-2 h-4 w-4" />Rename</DropdownMenuItem><DropdownMenuItem className="text-destructive" onClick={() => void remove(item)}><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></Card> })}</div> : <Card className="divide-y overflow-hidden">{visible.map(item => { const Icon = item.itemType === 'folder' ? Folder : iconFor(item.mime_type); return <div key={`${item.itemType}-${item.id}`} className="flex items-center gap-3 p-4"><Icon className="h-5 w-5 text-muted-foreground" /><button className="min-w-0 flex-1 truncate text-left font-medium" onClick={() => item.itemType === 'folder' ? (setFolderId(item.id), setCrumbs(prev => [...prev, { id: item.id, name: item.name }])) : void download(item)}>{item.name}</button><Badge variant="outline">{item.itemType === 'folder' ? 'Folder' : bytes(item.size_bytes)}</Badge><Button variant="ghost" size="icon" onClick={() => { setRenameItem(item); setRename(item.name) }}><Pencil className="h-4 w-4" /></Button></div> })}</Card>}
-    <Dialog open={folderDialog} onOpenChange={setFolderDialog}><DialogContent><DialogHeader><DialogTitle>New folder</DialogTitle></DialogHeader><Label htmlFor="folder-name">Name</Label><Input id="folder-name" value={newFolder} onChange={e => setNewFolder(e.target.value)} autoFocus /><DialogFooter><Button variant="outline" onClick={() => setFolderDialog(false)}>Cancel</Button><Button onClick={() => void createFolder()}>Create</Button></DialogFooter></DialogContent></Dialog>
-    <Dialog open={Boolean(renameItem)} onOpenChange={open => !open && setRenameItem(null)}><DialogContent><DialogHeader><DialogTitle>Rename</DialogTitle></DialogHeader><Label htmlFor="rename">Name</Label><Input id="rename" value={rename} onChange={e => setRename(e.target.value)} autoFocus /><DialogFooter><Button variant="outline" onClick={() => setRenameItem(null)}>Cancel</Button><Button onClick={() => void saveRename()}>Save</Button></DialogFooter></DialogContent></Dialog>
-  </div>
+export default function WorkspacePage(){
+ const {user}=useAuth();const {toast}=useToast();const input=useRef<HTMLInputElement>(null);const [folderId,setFolderId]=useState<string|null>(null);const [crumbs,setCrumbs]=useState([{id:null as string|null,name:'My Files'}]);const [items,setItems]=useState<Item[]>([]);const [search,setSearch]=useState('');const [view,setView]=useState<'grid'|'list'>('grid');const [loading,setLoading]=useState(true);const [uploading,setUploading]=useState(false);const [trash,setTrash]=useState(false);const [favorites,setFavorites]=useState<Set<string>>(new Set());const [newFolder,setNewFolder]=useState('');const [folderDialog,setFolderDialog]=useState(false);const [renameItem,setRenameItem]=useState<Item|null>(null);const [rename,setRename]=useState('')
+ const load=useCallback(async()=>{if(!user?.company_id||!user.id)return;setLoading(true);try{const folders=await fetchSupabasePage<FolderRow>('workspace_folders',0,{pageSize:PAGE_SIZE,columns:'id,name,parent_id,created_at,updated_at',orderBy:'name',ascending:true,filter:q=>{let n=q.eq('company_id',user.company_id);return folderId===null?n.is('parent_id',null):n.eq('parent_id',folderId)}});const files=await fetchSupabasePage<FileRow>('workspace_files',0,{pageSize:PAGE_SIZE,columns:'id,name,folder_id,kind,storage_path,mime_type,size_bytes,description,metadata,created_at,updated_at',orderBy:'name',ascending:true,filter:q=>q.eq('company_id',user.company_id).eq('folder_id',folderId)});setItems([...folders.data.map(x=>({...x,itemType:'folder' as const})),...files.data.map(x=>({...x,itemType:'file' as const}))]);const {data,error}=await supabase.from('workspace_favorites').select('file_id').eq('user_id',user.id);if(error)throw error;setFavorites(new Set((data??[]).map(x=>x.file_id)))}catch(e){toast({title:'Workspace unavailable',description:e instanceof Error?e.message:'Failed to load workspace.',variant:'destructive'})}finally{setLoading(false)}},[folderId,toast,user?.company_id,user?.id])
+ useEffect(()=>{void load()},[load]);const visible=useMemo(()=>{const q=search.trim().toLowerCase();return q?items.filter(x=>x.name.toLowerCase().includes(q)):items},[items,search])
+ const createFolder=async()=>{if(!user?.company_id||!user.id||!newFolder.trim())return;const {error}=await supabase.from('workspace_folders').insert({company_id:user.company_id,parent_id:folderId,name:newFolder.trim(),created_by:user.id});if(error)return toast({title:'Could not create folder',description:error.message,variant:'destructive'});setFolderDialog(false);setNewFolder('');await load()}
+ const uploadFiles=async(list:FileList|null)=>{if(!list?.length||!folderId||!user?.company_id||!user.id)return;setUploading(true);try{for(const file of Array.from(list)){const id=crypto.randomUUID();const path=`${user.company_id}/${id}/${file.name}`;const {data,error}=await supabase.functions.invoke('create-upload-url',{body:{company_id:user.company_id,bucket:'workspace',path}});if(error||!data?.upload?.token)throw error??new Error('Upload URL was not created.');const uploaded=await supabase.storage.from('workspace').uploadToSignedUrl(path,data.upload.token,file);if(uploaded.error)throw uploaded.error;const saved=await supabase.from('workspace_files').insert({id,company_id:user.company_id,folder_id:folderId,name:file.name,kind:'file',storage_path:path,mime_type:file.type||'application/octet-stream',size_bytes:file.size,metadata:{original_name:file.name},created_by:user.id});if(saved.error)throw saved.error}toast({title:`${list.length} file${list.length===1?'':'s'} uploaded`});await load()}catch(e){toast({title:'Upload failed',description:e instanceof Error?e.message:'Request failed.',variant:'destructive'})}finally{setUploading(false);if(input.current)input.current.value=''}}
+ const download=async(item:Item)=>{if(item.itemType!=='file'||!item.storage_path||!user?.company_id)return;const {data,error}=await supabase.functions.invoke('create-download-url',{body:{company_id:user.company_id,bucket:'workspace',path:item.storage_path,expires_in:900}});if(error||!data?.url)return toast({title:'Download failed',description:error?.message??'URL was not created.',variant:'destructive'});window.open(data.url,'_blank','noopener,noreferrer')}
+ const toggleFavorite=async(item:Item)=>{if(item.itemType!=='file'||!user?.id)return;const active=favorites.has(item.id);const result=active?await supabase.from('workspace_favorites').delete().eq('user_id',user.id).eq('file_id',item.id):await supabase.from('workspace_favorites').insert({user_id:user.id,file_id:item.id});if(result.error)return toast({title:'Favorite update failed',description:result.error.message,variant:'destructive'});setFavorites(prev=>{const next=new Set(prev);active?next.delete(item.id):next.add(item.id);return next})}
+ const remove=async(item:Item)=>{const table=item.itemType==='folder'?'workspace_folders':'workspace_files';const {error}=await supabase.from(table).delete().eq('id',item.id).eq('company_id',user?.company_id);if(error)return toast({title:'Delete failed',description:error.message,variant:'destructive'});await load()}
+ const saveRename=async()=>{if(!renameItem||!rename.trim())return;const table=renameItem.itemType==='folder'?'workspace_folders':'workspace_files';const {error}=await supabase.from(table).update({name:rename.trim()}).eq('id',renameItem.id).eq('company_id',user?.company_id);if(error)return toast({title:'Rename failed',description:error.message,variant:'destructive'});setRenameItem(null);await load()}
+ const openFolder=(id:string,name:string)=>{setFolderId(id);setCrumbs(prev=>[...prev,{id,name}])};const root=()=>{setFolderId(null);setCrumbs([{id:null,name:'My Files'}]);setTrash(false)}
+ return <div className="space-y-6"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><p className="text-sm text-muted-foreground">Workspace</p><h1 className="text-2xl font-semibold">{trash?'Trash':'My Files'}</h1></div><div className="flex gap-2"><Button variant="outline" onClick={()=>setFolderDialog(true)}><FolderPlus className="mr-2 h-4 w-4"/>New folder</Button><Button disabled={uploading||!folderId||trash} onClick={()=>input.current?.click()}><Upload className="mr-2 h-4 w-4"/>{uploading?'Uploading…':'Upload'}</Button><input ref={input} type="file" multiple className="hidden" onChange={e=>void uploadFiles(e.target.files)}/></div></div>
+ <Card className="p-3"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div className="flex items-center gap-2 overflow-x-auto text-sm">{crumbs.map((c,i)=><div key={`${c.id}-${i}`} className="flex items-center gap-2 whitespace-nowrap">{i>0&&<span>/</span>}<button onClick={()=>i===0?root():setCrumbs(prev=>{setFolderId(c.id);return prev.slice(0,i+1)})} className="hover:underline">{i===0&&<Home className="mr-1 inline h-4 w-4"/>}{c.name}</button></div>)}</div><div className="flex items-center gap-2"><div className="relative"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground"/><Input className="w-56 pl-9" placeholder="Search" value={search} onChange={e=>setSearch(e.target.value)}/></div><Button variant={trash?'default':'outline'} size="icon" onClick={()=>{setTrash(v=>!v);setFolderId(null);setCrumbs([{id:null,name:'My Files'}])}}><Trash2 className="h-4 w-4"/></Button><Button variant={view==='grid'?'secondary':'ghost'} size="icon" onClick={()=>setView('grid')}><Grid3X3 className="h-4 w-4"/></Button><Button variant={view==='list'?'secondary':'ghost'} size="icon" onClick={()=>setView('list')}><List className="h-4 w-4"/></Button></div></div></Card>
+ {loading?<Card className="p-12 text-center text-sm text-muted-foreground">Loading workspace…</Card>:visible.length===0?<Card className="p-12 text-center"><Folder className="mx-auto mb-3 h-10 w-10 text-muted-foreground"/><p className="font-medium">Nothing here yet</p><p className="text-sm text-muted-foreground">Create a folder to begin.</p></Card>:view==='grid'?<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{visible.map(item=>{const Icon=item.itemType==='folder'?Folder:iconFor(item.mime_type);return <Card key={`${item.itemType}-${item.id}`} className="p-4"><div className="flex items-center gap-3"><button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={()=>item.itemType==='folder'?openFolder(item.id,item.name):void download(item)}><Icon className="h-8 w-8 shrink-0 text-muted-foreground"/><span className="min-w-0"><span className="block truncate font-medium">{item.name}</span><span className="text-xs text-muted-foreground">{item.itemType==='folder'?'Folder':bytes(item.size_bytes)}</span></span></button><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4"/></Button></DropdownMenuTrigger><DropdownMenuContent align="end">{item.itemType==='file'&&<DropdownMenuItem onClick={()=>void download(item)}><Download className="mr-2 h-4 w-4"/>Download</DropdownMenuItem>}{item.itemType==='file'&&<DropdownMenuItem onClick={()=>void toggleFavorite(item)}><Star className="mr-2 h-4 w-4"/>{favorites.has(item.id)?'Unfavorite':'Favorite'}</DropdownMenuItem>}<DropdownMenuItem onClick={()=>{setRenameItem(item);setRename(item.name)}}><Pencil className="mr-2 h-4 w-4"/>Rename</DropdownMenuItem><DropdownMenuItem className="text-destructive" onClick={()=>void remove(item)}><Trash2 className="mr-2 h-4 w-4"/>Delete</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></Card>})}</div>:<Card className="divide-y overflow-hidden">{visible.map(item=>{const Icon=item.itemType==='folder'?Folder:iconFor(item.mime_type);return <div key={`${item.itemType}-${item.id}`} className="flex items-center gap-3 p-4"><Icon className="h-5 w-5 text-muted-foreground"/><button className="min-w-0 flex-1 truncate text-left font-medium" onClick={()=>item.itemType==='folder'?openFolder(item.id,item.name):void download(item)}>{item.name}</button><Badge variant="outline">{item.itemType==='folder'?'Folder':bytes(item.size_bytes)}</Badge><Button variant="ghost" size="icon" onClick={()=>{setRenameItem(item);setRename(item.name)}}><Pencil className="h-4 w-4"/></Button></div>})}</Card>}
+ <Dialog open={folderDialog} onOpenChange={setFolderDialog}><DialogContent><DialogHeader><DialogTitle>New folder</DialogTitle></DialogHeader><Label htmlFor="folder-name">Name</Label><Input id="folder-name" value={newFolder} onChange={e=>setNewFolder(e.target.value)} autoFocus/><DialogFooter><Button variant="outline" onClick={()=>setFolderDialog(false)}>Cancel</Button><Button onClick={()=>void createFolder()}>Create</Button></DialogFooter></DialogContent></Dialog><Dialog open={Boolean(renameItem)} onOpenChange={o=>!o&&setRenameItem(null)}><DialogContent><DialogHeader><DialogTitle>Rename</DialogTitle></DialogHeader><Label htmlFor="rename">Name</Label><Input id="rename" value={rename} onChange={e=>setRename(e.target.value)} autoFocus/><DialogFooter><Button variant="outline" onClick={()=>setRenameItem(null)}>Cancel</Button><Button onClick={()=>void saveRename()}>Save</Button></DialogFooter></DialogContent></Dialog></div>
 }
