@@ -1,4 +1,4 @@
-import { supabase } from '@/services/supabase/supabase'
+import { supabase } from '@/lib/supabase'
 
 /**
  * Central data-access limits.
@@ -7,13 +7,9 @@ import { supabase } from '@/services/supabase/supabase'
  * while the UI decides how many records it actually renders.
  */
 export const DATA_ACCESS = {
-  /** Supabase/PostgREST page size. Small enough to keep responses responsive. */
   pageSize: 1_000,
-  /** Maximum rows one explicit bulk operation may retrieve. */
   maxFetchRows: 500_000,
-  /** Maximum simultaneous page requests for bulk reads. */
   concurrency: 6,
-  /** Default number of records a screen should materialise into the DOM. */
   defaultRenderLimit: 250,
 } as const
 
@@ -63,10 +59,6 @@ export type PageFetcher<T> = (
   to: number,
 ) => Promise<{ data: T[] | null; error: { message: string } | null }>
 
-/**
- * Exact source-of-truth statistics. This deliberately does not depend on a
- * rendered list or a 1,000-row response window.
- */
 export async function getExactCompanyCounts(companyId: string): Promise<ExactCompanyCounts> {
   const { data, error } = await (supabase.rpc as unknown as (
     fn: string,
@@ -81,10 +73,6 @@ export async function getExactCompanyCounts(companyId: string): Promise<ExactCom
   return data
 }
 
-/**
- * Fetch one table through PostgREST ranges. The default API response size is
- * irrelevant because every request explicitly asks for a bounded range.
- */
 export async function fetchSupabasePage<T = Record<string, unknown>>(
   table: string,
   page: number,
@@ -125,12 +113,6 @@ export async function fetchSupabasePage<T = Record<string, unknown>>(
   }
 }
 
-/**
- * Explicit bulk read. It is intentionally opt-in; normal screens should use
- * fetchSupabasePage so the DOM never receives hundreds of thousands of rows.
- * Pages are pulled in a small concurrency window rather than issuing 500k
- * requests at once.
- */
 export async function fetchAllSupabasePages<T = Record<string, unknown>>(
   fetchPage: PageFetcher<T>,
   options: {
