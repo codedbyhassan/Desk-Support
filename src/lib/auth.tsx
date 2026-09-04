@@ -9,8 +9,8 @@ interface AuthContextType { user:AuthProfile|null; session:Session|null; company
 const AuthContext=createContext<AuthContextType|undefined>(undefined)
 
 async function loadWorkspace(userId:string):Promise<Pick<AuthContextType,'user'|'company'|'settings'>>{
- const {data:profile,error:pe}=await supabase.from('profiles').select('*').eq('id',userId).single(); if(pe)throw pe
- const {data:membership,error:me}=await supabase.from('company_memberships').select('id,company_id,role,department_id,is_active,joined_at').eq('user_id',userId).eq('is_active',true).order('joined_at',{ascending:true}).limit(1).maybeSingle(); if(me)throw me; if(!membership)throw new Error('Your account is not an active member of a company.')
+ const {data:profile,error:pe}=await supabase.from('profiles').select('*').eq('id',userId).maybeSingle(); if(pe)throw pe; if(!profile)throw new Error('Your account is not provisioned for a company.')
+ const {data:membership,error:me}=await supabase.from('company_memberships').select('id,company_id,role,department_id,is_active,joined_at').eq('user_id',userId).eq('is_active',true).order('joined_at',{ascending:true}).limit(1).maybeSingle(); if(me)throw me; if(!membership)throw new Error('Your account is not provisioned for a company.')
  const {data:company,error:ce}=await supabase.from('companies').select('*').eq('id',membership.company_id).single(); if(ce)throw ce
  const {data:settings,error:se}=await supabase.from('company_settings').select('*').eq('company_id',membership.company_id).maybeSingle(); if(se)throw se
  return {user:{...profile,role:membership.role,company_id:membership.company_id,membership_id:membership.id,department_id:membership.department_id} as AuthProfile,company:company as AuthCompany,settings:settings as CompanySettings|null}
@@ -19,7 +19,7 @@ async function loadWorkspace(userId:string):Promise<Pick<AuthContextType,'user'|
 async function ensureProvisioned(session:Session){
  try{return await loadWorkspace(session.user.id)}catch(error){
    const message=error instanceof Error?error.message:''
-   if(!message.includes('not an active member'))throw error
+   if(!message.includes('not provisioned'))throw error
    const metadata=session.user.user_metadata as {company_name?:string;full_name?:string}|undefined
    if(!metadata?.company_name)throw error
    const {error:fnError}=await supabase.functions.invoke('create-company',{body:{name:metadata.company_name,full_name:metadata.full_name??''}})
@@ -32,7 +32,7 @@ export function AuthProvider({children}:{children:ReactNode}){
  const [state,setState]=useState({user:null as AuthProfile|null,company:null as AuthCompany|null,settings:null as CompanySettings|null,session:null as Session|null,loading:true,error:null as string|null})
  const refreshProfile=useCallback(async()=>{if(!state.session?.user)return;const workspace=await loadWorkspace(state.session.user.id);setState(prev=>({...prev,...workspace,error:null}))},[state.session?.user?.id])
  useEffect(()=>{let mounted=true;let subscription:{unsubscribe:()=>void}|undefined
-  const initialize=async()=>{try{const {data,error}=await supabase.auth.getSession();if(error)throw error;if(!mounted)return;if(!data.session){setState(prev=>({...prev,loading:false,session:null}))}else{setState(prev=>({...prev,session:data.session}));try{const workspace=await ensureProvisioned(data.session);if(mounted)setState(prev=>({...prev,...workspace,loading:false,error:null}))}catch(error){if(mounted)setState(prev=>({...prev,loading:false,error:error instanceof Error?error.message:'Failed to load workspace'}))}}
+  const initialize=async()=>{try{const {data,error}=await supabase.auth.getSession();if(error)throw error;if(!mounted)return;if(!data.session){setState(prev=>({...prev,loading:false,session:null}))}else{setState(prev=>({...prev,session:data.session,loading:true}));try{const workspace=await ensureProvisioned(data.session);if(mounted)setState(prev=>({...prev,...workspace,loading:false,error:null}))}catch(error){if(mounted)setState(prev=>({...prev,loading:false,error:error instanceof Error?error.message:'Failed to load workspace'}))}}
    const {data:{subscription:authSubscription}}=supabase.auth.onAuthStateChange((event,session)=>{if(!mounted)return;if(event==='SIGNED_OUT'||!session){setState({user:null,company:null,settings:null,session:null,loading:false,error:null});return}setState(prev=>({...prev,session,loading:true,error:null}));if(event==='SIGNED_IN'||event==='INITIAL_SESSION'){setTimeout(async()=>{if(!mounted)return;try{const workspace=await ensureProvisioned(session);if(mounted)setState(prev=>({...prev,...workspace,loading:false,error:null}))}catch(error){if(mounted)setState(prev=>({...prev,loading:false,error:error instanceof Error?error.message:'Failed to load workspace'}))}},0)}});subscription=authSubscription
   }catch(error){if(mounted)setState(prev=>({...prev,loading:false,error:error instanceof Error?error.message:'Failed to initialize authentication'}))}}
   void initialize();return()=>{mounted=false;subscription?.unsubscribe()}
