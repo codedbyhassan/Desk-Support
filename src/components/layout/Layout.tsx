@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { LayoutDashboard, Ticket, Package, Building2, Users, Settings, Bell, UserCircle, QrCode, BriefcaseBusiness, Video } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
+import { DashboardTabProvider } from '@/context/DashboardTabContext'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 import { MobileBottomNav } from './MobileBottomNav'
@@ -37,16 +38,18 @@ export function Layout({ children }: { children?: ReactNode }) {
   const isCallRoute = pathname.includes('/call/')
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="flex min-h-screen">
-        <Sidebar navItems={navItems} />
-        <div className="flex min-w-0 flex-1 flex-col">
-          {!isCallRoute && <Header navItems={navItems} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />}
-          <main className={isCallRoute ? 'min-h-screen flex-1' : 'min-w-0 flex-1 pb-20 lg:pb-0'}>{content}</main>
-          {!isCallRoute && <MobileBottomNav navItems={navItems} />}
+    <DashboardTabProvider>
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="flex min-h-screen">
+          <Sidebar navItems={navItems} />
+          <div className="flex min-w-0 flex-1 flex-col">
+            {!isCallRoute && <Header navItems={navItems} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />}
+            <main className={isCallRoute ? 'min-h-screen flex-1' : 'min-w-0 flex-1 pb-20 lg:pb-0'}>{content}</main>
+            {!isCallRoute && <MobileBottomNav navItems={navItems} />}
+          </div>
         </div>
       </div>
-    </div>
+    </DashboardTabProvider>
   )
 }
 
