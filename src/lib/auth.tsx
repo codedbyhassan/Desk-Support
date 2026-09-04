@@ -41,7 +41,15 @@ export function AuthProvider({children}:{children:ReactNode}){
  const refreshProfile=useCallback(async()=>{if(!state.session?.user)return;const workspace=await loadWorkspace(state.session.user.id,state.session.user.email??'');setState(prev=>({...prev,...workspace,error:null}))},[state.session?.user?.id,state.session?.user?.email])
  useEffect(()=>{let mounted=true;let subscription:{unsubscribe:()=>void}|undefined
   const initialize=async()=>{try{const {data,error}=await supabase.auth.getSession();if(error)throw error;if(!mounted)return;if(!data.session){setState(prev=>({...prev,loading:false,session:null}))}else{setState(prev=>({...prev,session:data.session,loading:true}));try{const workspace=await ensureProvisioned(data.session);if(mounted)setState(prev=>({...prev,...workspace,loading:false,error:null}))}catch(error){if(mounted)setState(prev=>({...prev,loading:false,error:error instanceof Error?error.message:'Failed to load workspace'}))}}
-   const {data:{subscription:authSubscription}}=supabase.auth.onAuthStateChange((event,session)=>{if(!mounted)return;if(event==='SIGNED_OUT'||!session){setState({user:null,company:null,settings:null,session:null,loading:false,error:null});return}setState(prev=>({...prev,session,loading:true,error:null}));if(event==='SIGNED_IN'||event==='INITIAL_SESSION'){setTimeout(async()=>{if(!mounted)return;try{const workspace=await ensureProvisioned(session);if(mounted)setState(prev=>({...prev,...workspace,loading:false,error:null}))}catch(error){if(mounted)setState(prev=>({...prev,loading:false,error:error instanceof Error?error.message:'Failed to load workspace'}))}},0)}});subscription=authSubscription
+   const {data:{subscription:authSubscription}}=supabase.auth.onAuthStateChange((event,session)=>{if(!mounted)return
+     if(event==='SIGNED_OUT'||!session){setState({user:null,company:null,settings:null,session:null,loading:false,error:null});return}
+     if(event==='TOKEN_REFRESHED'){setState(prev=>({...prev,session}));return}
+     if(event==='USER_UPDATED'){setState(prev=>({...prev,session}));return}
+     if(event==='SIGNED_IN'||event==='INITIAL_SESSION'){
+       setState(prev=>({...prev,session,loading:true,error:null}))
+       setTimeout(async()=>{if(!mounted)return;try{const workspace=await ensureProvisioned(session);if(mounted)setState(prev=>({...prev,...workspace,loading:false,error:null}))}catch(error){if(mounted)setState(prev=>({...prev,loading:false,error:error instanceof Error?error.message:'Failed to load workspace'}))}},0)
+     }
+   });subscription=authSubscription
   }catch(error){if(mounted)setState(prev=>({...prev,loading:false,error:error instanceof Error?error.message:'Failed to initialize authentication'}))}}
   void initialize();return()=>{mounted=false;subscription?.unsubscribe()}
  },[])
