@@ -1,0 +1,2 @@
+import {body,errorResponse,json,requireUser} from "../_shared.ts";
+Deno.serve(async(req)=>{try{const{user,supabase}=await requireUser(req);const x=await body(req);const id=String(x.call_id??"");if(!id)throw Error("call_id is required");const{data:c,error}=await supabase.from("video_calls").select("id,company_id,meeting_url,status,provider").eq("id",id).single();if(error)throw error;if(!c)throw Error("Call not found");return json({ok:true,call_id:c.id,meeting_url:c.meeting_url,provider:c.provider,status:c.status,user_id:user.id});}catch(e){return errorResponse(e)}});
