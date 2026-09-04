@@ -16,9 +16,14 @@
   }
 }
 
-/* Authenticated pages use content-first layouts. Hide redundant page identity
-   blocks when the page already starts with its actual workspace content. */
-[data-page-content] > :first-child:has(h1) {
+/* Authenticated pages use content-first layouts. Remove only the redundant
+   page-identity text at the top of a page while preserving useful actions. */
+[data-page-content] > :first-child:has(h1) > :first-child:has(h1) {
+  display: none;
+}
+
+/* Covers pages whose first content wrapper is itself the identity block. */
+[data-page-content] > :first-child:has(> h1) {
   display: none;
 }
 
