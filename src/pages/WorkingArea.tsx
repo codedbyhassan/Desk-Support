@@ -216,7 +216,7 @@ export const WorkingAreaPage: React.FC<WorkingAreaPageProps> = ({ onFolderSelect
       if (folderError) throw folderError;
 
       // Build breadcrumb path
-      let breadcrumbs = [{ id: '', name: 'My Files' }];
+      const breadcrumbs = [{ id: '', name: 'My Files' }];
       let currentId: string | null = folderId;
 
       while (currentId) {
