@@ -1,6 +1,5 @@
 import { useLocation } from 'react-router-dom'
 import { useTheme } from '@/context/ThemeContext'
-import { useAuth } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { NotificationBell } from '@/components/NotificationBell'
 import { Sun, Moon, QrCode, Search } from 'lucide-react'
@@ -11,7 +10,6 @@ import { NavItem } from './types'
 interface HeaderProps { navItems: NavItem[]; mobileMenuOpen: boolean; setMobileMenuOpen: (open:boolean)=>void; primaryColor:string }
 
 export function Header({ navItems, mobileMenuOpen, setMobileMenuOpen, primaryColor }: HeaderProps) {
-  const { user } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const { pathname } = useLocation()
   const currentPage = navItems.find(item => pathname === item.href || pathname.startsWith(`${item.href}/`))
