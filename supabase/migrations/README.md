@@ -31,6 +31,9 @@ The database is reconstructed from the legacy `schema.md` into ordered PostgreSQ
 - `0010_security_hardening.sql` — final least-privilege RLS/grants/security corrections.
 - `0011_cache.sql` — application/server-state caching infrastructure only.
 - `0012_exact_counts_and_large_dataset_access.sql` — exact company counts and high-volume access support.
+- `0013_team_creator_membership.sql` — secure creator self-membership for newly created teams.
+- `0014_company_analytics.sql` — exact server-side analytics aggregates.
+- `0015_fix_company_analytics_aggregation.sql` — optimized analytics aggregation without ticket/asset cross-products.
 
 `0011` is intentionally reserved for cache work. Views are not part of the canonical schema unless a later migration proves they materially simplify a stable query.
 
