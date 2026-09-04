@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const QRCode = require('qrcode-terminal')
+import QRCode from 'qrcode-terminal'
 
 const host = process.env.DESK_SUPPORT_HOST || 'localhost'
 const port = process.env.DESK_SUPPORT_PORT || '4000'
