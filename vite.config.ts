@@ -17,9 +17,7 @@ export default defineConfig({
     strictPort: true,
     host: '0.0.0.0',
     open: true,
-    hmr: {
-      clientPort: 4000,
-    },
+    hmr: false,
   },
   preview: {
     port: 4000,
