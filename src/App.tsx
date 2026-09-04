@@ -11,7 +11,6 @@ import { ColorSchemeProvider } from './context/ColorSchemeContext'
 import { ToastContainer } from '@/components/ToastNotification'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
-import VerificationPage from './pages/VerificationPage'
 import DashboardPage from './pages/DashboardPage'
 import TicketsPage from './pages/TicketsPage'
 import TicketDetailPage from '@/pages/tickets/[id]'
@@ -50,10 +49,9 @@ function AdminOrHRRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   const { user } = useAuth()
   return <Routes>
-    <Route path="/" element={<LandingPage />} />
+    <Route path="/" element={user ? <Navigate to="/app/dashboard" replace /> : <LandingPage />} />
     <Route path="/login" element={user ? <Navigate to="/app/dashboard" replace /> : <LoginPage defaultToSignUp={false} />} />
     <Route path="/signup" element={user ? <Navigate to="/app/dashboard" replace /> : <LoginPage defaultToSignUp />} />
-    <Route path="/verify-email" element={<VerificationPage />} />
 
     <Route path="/app" element={<ProtectedRoute><Navigate to="/app/dashboard" replace /></ProtectedRoute>} />
     <Route path="/app/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
