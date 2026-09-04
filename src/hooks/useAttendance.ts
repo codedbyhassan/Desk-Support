@@ -66,7 +66,7 @@ export function useAttendance() {
     if (!user?.company_id) throw new Error('User is not authenticated.')
     const { data, error } = await supabase.from('qr_codes')
       .select('id,code,company_id,name,status,expires_at')
-      .eq('id', code)
+      .eq('code', code)
       .eq('company_id', user.company_id)
       .eq('status', 'active')
       .maybeSingle()
