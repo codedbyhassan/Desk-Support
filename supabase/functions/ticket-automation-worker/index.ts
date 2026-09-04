@@ -1,0 +1,2 @@
+import {adminClient,json,errorResponse} from "../_shared.ts";
+Deno.serve(async(req)=>{try{if(req.method!=="POST")return json({ok:false,error:"POST required"},405);const db=adminClient();const now=new Date().toISOString();const {data:overdue,error}=await db.from("tickets").select("id,company_id,subject,status,priority,due_at").lt("due_at",now).not("status","in","(resolved,closed)").limit(5000);if(error)throw error;return json({ok:true,processed:overdue?.length??0,overdue_ids:(overdue??[]).map(x=>x.id)});}catch(e){return errorResponse(e)}});
