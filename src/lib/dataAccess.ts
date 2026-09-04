@@ -43,7 +43,14 @@ export type ExactCompanyCounts = {
 export type PageResult<T> = { data: T[]; page: number; pageSize: number; from: number; to: number; hasMore: boolean }
 export type PageFetcher<T> = (from: number, to: number) => Promise<{ data: T[] | null; error: { message: string } | null }>
 
-type SupabaseQuery = { select: (columns: string) => SupabaseQuery; order: (column: string, options: { ascending: boolean }) => SupabaseQuery; range: (from: number, to: number) => Promise<{ data: unknown[] | null; error: { message: string } | null }> }
+type SupabaseQuery = {
+  select: (columns: string) => SupabaseQuery
+  order: (column: string, options: { ascending: boolean }) => SupabaseQuery
+  eq: (column: string, value: unknown) => SupabaseQuery
+  is: (column: string, value: null) => SupabaseQuery
+  not: (column: string, operator: string, value: unknown) => SupabaseQuery
+  range: (from: number, to: number) => Promise<{ data: unknown[] | null; error: { message: string } | null }>
+}
 type QueryFilter = (query: SupabaseQuery) => SupabaseQuery
 
 export async function getExactCompanyCounts(companyId: string): Promise<ExactCompanyCounts> {
