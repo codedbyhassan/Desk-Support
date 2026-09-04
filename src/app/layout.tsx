@@ -2,7 +2,6 @@ import { ReactNode, useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
-import { useTheme } from '@/context/ThemeContext'
 import { useNotifications } from '@/context/NotificationContext'
 import { DashboardTabProvider } from '@/context/DashboardTabContext'
 import { ToastContainer } from '@/components/ToastNotification'
@@ -16,12 +15,10 @@ interface LayoutProps { children: ReactNode }
 
 export default function Layout({ children }: LayoutProps) {
   const { user } = useAuth()
-  const { customTheme } = useTheme()
   const { pathname } = useLocation()
   const { toasts, dismissToast, setCurrentPath } = useNotifications()
   const [activeTicketCount, setActiveTicketCount] = useState(0)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const primaryColor = customTheme?.primary || '#2563eb'
 
   useEffect(() => { setCurrentPath(pathname) }, [pathname, setCurrentPath])
 
@@ -33,11 +30,11 @@ export default function Layout({ children }: LayoutProps) {
     let cancelled = false
     const fetchActiveTicketCount = async () => {
       const { data: assignments, error } = await supabase.from('ticket_assignments').select('ticket_id').eq('assignee_id', user.id).is('unassigned_at', null)
-      if (cancelled || error) { if (error) console.error('Ticket badge error:', error); return }
+      if (cancelled || error) return
       const ids = (assignments || []).map(row => row.ticket_id)
       if (!ids.length) { setActiveTicketCount(0); return }
-      const { count, error: ticketError } = await supabase.from('tickets').select('id', { count: 'exact', head: true }).eq('company_id', user.company_id).in('id', ids).in('status', ['open', 'in_progress'])
-      if (!cancelled) setActiveTicketCount(ticketError ? 0 : count || 0)
+      const { count } = await supabase.from('tickets').select('id', { count: 'exact', head: true }).eq('company_id', user.company_id).in('id', ids).in('status', ['open', 'in_progress'])
+      if (!cancelled) setActiveTicketCount(count || 0)
     }
     fetchActiveTicketCount()
     const channel = supabase.channel(`active-ticket-badge-${user.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'ticket_assignments' }, fetchActiveTicketCount).on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, fetchActiveTicketCount).subscribe()
@@ -58,14 +55,14 @@ export default function Layout({ children }: LayoutProps) {
   const navItems = allNavItems.filter(item => !(item.adminOnly && user?.role !== 'admin') && !(item.adminOrHR && user?.role !== 'admin' && user?.role !== 'hr'))
 
   return <DashboardTabProvider>
-    <div className="min-h-screen bg-background text-foreground">
-      <Sidebar navItems={navItems} primaryColor={primaryColor} />
-      <Header navItems={navItems} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} primaryColor={primaryColor} />
-      <main className="min-h-[calc(100vh-72px)] lg:ml-[248px] pb-24 lg:pb-10">
-        <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          {children}
-        </div>
-      </main>
+    <div className="min-h-screen bg-background text-foreground lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+      <Sidebar navItems={navItems} />
+      <div className="min-w-0">
+        <Header navItems={navItems} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+        <main className="min-h-[calc(100vh-72px)] pb-24 lg:pb-10">
+          <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</div>
+        </main>
+      </div>
       <MobileBottomNav />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
