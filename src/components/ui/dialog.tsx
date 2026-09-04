@@ -35,13 +35,13 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid max-h-[90vh] w-[calc(100%-2rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] gap-0 overflow-y-auto rounded-2xl border border-border bg-card p-0 text-foreground shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
+        "fixed left-[50%] top-[50%] z-50 grid max-h-[90vh] w-[calc(100%-2rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 text-foreground shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
         className
       )}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 z-10 grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30">
+      <DialogPrimitive.Close className="absolute right-4 top-4 z-20 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
@@ -53,7 +53,7 @@ DialogContent.displayName = DialogPrimitive.Content.displayName
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col space-y-1.5 border-b border-border bg-muted/20 px-6 py-5 pr-14 text-left",
+      "flex min-h-[88px] shrink-0 flex-col justify-center space-y-1.5 border-b border-border bg-card px-6 py-5 pr-14 text-left",
       className
     )}
     {...props}
@@ -64,7 +64,7 @@ DialogHeader.displayName = "DialogHeader"
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col-reverse gap-2 border-t border-border bg-muted/20 px-6 py-4 sm:flex-row sm:items-center sm:justify-end",
+      "flex shrink-0 flex-col-reverse gap-2 border-t border-border bg-muted px-6 py-4 sm:flex-row sm:items-center sm:justify-end",
       className
     )}
     {...props}
@@ -79,7 +79,7 @@ const DialogTitle = React.forwardRef<
   <DialogPrimitive.Title
     ref={ref}
     className={cn(
-      "text-lg font-semibold leading-6 tracking-tight text-foreground",
+      "pr-8 text-lg font-semibold leading-6 tracking-tight text-foreground",
       className
     )}
     {...props}
@@ -93,7 +93,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm leading-5 text-muted-foreground", className)}
+    className={cn("max-w-[calc(100%-1rem)] text-sm leading-5 text-muted-foreground", className)}
     {...props}
   />
 ))
