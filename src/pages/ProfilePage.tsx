@@ -22,7 +22,7 @@ interface Department {
 }
 
 interface AttendanceRecord {
-  date: string
+  attendance_date: string
   check_in: string | null
   check_out: string | null
   status: string
@@ -97,11 +97,13 @@ export default function ProfilePage() {
     if (!user?.id) return
     setAttendanceLoading(true)
     try {
+      // Use the live database column name. attendance_date is the canonical
+      // attendance date field; querying the old `date` column caused a 400.
       const { data, error } = await supabase
         .from('attendance')
-        .select('date,check_in,check_out,status')
+        .select('attendance_date,check_in,check_out,status')
         .eq('user_id', user.id)
-        .order('date', { ascending: false })
+        .order('attendance_date', { ascending: false })
         .limit(365)
       if (error) throw error
       setAttendanceRecords((data ?? []) as AttendanceRecord[])
@@ -128,10 +130,10 @@ export default function ProfilePage() {
     }, 0)
 
     const todayKey = now.toISOString().slice(0, 10)
-    const today = attendanceRecords.filter((record) => record.date === todayKey)
-    const week = attendanceRecords.filter((record) => new Date(record.date) >= startOfWeek)
-    const month = attendanceRecords.filter((record) => new Date(record.date) >= startOfMonth)
-    const year = attendanceRecords.filter((record) => new Date(record.date) >= startOfYear)
+    const today = attendanceRecords.filter((record) => record.attendance_date === todayKey)
+    const week = attendanceRecords.filter((record) => new Date(record.attendance_date) >= startOfWeek)
+    const month = attendanceRecords.filter((record) => new Date(record.attendance_date) >= startOfMonth)
+    const year = attendanceRecords.filter((record) => new Date(record.attendance_date) >= startOfYear)
 
     return {
       today: worked(today).length > 0,
@@ -171,7 +173,6 @@ export default function ProfilePage() {
         avatarUrl = supabase.storage.from('photos').getPublicUrl(path).data.publicUrl
       }
 
-      // profiles payload: only columns accepted by AuthContext/updateProfile.
       await updateProfile({
         full_name: fullName.trim(),
         phone: phone.trim() || null,
@@ -240,7 +241,7 @@ export default function ProfilePage() {
         <Tabs defaultValue="profile" className="w-full">
           <div className="border-b border-border px-5 sm:px-6">
             <TabsList className="h-12 bg-transparent p-0">
-              <TabsTrigger value="profile" className="h-12 rounded-none border-b-2 border-transparent px-1 mr-6 data-[state=active]:border-primary data-[state=active]:bg-transparent">Profile</TabsTrigger>
+              <TabsTrigger value="profile" className="mr-6 h-12 rounded-none border-b-2 border-transparent px-1 data-[state=active]:border-primary data-[state=active]:bg-transparent">Profile</TabsTrigger>
               <TabsTrigger value="attendance" className="h-12 rounded-none border-b-2 border-transparent px-1 data-[state=active]:border-primary data-[state=active]:bg-transparent">Attendance</TabsTrigger>
             </TabsList>
           </div>
@@ -282,43 +283,26 @@ export default function ProfilePage() {
                     <div className="grid grid-cols-1 gap-5 md:grid-cols-2"><div className="space-y-2"><Label htmlFor="profile-new-password">New password</Label><Input id="profile-new-password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} disabled={saving} />{errors.password && <p className="text-sm text-destructive">{errors.password}</p>}</div><div className="space-y-2"><Label htmlFor="profile-confirm-password">Confirm password</Label><Input id="profile-confirm-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={saving} />{errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}</div></div>
                   </section>
                 </div>
-                <div className="flex flex-col-reverse gap-3 border-t border-border bg-muted/20 p-5 sm:flex-row sm:justify-end sm:p-6"><Button type="button" variant="outline" onClick={cancelEdit} disabled={saving}><X className="mr-2 h-4 w-4" />Cancel</Button><Button type="submit" disabled={saving}><Save className="mr-2 h-4 w-4" />{saving ? 'Saving…' : 'Save changes'}</Button></div>
+                <div className="flex flex-col-reverse gap-3 border-t border-border bg-muted/20 p-5 sm:flex-row sm:justify-end sm:p-6"><Button type="button" variant="outline" onClick={cancelEdit} disabled={saving}><X className="mr-2 h-4 w-4" />Cancel</Button><Button type="submit" disabled={saving}><Save className="mr-2 h-4 w-4" />{saving ? 'Saving…' : 'Save profile'}</Button></div>
               </form>
             ) : (
-              <div className="grid grid-cols-1 gap-5 p-5 sm:p-6 lg:grid-cols-2 lg:p-8">
-                <InfoCard icon={<Mail className="h-5 w-5" />} label="Email" value={user.email} />
-                <InfoCard icon={<Phone className="h-5 w-5" />} label="Phone" value={user.phone || 'Not provided'} />
-                <InfoCard icon={<Building2 className="h-5 w-5" />} label="Department" value={department?.name || 'Not assigned'} />
-                <InfoCard icon={<Shield className="h-5 w-5" />} label="Role" value={user.role} />
+              <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:p-8">
+                <div className="rounded-xl border border-border bg-card p-4"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Full name</p><p className="mt-1 font-medium">{user.full_name}</p></div>
+                <div className="rounded-xl border border-border bg-card p-4"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Email</p><p className="mt-1 font-medium">{user.email}</p></div>
+                <div className="rounded-xl border border-border bg-card p-4"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Phone</p><p className="mt-1 font-medium">{user.phone || 'Not provided'}</p></div>
+                <div className="rounded-xl border border-border bg-card p-4"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Department</p><p className="mt-1 font-medium">{department?.name || 'Not assigned'}</p></div>
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="attendance" className="m-0 space-y-6 p-5 sm:p-6 lg:p-8">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <SummaryCard icon={<CheckCircle className="h-5 w-5" />} label="Today" value={attendanceSummary.today ? 'Present' : 'Not recorded'} detail={`${attendanceSummary.todayHours.toFixed(1)}h`} />
-              <SummaryCard icon={<Clock className="h-5 w-5" />} label="This week" value={`${attendanceSummary.weekPresent} days`} detail={`${attendanceSummary.weekHours.toFixed(1)}h`} />
-              <SummaryCard icon={<Award className="h-5 w-5" />} label="This month" value={`${attendanceSummary.monthPresent} days`} detail={`${attendanceSummary.monthHours.toFixed(1)}h`} />
-              <SummaryCard icon={<Shield className="h-5 w-5" />} label="This year" value={`${attendanceSummary.yearPresent} days`} detail={`${attendanceSummary.yearHours.toFixed(1)}h`} />
+          <TabsContent value="attendance" className="m-0 p-5 sm:p-6 lg:p-8">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[['Today', attendanceSummary.today ? 'Present' : 'Not recorded'], ['This week', `${attendanceSummary.weekPresent} days`], ['This month', `${attendanceSummary.monthPresent} days`], ['This year', `${attendanceSummary.yearPresent} days`]].map(([label, value]) => <Card key={label} className="border-border bg-card p-4 shadow-none"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-2 text-lg font-semibold">{value}</p></Card>)}
             </div>
-
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-              <Card className="border-border bg-card shadow-sm"><div className="border-b border-border p-5"><h2 className="font-semibold">Today’s attendance</h2><p className="mt-1 text-sm text-muted-foreground">Current check-in status.</p></div><div className="p-5"><div className="rounded-2xl border border-border bg-muted/20 p-6 text-center"><div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary"><Clock className="h-7 w-7" /></div><p className="mt-4 text-xl font-semibold">{attendanceStatus.status.replace('_', ' ')}</p>{attendanceStatus.clockInTime && <p className="mt-1 text-sm text-muted-foreground">Clocked in at {attendanceStatus.clockInTime}</p>}</div></div></Card>
-              <Card className="border-border bg-card shadow-sm"><div className="border-b border-border p-5"><h2 className="font-semibold">Quick action</h2><p className="mt-1 text-sm text-muted-foreground">Use the company QR code to record attendance.</p></div><div className="space-y-4 p-5">{!isScanning ? <Button className="h-12 w-full" onClick={startScanning} disabled={attendanceLoading}><QrCode className="mr-2 h-5 w-5" />{isClockedIn ? 'Clock out' : 'Clock in'}</Button> : <><div className="aspect-video overflow-hidden rounded-xl bg-black"><video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" /></div><canvas ref={canvasRef} className="hidden" /><Button variant="outline" className="h-11 w-full" onClick={stopScanning} disabled={attendanceLoading}><X className="mr-2 h-4 w-4" />Stop scanning</Button></>}<p className="text-xs text-muted-foreground">{attendanceLoading || attendanceLoading ? 'Processing attendance…' : 'Scan the QR code provided by your workspace.'}</p></div></Card>
-            </div>
-
-            {attendanceRecords.length > 0 && <Card className="border-border bg-card shadow-sm"><div className="border-b border-border p-5"><h2 className="font-semibold">Recent attendance</h2></div><div className="divide-y divide-border">{attendanceRecords.slice(0, 10).map((record) => <div key={`${record.date}-${record.check_in ?? 'open'}`} className="flex items-center justify-between gap-4 p-4"><div><p className="font-medium">{new Date(record.date).toLocaleDateString()}</p><p className="text-sm text-muted-foreground">{record.check_in ? new Date(record.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}{record.check_out ? ` – ${new Date(record.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}</p></div><Badge variant="outline">{record.status.replace('_', ' ')}</Badge></div>)}</div></Card>}
+            <div className="mt-6 rounded-xl border border-border bg-card p-5"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><Clock className="h-5 w-5" /></div><div><h2 className="font-semibold">Attendance history</h2><p className="text-sm text-muted-foreground">Your latest attendance records.</p></div></div>{attendanceLoading?<div className="py-12 text-center text-sm text-muted-foreground">Loading attendance…</div>:attendanceRecords.length===0?<div className="py-12 text-center text-sm text-muted-foreground">No attendance records yet.</div>:<div className="mt-5 divide-y border-y border-border">{attendanceRecords.slice(0,30).map(record=><div key={`${record.attendance_date}-${record.check_in??''}`} className="flex items-center justify-between gap-4 py-3"><div><p className="font-medium">{new Date(record.attendance_date).toLocaleDateString()}</p><p className="text-xs text-muted-foreground">{record.check_in ? new Date(record.check_in).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '—'} to {record.check_out ? new Date(record.check_out).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '—'}</p></div><Badge variant="outline">{record.status}</Badge></div>)}</div>}</div>
           </TabsContent>
         </Tabs>
       </Card>
     </div>
   )
-}
-
-function InfoCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return <div className="rounded-xl border border-border bg-card p-5 shadow-sm"><div className="flex items-center gap-3 text-muted-foreground"><div className="grid h-9 w-9 place-items-center rounded-lg bg-muted">{icon}</div><span className="text-sm font-medium">{label}</span></div><p className="mt-4 truncate text-base font-semibold text-foreground">{value}</p></div>
-}
-
-function SummaryCard({ icon, label, value, detail }: { icon: React.ReactNode; label: string; value: string; detail: string }) {
-  return <Card className="border-border bg-card p-5 shadow-sm"><div className="flex items-center justify-between"><div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">{icon}</div><span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</span></div><p className="mt-5 text-xl font-bold capitalize text-foreground">{value}</p><p className="mt-1 text-sm text-muted-foreground">{detail}</p></Card>
 }
