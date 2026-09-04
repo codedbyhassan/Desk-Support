@@ -1,22 +1,20 @@
 #!/usr/bin/env node
 
-const QRCode = require('qrcode-terminal');
+const QRCode = require('qrcode-terminal')
 
-const url = 'http://10.250.135.3:4000';
+const host = process.env.DESK_SUPPORT_HOST || 'localhost'
+const port = process.env.DESK_SUPPORT_PORT || '4000'
+const url = `http://${host}:${port}`
 
-console.log('\n');
-console.log('╔═══════════════════════════════════════════════════════════╗');
-console.log('║        Scan this QR code with your iPhone                ║');
-console.log('║         using Expo Go or Camera app                      ║');
-console.log('╚═══════════════════════════════════════════════════════════╝');
-console.log('\n');
+console.log('\n')
+console.log('╔═══════════════════════════════════════════════════════════╗')
+console.log('║              Open Desk Support in a browser               ║')
+console.log('╚═══════════════════════════════════════════════════════════╝')
+console.log('\n')
 
-QRCode.generate(url, { small: true }, function(qr_code) {
-  console.log(qr_code);
-  console.log('\n');
-  console.log('📱 Or manually visit:');
-  console.log(`   ${url}`);
-  console.log('\n');
-  console.log('Make sure your iPhone is on the same WiFi network!');
-  console.log('\n');
-});
+QRCode.generate(url, { small: true }, (qrCode) => {
+  console.log(qrCode)
+  console.log('\n📱 Open this address on a device on the same network:')
+  console.log(`   ${url}`)
+  console.log('\n')
+})
