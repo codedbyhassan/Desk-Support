@@ -10,9 +10,12 @@ const AuthContext=createContext<AuthContextType|undefined>(undefined)
 const WORKSPACE_CACHE_PREFIX='desk-support-workspace:'
 type Workspace=Pick<AuthContextType,'user'|'company'|'settings'>
 
+type PersistedAuth={access_token?:string;refresh_token?:string;expires_at?:number;expires_in?:number;token_type?:string;user?:Session['user']}
+
 function readWorkspaceCache(userId:string):Workspace|null{try{const raw=window.localStorage.getItem(`${WORKSPACE_CACHE_PREFIX}${userId}`);return raw?JSON.parse(raw) as Workspace:null}catch{return null}}
 function writeWorkspaceCache(userId:string,workspace:Workspace){try{window.localStorage.setItem(`${WORKSPACE_CACHE_PREFIX}${userId}`,JSON.stringify(workspace))}catch{}}
 function clearWorkspaceCache(userId:string){try{window.localStorage.removeItem(`${WORKSPACE_CACHE_PREFIX}${userId}`)}catch{}}
+function readPersistedUserId():string|null{try{const raw=window.localStorage.getItem('desk-support-auth');if(!raw)return null;const parsed=JSON.parse(raw) as PersistedAuth;return parsed.user?.id??null}catch{return null}}
 
 async function loadWorkspace(userId:string,email:string):Promise<Workspace>{
  const {data:profiles,error:pe}=await supabase.from('profiles').select('*').eq('id',userId).limit(1);if(pe)throw pe
@@ -30,6 +33,8 @@ export function AuthProvider({children}:{children:ReactNode}){
  const [state,setState]=useState({user:null as AuthProfile|null,company:null as AuthCompany|null,settings:null as CompanySettings|null,session:null as Session|null,loading:true,error:null as string|null})
  const refreshProfile=useCallback(async()=>{if(!state.session?.user)return;const workspace=await loadWorkspace(state.session.user.id,state.session.user.email??'');writeWorkspaceCache(state.session.user.id,workspace);setState(prev=>({...prev,...workspace,error:null}))},[state.session?.user?.id,state.session?.user?.email])
  useEffect(()=>{let mounted=true;let subscription:{unsubscribe:()=>void}|undefined
+  const hydrateCachedWorkspace=()=>{const userId=readPersistedUserId();if(!userId)return;const cached=readWorkspaceCache(userId);if(cached){setState(prev=>({...prev,...cached,loading:false,error:null}))}}
+  hydrateCachedWorkspace()
   const initialize=async()=>{try{const {data,error}=await supabase.auth.getSession();if(error)throw error;if(!mounted)return;const session=data.session;if(!session){setState(prev=>({...prev,loading:false,session:null}));return}const cached=readWorkspaceCache(session.user.id);if(cached)setState(prev=>({...prev,...cached,session,loading:false,error:null}));else setState(prev=>({...prev,session,loading:true,error:null}));try{const workspace=await ensureProvisioned(session);if(mounted){writeWorkspaceCache(session.user.id,workspace);setState(prev=>({...prev,...workspace,session,loading:false,error:null}))}}catch(error){if(mounted)setState(prev=>({...prev,loading:!cached,error:cached?null:error instanceof Error?error.message:'Failed to load workspace'}))}}catch(error){if(mounted)setState(prev=>({...prev,loading:false,error:error instanceof Error?error.message:'Failed to initialize authentication'}))}}
   const {data:{subscription:authSubscription}}=supabase.auth.onAuthStateChange((event,session)=>{if(!mounted)return;if(event==='SIGNED_OUT'||!session){setState({user:null,company:null,settings:null,session:null,loading:false,error:null});return}if(event==='TOKEN_REFRESHED'||event==='USER_UPDATED'||event==='INITIAL_SESSION'){setState(prev=>({...prev,session}));return}if(event==='SIGNED_IN'){setState(prev=>({...prev,session,loading:true,error:null}));setTimeout(async()=>{if(!mounted)return;try{const workspace=await ensureProvisioned(session);if(mounted){writeWorkspaceCache(session.user.id,workspace);setState(prev=>({...prev,...workspace,session,loading:false,error:null}))}}catch(error){if(mounted)setState(prev=>({...prev,loading:false,error:error instanceof Error?error.message:'Failed to load workspace'}))}},0)}});subscription=authSubscription;void initialize();return()=>{mounted=false;subscription?.unsubscribe()}},[])
  const signIn=useCallback(async(email:string,password:string)=>{setState(prev=>({...prev,loading:true,error:null}));const {error}=await supabase.auth.signInWithPassword({email:email.trim(),password});if(error){setState(prev=>({...prev,loading:false,error:error.message}));throw error}},[])
