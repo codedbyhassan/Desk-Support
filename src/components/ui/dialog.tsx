@@ -53,7 +53,7 @@ DialogContent.displayName = DialogPrimitive.Content.displayName
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex min-h-[92px] shrink-0 flex-col justify-center space-y-1.5 border-b border-border bg-card px-6 py-5 pr-16 text-left",
+      "flex shrink-0 flex-col justify-center space-y-1.5 border-b border-border bg-card px-6 py-5 pr-16 text-left",
       className
     )}
     {...props}
