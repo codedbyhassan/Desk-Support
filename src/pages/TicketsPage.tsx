@@ -39,9 +39,9 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
     if (!ticketToDelete || !user?.company_id) return
     setDeleting(true)
     try {
-      const { error: commentsError } = await supabase.from('ticket_comments').delete().eq('ticket_id', ticketToDelete).eq('company_id', user.company_id)
+      const { error: commentsError } = await supabase.from('ticket_comments').delete().eq('ticket_id', ticketToDelete)
       if (commentsError) throw commentsError
-      const { error: historyError } = await supabase.from('ticket_status_history').delete().eq('ticket_id', ticketToDelete).eq('company_id', user.company_id)
+      const { error: historyError } = await supabase.from('ticket_status_history').delete().eq('ticket_id', ticketToDelete)
       if (historyError) throw historyError
       const { error: ticketError } = await supabase.from('tickets').delete().eq('id', ticketToDelete).eq('company_id', user.company_id)
       if (ticketError) throw ticketError
@@ -67,7 +67,7 @@ export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {([['Open', openTickets, AlertCircle, 'text-blue-600'], ['In progress', inProgressTickets, Clock3, 'text-amber-600'], ['Resolved', resolvedTickets, CheckCircle2, 'text-emerald-600'], ['High priority', highPriorityTickets, AlertCircle, 'text-red-600']] as Array<[string, number, LucideIcon, string]>).map(([label, value, Icon, color]) => <Card key={label} className="border-border bg-card shadow-none"><div className="flex items-center justify-between p-4"><div><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-1 text-xl font-semibold tracking-tight">{value}</p></div><Icon className={`h-5 w-5 ${color}`} /></div></Card>)}
       </section>
-      {showForm && <Card className="border-border shadow-none"><div className="flex items-center justify-between border-b border-border px-5 py-4"><div><h2 className="font-semibold">New ticket</h2><p className="text-xs text-muted-foreground">Create a support request.</p></div><Button variant="ghost" size="icon" onClick={toggleForm}><X className="h-4 w-4" /></Button></div><div className="p-5"><TicketForm onSubmit={handleTicketCreated} /></div></Card>}
+      {showForm && <TicketForm onSubmit={handleTicketCreated} />}
       <Card className="overflow-hidden border-border bg-card shadow-none">
         <div className="border-b border-border p-4 sm:p-5">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-semibold">{activeTab === 'incoming' ? 'Incoming tickets' : 'My tickets'}</h2><p className="text-xs text-muted-foreground">{displayedTickets.length} matching {displayedTickets.length === 1 ? 'ticket' : 'tickets'}</p></div><div className="inline-flex w-fit rounded-lg border border-border bg-muted/50 p-1"><button onClick={() => setActiveTab('incoming')} className={`rounded-md px-3 py-1.5 text-xs font-medium ${activeTab === 'incoming' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}>Assigned to me <span className="ml-1 opacity-60">{departmentTickets.length}</span></button><button onClick={() => setActiveTab('outgoing')} className={`rounded-md px-3 py-1.5 text-xs font-medium ${activeTab === 'outgoing' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}>Created by me <span className="ml-1 opacity-60">{personalTickets.length}</span></button></div></div>
