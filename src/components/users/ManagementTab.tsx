@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Building2, Loader2, Mail, MoreHorizontal, Search, ShieldCheck, UserCheck, UserPlus, UserX, Users } from 'lucide-react'
+import { Loader2, MoreHorizontal, Search, ShieldCheck, UserCheck, UserPlus, UserX, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import { fetchSupabasePage, getExactCompanyCounts } from '@/lib/dataAccess'
@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const ROLES = [
   { value: 'admin', label: 'Admin' },
@@ -164,18 +164,16 @@ export default function ManagementTab() {
           <div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search people, roles or departments..." className="pl-9" /></div>
           <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)}><TabsList><TabsTrigger value="all">All</TabsTrigger><TabsTrigger value="active">Active</TabsTrigger><TabsTrigger value="inactive">Inactive</TabsTrigger></TabsList></Tabs>
         </div>
-        <TabsContent value={tab} className="m-0">
-          {loading ? <div className="flex min-h-64 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div> : visible.length === 0 ? <div className="flex min-h-64 flex-col items-center justify-center gap-2 p-8 text-center"><Users className="h-8 w-8 text-muted-foreground" /><p className="font-medium">No members found</p><p className="text-sm text-muted-foreground">Try another search or invite someone new.</p></div> : (
-            <div className="divide-y">
-              {visible.map((member) => (
-                <div key={member.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex min-w-0 items-center gap-3"><Avatar><AvatarFallback>{initials(member.profile?.full_name)}</AvatarFallback></Avatar><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="truncate font-medium">{member.profile?.full_name ?? 'Unnamed user'}</p><Badge variant={member.is_active ? 'secondary' : 'outline'}>{member.is_active ? 'Active' : 'Inactive'}</Badge></div><p className="truncate text-sm text-muted-foreground">{member.role} · {member.department?.name ?? 'No department'}</p></div></div>
-                  <div className="flex items-center gap-2"><Badge variant="outline" className="hidden sm:inline-flex">{member.joined_at ? new Date(member.joined_at).toLocaleDateString() : '—'}</Badge><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => setEdit(member)}><ShieldCheck className="mr-2 h-4 w-4" />Edit role</DropdownMenuItem><DropdownMenuItem onClick={() => setStatusTarget(member)}>{member.is_active ? <><UserX className="mr-2 h-4 w-4" />Deactivate</> : <><UserCheck className="mr-2 h-4 w-4" />Reactivate</>}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>
-                </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
+        {loading ? <div className="flex min-h-64 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div> : visible.length === 0 ? <div className="flex min-h-64 flex-col items-center justify-center gap-2 p-8 text-center"><Users className="h-8 w-8 text-muted-foreground" /><p className="font-medium">No members found</p><p className="text-sm text-muted-foreground">Try another search or invite someone new.</p></div> : (
+          <div className="divide-y">
+            {visible.map((member) => (
+              <div key={member.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-3"><Avatar><AvatarFallback>{initials(member.profile?.full_name)}</AvatarFallback></Avatar><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="truncate font-medium">{member.profile?.full_name ?? 'Unnamed user'}</p><Badge variant={member.is_active ? 'secondary' : 'outline'}>{member.is_active ? 'Active' : 'Inactive'}</Badge></div><p className="truncate text-sm text-muted-foreground">{member.role} · {member.department?.name ?? 'No department'}</p></div></div>
+                <div className="flex items-center gap-2"><Badge variant="outline" className="hidden sm:inline-flex">{member.joined_at ? new Date(member.joined_at).toLocaleDateString() : '—'}</Badge><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => setEdit(member)}><ShieldCheck className="mr-2 h-4 w-4" />Edit role</DropdownMenuItem><DropdownMenuItem onClick={() => setStatusTarget(member)}>{member.is_active ? <><UserX className="mr-2 h-4 w-4" />Deactivate</> : <><UserCheck className="mr-2 h-4 w-4" />Reactivate</>}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}><DialogContent><DialogHeader><DialogTitle>Invite a team member</DialogTitle><DialogDescription>Send an email invitation. The user creates their own password during setup.</DialogDescription></DialogHeader><form onSubmit={invite} className="space-y-4"><div><Label>Full name</Label><Input required value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div><div><Label>Email</Label><Input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div><div><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div><div className="grid gap-4 sm:grid-cols-2"><div><Label>Role</Label><Select value={form.role} onValueChange={(value) => setForm({ ...form, role: value })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ROLES.map((role) => <SelectItem key={role.value} value={role.value}>{role.label}</SelectItem>)}</SelectContent></Select></div><div><Label>Department</Label><Select value={form.department_id} onValueChange={(value) => setForm({ ...form, department_id: value })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">No department</SelectItem>{departments.map((department) => <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>)}</SelectContent></Select></div></div><DialogFooter><Button type="button" variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button><Button disabled={saving} type="submit">{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Send invitation</Button></DialogFooter></form></DialogContent></Dialog>
