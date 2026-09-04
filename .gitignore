@@ -7,3 +7,6 @@ Desk-Support-main/
 *.log
 .DS_Store
 .expo/
+.env
+.env.*
+!.env.example
