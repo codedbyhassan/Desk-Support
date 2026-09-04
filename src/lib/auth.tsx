@@ -1,4 +1,4 @@
-import { createContext, useCallback, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 
@@ -10,93 +10,28 @@ const AuthContext=createContext<AuthContextType|undefined>(undefined)
 const WORKSPACE_CACHE_PREFIX='desk-support-workspace:'
 type Workspace=Pick<AuthContextType,'user'|'company'|'settings'>
 
-function readWorkspaceCache(userId:string):Workspace|null{
- try{
-  const raw=window.localStorage.getItem(`${WORKSPACE_CACHE_PREFIX}${userId}`)
-  return raw?JSON.parse(raw) as Workspace:null
- }catch{return null}
-}
-function writeWorkspaceCache(userId:string,workspace:Workspace){
- try{window.localStorage.setItem(`${WORKSPACE_CACHE_PREFIX}${userId}`,JSON.stringify(workspace))}catch{}
-}
-function clearWorkspaceCache(userId:string){
- try{window.localStorage.removeItem(`${WORKSPACE_CACHE_PREFIX}${userId}`)}catch{}
-}
+function readWorkspaceCache(userId:string):Workspace|null{try{const raw=window.localStorage.getItem(`${WORKSPACE_CACHE_PREFIX}${userId}`);return raw?JSON.parse(raw) as Workspace:null}catch{return null}}
+function writeWorkspaceCache(userId:string,workspace:Workspace){try{window.localStorage.setItem(`${WORKSPACE_CACHE_PREFIX}${userId}`,JSON.stringify(workspace))}catch{}}
+function clearWorkspaceCache(userId:string){try{window.localStorage.removeItem(`${WORKSPACE_CACHE_PREFIX}${userId}`)}catch{}}
 
-async function loadWorkspace(userId:string, email:string):Promise<Workspace>{
- const {data:profiles,error:pe}=await supabase.from('profiles').select('*').eq('id',userId).limit(1); if(pe)throw pe
- const profile=profiles?.[0] ?? null
- if(!profile)throw new Error('Your account is not provisioned for a company.')
- const {data:memberships,error:me}=await supabase.from('company_memberships').select('id,company_id,role,department_id,is_active,joined_at').eq('user_id',userId).eq('is_active',true).order('joined_at',{ascending:true}).limit(1); if(me)throw me
- const membership=memberships?.[0] ?? null
- if(!membership)throw new Error('Your account is not provisioned for a company.')
- const {data:company,error:ce}=await supabase.from('companies').select('*').eq('id',membership.company_id).limit(1); if(ce)throw ce
- const companyRow=company?.[0] ?? null
- if(!companyRow)throw new Error('Your company could not be loaded.')
- const {data:settingsRows,error:se}=await supabase.from('company_settings').select('*').eq('company_id',membership.company_id).limit(1); if(se)throw se
- const settings=settingsRows?.[0] ?? null
- return {user:{...profile,email,role:membership.role,company_id:membership.company_id,membership_id:membership.id,department_id:membership.department_id} as AuthProfile,company:companyRow as AuthCompany,settings:settings as CompanySettings|null}
+async function loadWorkspace(userId:string,email:string):Promise<Workspace>{
+ const {data:profiles,error:pe}=await supabase.from('profiles').select('*').eq('id',userId).limit(1);if(pe)throw pe
+ const profile=profiles?.[0]??null;if(!profile)throw new Error('Your account is not provisioned for a company.')
+ const {data:memberships,error:me}=await supabase.from('company_memberships').select('id,company_id,role,department_id,is_active,joined_at').eq('user_id',userId).eq('is_active',true).order('joined_at',{ascending:true}).limit(1);if(me)throw me
+ const membership=memberships?.[0]??null;if(!membership)throw new Error('Your account is not provisioned for a company.')
+ const {data:company,error:ce}=await supabase.from('companies').select('*').eq('id',membership.company_id).limit(1);if(ce)throw ce
+ const companyRow=company?.[0]??null;if(!companyRow)throw new Error('Your company could not be loaded.')
+ const {data:settingsRows,error:se}=await supabase.from('company_settings').select('*').eq('company_id',membership.company_id).limit(1);if(se)throw se
+ return {user:{...profile,email,role:membership.role,company_id:membership.company_id,membership_id:membership.id,department_id:membership.department_id} as AuthProfile,company:companyRow as AuthCompany,settings:(settingsRows?.[0]??null) as CompanySettings|null}
 }
-
-async function ensureProvisioned(session:Session){
- const email=session.user.email ?? ''
- try{return await loadWorkspace(session.user.id,email)}catch(error){
-  const message=error instanceof Error?error.message:''
-  if(!message.includes('not provisioned'))throw error
-  const metadata=session.user.user_metadata as {company_name?:string;full_name?:string}|undefined
-  if(!metadata?.company_name)throw error
-  const {error:fnError}=await supabase.functions.invoke('create-company',{body:{name:metadata.company_name,full_name:metadata.full_name??''}})
-  if(fnError)throw fnError
-  return loadWorkspace(session.user.id,email)
- }
-}
+async function ensureProvisioned(session:Session){const email=session.user.email??'';try{return await loadWorkspace(session.user.id,email)}catch(error){const message=error instanceof Error?error.message:'';if(!message.includes('not provisioned'))throw error;const metadata=session.user.user_metadata as {company_name?:string;full_name?:string}|undefined;if(!metadata?.company_name)throw error;const {error:fnError}=await supabase.functions.invoke('create-company',{body:{name:metadata.company_name,full_name:metadata.full_name??''}});if(fnError)throw fnError;return loadWorkspace(session.user.id,email)}}
 
 export function AuthProvider({children}:{children:ReactNode}){
  const [state,setState]=useState({user:null as AuthProfile|null,company:null as AuthCompany|null,settings:null as CompanySettings|null,session:null as Session|null,loading:true,error:null as string|null})
  const refreshProfile=useCallback(async()=>{if(!state.session?.user)return;const workspace=await loadWorkspace(state.session.user.id,state.session.user.email??'');writeWorkspaceCache(state.session.user.id,workspace);setState(prev=>({...prev,...workspace,error:null}))},[state.session?.user?.id,state.session?.user?.email])
-
- useEffect(()=>{
-  let mounted=true
-  let subscription:{unsubscribe:()=>void}|undefined
-  const initialize=async()=>{
-   try{
-    const {data,error}=await supabase.auth.getSession()
-    if(error)throw error
-    if(!mounted)return
-    const session=data.session
-    if(!session){setState(prev=>({...prev,loading:false,session:null}));return}
-
-    const cached=readWorkspaceCache(session.user.id)
-    if(cached){setState(prev=>({...prev,...cached,session,loading:false,error:null}))}
-    else{setState(prev=>({...prev,session,loading:true,error:null}))}
-
-    try{
-     const workspace=await ensureProvisioned(session)
-     if(mounted){writeWorkspaceCache(session.user.id,workspace);setState(prev=>({...prev,...workspace,session,loading:false,error:null}))}
-    }catch(error){
-     if(mounted){setState(prev=>({...prev,loading:!cached,error:cached?null:error instanceof Error?error.message:'Failed to load workspace'}))}
-    }
-   }catch(error){if(mounted)setState(prev=>({...prev,loading:false,error:error instanceof Error?error.message:'Failed to initialize authentication'}))}
-  }
-
-  const {data:{subscription:authSubscription}}=supabase.auth.onAuthStateChange((event,session)=>{
-   if(!mounted)return
-   if(event==='SIGNED_OUT'||!session){setState({user:null,company:null,settings:null,session:null,loading:false,error:null});return}
-   if(event==='TOKEN_REFRESHED'||event==='USER_UPDATED'||event==='INITIAL_SESSION'){setState(prev=>({...prev,session}));return}
-   if(event==='SIGNED_IN'){
-    setState(prev=>({...prev,session,loading:true,error:null}))
-    setTimeout(async()=>{
-     if(!mounted)return
-     try{const workspace=await ensureProvisioned(session);if(mounted){writeWorkspaceCache(session.user.id,workspace);setState(prev=>({...prev,...workspace,session,loading:false,error:null}))}}
-     catch(error){if(mounted)setState(prev=>({...prev,loading:false,error:error instanceof Error?error.message:'Failed to load workspace'}))}
-    },0)
-   }
-  })
-  subscription=authSubscription
-  void initialize()
-  return()=>{mounted=false;subscription?.unsubscribe()}
- },[])
-
+ useEffect(()=>{let mounted=true;let subscription:{unsubscribe:()=>void}|undefined
+  const initialize=async()=>{try{const {data,error}=await supabase.auth.getSession();if(error)throw error;if(!mounted)return;const session=data.session;if(!session){setState(prev=>({...prev,loading:false,session:null}));return}const cached=readWorkspaceCache(session.user.id);if(cached)setState(prev=>({...prev,...cached,session,loading:false,error:null}));else setState(prev=>({...prev,session,loading:true,error:null}));try{const workspace=await ensureProvisioned(session);if(mounted){writeWorkspaceCache(session.user.id,workspace);setState(prev=>({...prev,...workspace,session,loading:false,error:null}))}}catch(error){if(mounted)setState(prev=>({...prev,loading:!cached,error:cached?null:error instanceof Error?error.message:'Failed to load workspace'}))}}catch(error){if(mounted)setState(prev=>({...prev,loading:false,error:error instanceof Error?error.message:'Failed to initialize authentication'}))}}
+  const {data:{subscription:authSubscription}}=supabase.auth.onAuthStateChange((event,session)=>{if(!mounted)return;if(event==='SIGNED_OUT'||!session){setState({user:null,company:null,settings:null,session:null,loading:false,error:null});return}if(event==='TOKEN_REFRESHED'||event==='USER_UPDATED'||event==='INITIAL_SESSION'){setState(prev=>({...prev,session}));return}if(event==='SIGNED_IN'){setState(prev=>({...prev,session,loading:true,error:null}));setTimeout(async()=>{if(!mounted)return;try{const workspace=await ensureProvisioned(session);if(mounted){writeWorkspaceCache(session.user.id,workspace);setState(prev=>({...prev,...workspace,session,loading:false,error:null}))}}catch(error){if(mounted)setState(prev=>({...prev,loading:false,error:error instanceof Error?error.message:'Failed to load workspace'}))}},0)}});subscription=authSubscription;void initialize();return()=>{mounted=false;subscription?.unsubscribe()}},[])
  const signIn=useCallback(async(email:string,password:string)=>{setState(prev=>({...prev,loading:true,error:null}));const {error}=await supabase.auth.signInWithPassword({email:email.trim(),password});if(error){setState(prev=>({...prev,loading:false,error:error.message}));throw error}},[])
  const signUp=useCallback(async(email:string,password:string,fullName:string,companyName:string)=>{setState(prev=>({...prev,loading:true,error:null}));const {data,error}=await supabase.auth.signUp({email:email.trim(),password,options:{data:{full_name:fullName.trim(),company_name:companyName.trim()},emailRedirectTo:window.location.origin}});if(error){setState(prev=>({...prev,loading:false,error:error.message}));throw error}if(!data.user){setState(prev=>({...prev,loading:false}));throw new Error('Account creation failed.')}setState(prev=>({...prev,session:data.session,loading:!!data.session}));return {emailConfirmationRequired:!data.session}},[])
  const signOut=useCallback(async()=>{const userId=state.user?.id;const {error}=await supabase.auth.signOut();if(error)throw error;if(userId)clearWorkspaceCache(userId)},[state.user?.id])
