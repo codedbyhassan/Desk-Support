@@ -1,6 +1,6 @@
 // App.tsx - canonical application routing
 import React from 'react'
-import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Toaster } from 'react-hot-toast'
@@ -28,98 +28,63 @@ import WorkspacePage from './pages/WorkspacePage'
 import NotificationsPage from './pages/NotificationsPage'
 import Layout from './components/layout/Layout'
 
-function LoadingRoute() {
-  return <div className="min-h-screen grid place-items-center text-sm text-muted-foreground">Loading…</div>
-}
+function LoadingRoute() { return <div className="min-h-screen grid place-items-center text-sm text-muted-foreground">Loading…</div> }
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedLayout() {
   const { user, loading } = useAuth()
   const location = useLocation()
-
   if (loading) return <LoadingRoute />
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />
-
-  return <Layout>{children}</Layout>
+  return <Layout><Outlet /></Layout>
 }
 
-function AdminOrHRRoute({ children }: { children: React.ReactNode }) {
+function AdminOrHRLayout() {
   const { user, loading } = useAuth()
-
   if (loading) return <LoadingRoute />
-  if (!user || (user.role !== 'admin' && user.role !== 'hr')) {
-    return <Navigate to="/app/dashboard" replace />
-  }
-
-  return <Layout>{children}</Layout>
+  if (!user || (user.role !== 'admin' && user.role !== 'hr')) return <Navigate to="/app/dashboard" replace />
+  return <Layout><Outlet /></Layout>
 }
 
 function AppRoutes() {
   const { user } = useAuth()
-
-  return (
-    <Routes>
-      <Route path="/" element={user ? <Navigate to="/app/dashboard" replace /> : <LandingPage />} />
-      <Route path="/login" element={user ? <Navigate to="/app/dashboard" replace /> : <LoginPage defaultToSignUp={false} />} />
-      <Route path="/signup" element={user ? <Navigate to="/app/dashboard" replace /> : <LoginPage defaultToSignUp />} />
-
-      <Route path="/app" element={<ProtectedRoute><Navigate to="/app/dashboard" replace /></ProtectedRoute>} />
-      <Route path="/app/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-      <Route path="/app/dashboard/users" element={<Navigate to="/app/users" replace />} />
-      <Route path="/app/dashboard/assets" element={<Navigate to="/app/assets" replace />} />
-
-      <Route path="/app/tickets" element={<ProtectedRoute><TicketsPage /></ProtectedRoute>} />
-      <Route path="/app/tickets/new" element={<ProtectedRoute><TicketsPage newTicket /></ProtectedRoute>} />
-      <Route path="/app/tickets/:id" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
-
-      <Route path="/app/assets" element={<ProtectedRoute><AssetsPage /></ProtectedRoute>} />
-      <Route path="/app/assets/new" element={<ProtectedRoute><AssetsPage /></ProtectedRoute>} />
-      <Route path="/app/assets/:id" element={<ProtectedRoute><AssetDetailPage /></ProtectedRoute>} />
-
-      <Route path="/app/departments" element={<ProtectedRoute><DepartmentsPage /></ProtectedRoute>} />
-      <Route path="/app/departments/:id" element={<ProtectedRoute><DepartmentDetailPage /></ProtectedRoute>} />
-      <Route path="/app/teams" element={<ProtectedRoute><TeamsPage /></ProtectedRoute>} />
-      <Route path="/app/teams/call/:roomId" element={<ProtectedRoute><CallPage /></ProtectedRoute>} />
-      <Route path="/app/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-      <Route path="/app/users" element={<AdminOrHRRoute><UsersPage /></AdminOrHRRoute>} />
-      <Route path="/app/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-      <Route path="/app/qr-scanner" element={<ProtectedRoute><QRScannerPage /></ProtectedRoute>} />
-      <Route path="/app/working-area" element={<ProtectedRoute><WorkspacePage /></ProtectedRoute>} />
-      <Route path="/app/workspace" element={<ProtectedRoute><WorkspacePage /></ProtectedRoute>} />
-      <Route path="/app/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  )
+  return <Routes>
+    <Route path="/" element={user ? <Navigate to="/app/dashboard" replace /> : <LandingPage />} />
+    <Route path="/login" element={user ? <Navigate to="/app/dashboard" replace /> : <LoginPage defaultToSignUp={false} />} />
+    <Route path="/signup" element={user ? <Navigate to="/app/dashboard" replace /> : <LoginPage defaultToSignUp />} />
+    <Route path="/app" element={<ProtectedLayout />}>
+      <Route index element={<Navigate to="dashboard" replace />} />
+      <Route path="dashboard" element={<DashboardPage />} />
+      <Route path="dashboard/users" element={<Navigate to="../users" replace />} />
+      <Route path="dashboard/assets" element={<Navigate to="../assets" replace />} />
+      <Route path="tickets" element={<TicketsPage />} />
+      <Route path="tickets/new" element={<TicketsPage newTicket />} />
+      <Route path="tickets/:id" element={<TicketDetailPage />} />
+      <Route path="assets" element={<AssetsPage />} />
+      <Route path="assets/new" element={<AssetsPage />} />
+      <Route path="assets/:id" element={<AssetDetailPage />} />
+      <Route path="departments" element={<DepartmentsPage />} />
+      <Route path="departments/:id" element={<DepartmentDetailPage />} />
+      <Route path="teams" element={<TeamsPage />} />
+      <Route path="teams/call/:roomId" element={<CallPage />} />
+      <Route path="settings" element={<SettingsPage />} />
+      <Route path="profile" element={<ProfilePage />} />
+      <Route path="qr-scanner" element={<QRScannerPage />} />
+      <Route path="working-area" element={<WorkspacePage />} />
+      <Route path="workspace" element={<WorkspacePage />} />
+      <Route path="notifications" element={<NotificationsPage />} />
+    </Route>
+    <Route path="/app/users" element={<AdminOrHRLayout />}><Route index element={<UsersPage />} /></Route>
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>
 }
 
 function ToastWrapper() {
   const location = useLocation()
   const { toasts, dismissToast, setCurrentPath } = useNotifications()
-
-  React.useEffect(() => {
-    setCurrentPath(window.location.hash.replace('#', '') || location.pathname)
-  }, [location.pathname, setCurrentPath])
-
+  React.useEffect(() => { setCurrentPath(window.location.hash.replace('#', '') || location.pathname) }, [location.pathname, setCurrentPath])
   return <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 }
 
 export default function App() {
-  return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <ThemeProvider>
-          <ColorSchemeProvider>
-            <NotificationProvider>
-              <QRCodeProvider>
-                <HashRouter>
-                  <ToastWrapper />
-                  <AppRoutes />
-                  <Toaster position="bottom-right" toastOptions={{ duration: 5000 }} />
-                </HashRouter>
-              </QRCodeProvider>
-            </NotificationProvider>
-          </ColorSchemeProvider>
-        </ThemeProvider>
-      </AuthProvider>
-    </ErrorBoundary>
-  )
+  return <ErrorBoundary><AuthProvider><ThemeProvider><ColorSchemeProvider><NotificationProvider><QRCodeProvider><HashRouter><ToastWrapper /><AppRoutes /><Toaster position="bottom-right" toastOptions={{ duration: 5000 }} /></HashRouter></QRCodeProvider></NotificationProvider></ColorSchemeProvider></ThemeProvider></AuthProvider></ErrorBoundary>
 }
