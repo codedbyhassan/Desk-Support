@@ -9,11 +9,18 @@ interface AuthContextType { user:AuthProfile|null; session:Session|null; company
 const AuthContext=createContext<AuthContextType|undefined>(undefined)
 
 async function loadWorkspace(userId:string):Promise<Pick<AuthContextType,'user'|'company'|'settings'>>{
- const {data:profile,error:pe}=await supabase.from('profiles').select('*').eq('id',userId).maybeSingle(); if(pe)throw pe; if(!profile)throw new Error('Your account is not provisioned for a company.')
- const {data:membership,error:me}=await supabase.from('company_memberships').select('id,company_id,role,department_id,is_active,joined_at').eq('user_id',userId).eq('is_active',true).order('joined_at',{ascending:true}).limit(1).maybeSingle(); if(me)throw me; if(!membership)throw new Error('Your account is not provisioned for a company.')
- const {data:company,error:ce}=await supabase.from('companies').select('*').eq('id',membership.company_id).single(); if(ce)throw ce
- const {data:settings,error:se}=await supabase.from('company_settings').select('*').eq('company_id',membership.company_id).maybeSingle(); if(se)throw se
- return {user:{...profile,role:membership.role,company_id:membership.company_id,membership_id:membership.id,department_id:membership.department_id} as AuthProfile,company:company as AuthCompany,settings:settings as CompanySettings|null}
+ const {data:profiles,error:pe}=await supabase.from('profiles').select('*').eq('id',userId).limit(1); if(pe)throw pe
+ const profile=profiles?.[0] ?? null
+ if(!profile)throw new Error('Your account is not provisioned for a company.')
+ const {data:memberships,error:me}=await supabase.from('company_memberships').select('id,company_id,role,department_id,is_active,joined_at').eq('user_id',userId).eq('is_active',true).order('joined_at',{ascending:true}).limit(1); if(me)throw me
+ const membership=memberships?.[0] ?? null
+ if(!membership)throw new Error('Your account is not provisioned for a company.')
+ const {data:company,error:ce}=await supabase.from('companies').select('*').eq('id',membership.company_id).limit(1); if(ce)throw ce
+ const companyRow=company?.[0] ?? null
+ if(!companyRow)throw new Error('Your company could not be loaded.')
+ const {data:settingsRows,error:se}=await supabase.from('company_settings').select('*').eq('company_id',membership.company_id).limit(1); if(se)throw se
+ const settings=settingsRows?.[0] ?? null
+ return {user:{...profile,role:membership.role,company_id:membership.company_id,membership_id:membership.id,department_id:membership.department_id} as AuthProfile,company:companyRow as AuthCompany,settings:settings as CompanySettings|null}
 }
 
 async function ensureProvisioned(session:Session){
