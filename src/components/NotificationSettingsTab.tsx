@@ -1,6 +1,6 @@
 import { useNotifications } from '@/context/NotificationContext'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -8,147 +8,114 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Bell, AlertTriangle, CheckCircle2 } from 'lucide-react'
 
+type MuteDuration = 'never' | '5min' | '30min' | '1hour' | '8hours'
+
 export function NotificationSettingsTab() {
   const { preferences, updatePreferences } = useNotifications()
   const { status, loading, initialize, disable, isSupported } = usePushNotifications()
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg sm:text-xl">Notification Preferences</CardTitle>
-        <CardDescription className="text-xs sm:text-sm">
-          Manage how you receive notifications
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3 sm:space-y-4">
-        <div className="flex items-center justify-between gap-3 py-2 sm:py-3">
-          <div className="space-y-0.5 min-w-0">
-            <Label className="text-xs sm:text-sm">Ticket Updates</Label>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">
-              Get notified when tickets are assigned or status changes
-            </p>
+    <Card className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div className="border-b border-border bg-muted/20 px-5 py-5 sm:px-6">
+        <div className="flex items-center gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+            <Bell className="h-5 w-5" />
           </div>
-          <Switch 
-            checked={preferences.enableTicketUpdates}
-            onCheckedChange={(checked) => updatePreferences({ enableTicketUpdates: checked })}
-            className="flex-shrink-0" 
-          />
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-foreground sm:text-lg">Notification Preferences</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">Choose which notifications you receive and how they behave.</p>
+          </div>
         </div>
-        <div className="flex items-center justify-between gap-3 py-2 sm:py-3">
-          <div className="space-y-0.5 min-w-0">
-            <Label className="text-xs sm:text-sm">Comment Notifications</Label>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">
-              Notifications for new comments on your tickets
-            </p>
+      </div>
+
+      <CardContent className="space-y-0 p-0">
+        <div className="divide-y divide-border">
+          {[
+            ['enableTicketUpdates', 'Ticket Updates', 'Get notified when tickets are assigned or their status changes.'],
+            ['enableComments', 'Comment Notifications', 'Get notified about new comments on your tickets.'],
+            ['enableSoundNotifications', 'Sound Notifications', 'Play a sound when a notification arrives.'],
+          ].map(([key, title, description]) => {
+            const preferenceKey = key as 'enableTicketUpdates' | 'enableComments' | 'enableSoundNotifications'
+            return (
+              <div key={key} className="flex min-h-[76px] items-center justify-between gap-5 px-5 py-4 sm:px-6">
+                <div className="min-w-0">
+                  <Label className="text-sm font-semibold text-foreground">{title}</Label>
+                  <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
+                </div>
+                <Switch
+                  checked={preferences[preferenceKey]}
+                  onCheckedChange={(checked) => updatePreferences({ [preferenceKey]: checked })}
+                  className="shrink-0"
+                />
+              </div>
+            )
+          })}
+
+          <div className="flex min-h-[76px] items-center justify-between gap-5 px-5 py-4 sm:px-6">
+            <div className="min-w-0">
+              <Label className="text-sm font-semibold text-foreground">Push Notifications</Label>
+              <p className="mt-1 text-sm leading-5 text-muted-foreground">Receive notifications through your browser.</p>
+            </div>
+            <Switch
+              checked={preferences.enablePushNotifications}
+              onCheckedChange={(checked) => updatePreferences({ enablePushNotifications: checked })}
+              disabled={!isSupported}
+              className="shrink-0"
+            />
           </div>
-          <Switch 
-            checked={preferences.enableComments}
-            onCheckedChange={(checked) => updatePreferences({ enableComments: checked })}
-            className="flex-shrink-0" 
-          />
-        </div>
-        <div className="flex items-center justify-between gap-3 py-2 sm:py-3">
-          <div className="space-y-0.5 min-w-0">
-            <Label className="text-xs sm:text-sm">Sound Notifications</Label>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">
-              Play a sound when you receive notifications
-            </p>
-          </div>
-          <Switch 
-            checked={preferences.enableSoundNotifications}
-            onCheckedChange={(checked) => updatePreferences({ enableSoundNotifications: checked })}
-            className="flex-shrink-0" 
-          />
-        </div>
-        <div className="flex items-center justify-between gap-3 py-2 sm:py-3">
-          <div className="space-y-0.5 min-w-0">
-            <Label className="text-xs sm:text-sm">Push Notifications</Label>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">
-              Receive push notifications in your browser
-            </p>
-          </div>
-          <Switch 
-            checked={preferences.enablePushNotifications}
-            onCheckedChange={(checked) => updatePreferences({ enablePushNotifications: checked })}
-            className="flex-shrink-0" 
-            disabled={!isSupported}
-          />
         </div>
 
-        {/* Push Notification Management */}
         {isSupported && (
-          <div className="border-t pt-4 space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="border-t border-border bg-muted/10 px-5 py-5 sm:px-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h4 className="text-sm font-medium text-foreground">Push Notification Status</h4>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                  Browser support: {status.supported ? '✅' : '❌'} | 
-                  Service Worker: {status.registered ? '✅' : '❌'} | 
-                  Subscribed: {status.subscribed ? '✅' : '❌'}
+                <h3 className="text-sm font-semibold text-foreground">Browser push status</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Browser: {status.supported ? 'Supported' : 'Unsupported'} · Service worker: {status.registered ? 'Ready' : 'Not ready'} · Subscription: {status.subscribed ? 'Active' : 'Inactive'}
                 </p>
               </div>
-            </div>
-
-            <div className="flex gap-2 flex-wrap">
               {status.subscribed ? (
-                <Button
-                  onClick={disable}
-                  disabled={loading}
-                  size="sm"
-                  variant="outline"
-                  className="text-xs"
-                >
-                  {loading ? 'Disabling...' : 'Disable Push Notifications'}
+                <Button type="button" variant="outline" onClick={disable} disabled={loading} className="shrink-0 rounded-xl">
+                  {loading ? 'Disabling…' : 'Disable Push'}
                 </Button>
               ) : (
-                <Button
-                  onClick={initialize}
-                  disabled={loading || status.permission === 'denied'}
-                  size="sm"
-                  className="text-xs bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
-                >
-                  {loading ? 'Enabling...' : 'Enable Push Notifications'}
+                <Button type="button" onClick={initialize} disabled={loading || status.permission === 'denied'} className="shrink-0 rounded-xl">
+                  {loading ? 'Enabling…' : 'Enable Push'}
                 </Button>
               )}
             </div>
 
             {status.permission === 'denied' && (
-              <Alert className="bg-amber-50 border-amber-200">
+              <Alert className="mt-4 border-amber-200 bg-amber-50 text-amber-900">
                 <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-xs text-amber-800">
-                  You have blocked notifications in your browser settings. Check browser permissions to re-enable.
-                </AlertDescription>
+                <AlertDescription>Browser notifications are blocked. Re-enable them in your browser permissions.</AlertDescription>
               </Alert>
             )}
 
             {status.subscribed && (
-              <Alert className="bg-green-50 border-green-200">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-xs text-green-800">
-                  Push notifications are enabled. You'll receive notifications for important updates.
-                </AlertDescription>
+              <Alert className="mt-4 border-emerald-200 bg-emerald-50 text-emerald-900">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <AlertDescription>Push notifications are enabled for this browser.</AlertDescription>
               </Alert>
             )}
           </div>
         )}
 
         {!isSupported && (
-          <Alert className="bg-amber-50 border-amber-200 mt-4">
+          <Alert className="m-5 border-amber-200 bg-amber-50 text-amber-900 sm:m-6">
             <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-xs text-amber-800">
-              Push notifications are not supported in your browser. Please use a modern browser like Chrome, Firefox, or Edge.
-            </AlertDescription>
+            <AlertDescription>Push notifications are not supported by this browser.</AlertDescription>
           </Alert>
         )}
 
-        {/* Notification Mute Duration */}
-        <div className="space-y-2 pt-2 border-t">
-          <Label className="text-xs sm:text-sm">Mute Notifications</Label>
-          <Select 
+        <div className="border-t border-border px-5 py-5 sm:px-6">
+          <Label className="text-sm font-semibold text-foreground">Mute Notifications</Label>
+          <p className="mb-3 mt-1 text-sm text-muted-foreground">Temporarily silence notifications without changing your notification preferences.</p>
+          <Select
             value={preferences.notificationMuteDuration}
-            onValueChange={(value: any) => updatePreferences({ notificationMuteDuration: value })}
+            onValueChange={(value) => updatePreferences({ notificationMuteDuration: value as MuteDuration })}
           >
-            <SelectTrigger className="h-10 sm:h-11 text-xs sm:text-sm">
+            <SelectTrigger className="w-full sm:max-w-sm">
               <SelectValue placeholder="Select mute duration" />
             </SelectTrigger>
             <SelectContent>
@@ -159,17 +126,11 @@ export function NotificationSettingsTab() {
               <SelectItem value="8hours">Mute for 8 hours</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">
-            Temporarily silence notifications without changing preferences
-          </p>
         </div>
 
-        <Alert className="mt-4">
-          <Bell className="h-4 w-4" />
-          <AlertDescription className="text-xs sm:text-sm">
-            Changes are saved automatically and stored locally on your device
-          </AlertDescription>
-        </Alert>
+        <div className="border-t border-border bg-muted/10 px-5 py-4 sm:px-6">
+          <p className="text-sm text-muted-foreground">Changes are saved automatically on this device.</p>
+        </div>
       </CardContent>
     </Card>
   )
