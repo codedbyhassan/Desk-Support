@@ -1,0 +1,2 @@
+import {body,errorResponse,json,requireUser} from "../_shared.ts";
+Deno.serve(async(req)=>{try{const{user,supabase}=await requireUser(req);const x=await body(req);const path=String(x.path??"");const bucket=String(x.bucket??"workspace");if(!path)throw Error("path is required");const{data,error}=await supabase.storage.from(bucket).createSignedUploadUrl(path);if(error)throw error;return json({ok:true,path,bucket,upload:data});}catch(e){return errorResponse(e)}});
