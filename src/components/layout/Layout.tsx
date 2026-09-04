@@ -46,7 +46,7 @@ export function Layout({ children }: { children?: ReactNode }) {
             {!isCallRoute && <Header navItems={navItems} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />}
             <main className={isCallRoute ? 'min-h-screen flex-1' : 'min-w-0 flex-1 overflow-x-hidden pb-20 lg:pb-0'}>
               {isCallRoute ? content : (
-                <div className="mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 xl:px-10">
+                <div data-page-content className="mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 xl:px-10">
                   {content}
                 </div>
               )}
