@@ -1,39 +1,63 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Ticket } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import { useToast } from '@/hooks/use-toast'
+import { fetchSupabasePage } from '@/lib/dataAccess'
 
-export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed'
+export type TicketStatus = 'open' | 'in_progress' | 'pending' | 'resolved' | 'closed'
+export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent'
 
-export interface TicketWithHistory extends Omit<Ticket, 'asset'> {
+export interface TicketWithHistory {
+  id: string
+  ticket_number: number
   company_id: string
+  subject: string
+  description: string | null
+  status: TicketStatus
+  priority: TicketPriority
+  channel: string
+  category_id: string | null
+  requester_id: string
+  created_by: string
+  accepted_by: string | null
+  accepted_at: string | null
+  resolved_at: string | null
+  closed_at: string | null
+  due_at: string | null
+  photo_url: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+  category?: { id: string; name: string } | null
+  creator?: { id: string; full_name: string } | null
+  requester?: { id: string; full_name: string } | null
+  assignment?: { id: string; assignee_id: string; assigned_at: string } | null
   status_history?: Array<{
     id: string
-    status: TicketStatus
-    changed_by: string
-    created_at: string
-    user?: { name: string }
+    from_status: TicketStatus | null
+    to_status: TicketStatus
+    changed_by: string | null
+    changed_at: string
+    note: string | null
   }>
-  asset?: {
-    id: string
-    name: string
-    serial_number?: string
-    status: string
-  }
-  creator?: {
-    id: string
-    full_name: string
-    email?: string
-  }
-  assignee?: {
-    id: string
-    full_name: string
-    email?: string
-  }
-  department?: {
-    id: string
-    name: string
+}
+
+const TICKET_COLUMNS = `id,ticket_number,company_id,subject,description,status,priority,channel,category_id,requester_id,created_by,accepted_by,accepted_at,resolved_at,closed_at,due_at,photo_url,metadata,created_at,updated_at,category:ticket_categories(id,name),creator:profiles!tickets_created_by_fkey(id,full_name),requester:profiles!tickets_requester_id_fkey(id,full_name),assignment:ticket_assignments!ticket_assignments_ticket_id_fkey(id,assignee_id,assigned_at,unassigned_at),status_history:ticket_status_history(id,from_status,to_status,changed_by,changed_at,note)`
+
+function isOpenAssignment(value: unknown) {
+  if (!Array.isArray(value)) return value ?? null
+  return value.find((item) => item && typeof item === 'object' && !(item as { unassigned_at?: string | null }).unassigned_at) ?? null
+}
+
+function normalizeTicket(row: any): TicketWithHistory {
+  return {
+    ...row,
+    category: Array.isArray(row.category) ? row.category[0] ?? null : row.category ?? null,
+    creator: Array.isArray(row.creator) ? row.creator[0] ?? null : row.creator ?? null,
+    requester: Array.isArray(row.requester) ? row.requester[0] ?? null : row.requester ?? null,
+    assignment: isOpenAssignment(row.assignment) as TicketWithHistory['assignment'],
+    status_history: Array.isArray(row.status_history) ? row.status_history : [],
+    metadata: row.metadata && typeof row.metadata === 'object' ? row.metadata : {},
   }
 }
 
@@ -44,359 +68,176 @@ export function useTickets() {
   const { user } = useAuth()
   const { toast } = useToast()
 
-  const fetchTickets = useCallback(async (filters?: {
-    assetId?: string
-    status?: string
-    assignedTo?: string
-  }) => {
+  const fetchTickets = useCallback(async (filters?: { assetId?: string; status?: string; assignedTo?: string }) => {
     if (!user?.company_id) {
-      setError('No company associated with user')
+      setTickets([])
       setLoading(false)
+      setError('No company associated with the authenticated user.')
       return
     }
 
     try {
       setLoading(true)
-      let query = supabase
-        .from('tickets')
-        .select(`
-          *,
-          asset:assets(id, name, serial_number),
-          creator:users!tickets_created_by_fkey(id, full_name, email),
-          assignee:users!tickets_assigned_to_fkey(id, full_name, email),
-          department:departments(id, name),
-          status_history:ticket_status_history(
-            id,
-            status,
-            changed_by,
-            created_at,
-            user:users(full_name)
-          )
-        `)
-        .eq('company_id', user.company_id) // CRITICAL: Company filter
+      const result = await fetchSupabasePage<any>('tickets', 0, {
+        pageSize: 250,
+        columns: TICKET_COLUMNS,
+        orderBy: 'created_at',
+        ascending: false,
+        filter: (query) => {
+          let next = query.eq('company_id', user.company_id)
+          if (filters?.status) next = next.eq('status', filters.status)
+          if (filters?.assignedTo) next = next.eq('accepted_by', filters.assignedTo)
+          return next
+        },
+      })
 
+      // assetId is no longer a ticket column. The canonical relationship is
+      // ticket <-> asset through asset_tickets, so apply it separately.
+      let rows = result.data
       if (filters?.assetId) {
-        query = query.eq('asset_id', filters.assetId)
-      }
-      if (filters?.status) {
-        query = query.eq('status', filters.status)
-      }
-      if (filters?.assignedTo) {
-        query = query.eq('assigned_to', filters.assignedTo)
+        const { data: links, error: linkError } = await supabase
+          .from('asset_tickets')
+          .select('ticket_id')
+          .eq('asset_id', filters.assetId)
+        if (linkError) throw linkError
+        const allowed = new Set((links ?? []).map((link: any) => link.ticket_id))
+        rows = rows.filter((row: any) => allowed.has(row.id))
       }
 
-      const { data, error: err } = await query.order('created_at', { ascending: false })
-
-      if (err) throw err
-      setTickets(data || [])
+      setTickets(rows.map(normalizeTicket))
       setError(null)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load tickets'
       setError(message)
-      console.error('Error loading tickets:', err)
-      toast({
-        title: 'Error loading tickets',
-        description: message,
-        variant: 'destructive'
-      })
+      toast({ title: 'Error loading tickets', description: message, variant: 'destructive' })
     } finally {
       setLoading(false)
     }
-  }, [user?.company_id, toast])
+  }, [toast, user?.company_id])
 
-  const createTicket = useCallback(async (ticketData: {
+  const createTicket = useCallback(async (input: {
     title: string
-    description: string
-    photo_url: string
-    priority: 'low' | 'medium' | 'high' | 'urgent'
+    description?: string
+    photo_url?: string | null
+    priority?: TicketPriority
     category?: string
     asset_id?: string
-    assigned_to?: string
-    department_id?: string
   }) => {
-    if (!user?.id || !user?.company_id) {
-      throw new Error('User not authenticated or no company associated')
-    }
+    if (!user?.id || !user.company_id) throw new Error('User is not authenticated or has no company.')
 
-    // Create optimistic ticket
-    const optimisticTicket: TicketWithHistory = {
-      id: 'temp-' + Date.now(),
-      ...ticketData,
-      created_by: user.id,
+    const { data: ticket, error: ticketError } = await supabase.from('tickets').insert({
       company_id: user.company_id,
+      subject: input.title.trim(),
+      description: input.description?.trim() || null,
+      photo_url: input.photo_url || null,
+      priority: input.priority ?? 'medium',
+      channel: 'portal',
+      requester_id: user.id,
+      created_by: user.id,
       status: 'open',
-      created_at: new Date().toISOString(),
+    }).select().single()
+    if (ticketError) throw ticketError
+
+    if (input.asset_id) {
+      const { error } = await supabase.from('asset_tickets').insert({ asset_id: input.asset_id, ticket_id: ticket.id })
+      if (error) throw error
+    }
+
+    await fetchTickets()
+    toast({ title: 'Ticket created', description: 'The ticket was created successfully.' })
+    return ticket
+  }, [fetchTickets, toast, user?.company_id, user?.id])
+
+  const updateTicketStatus = useCallback(async (ticketId: string, newStatus: TicketStatus, note?: string) => {
+    if (!user?.id || !user.company_id) throw new Error('User is not authenticated or has no company.')
+
+    const { data: current, error: currentError } = await supabase.from('tickets')
+      .select('status,resolved_at,closed_at')
+      .eq('id', ticketId).eq('company_id', user.company_id).single()
+    if (currentError) throw currentError
+
+    const now = new Date().toISOString()
+    const patch: Record<string, unknown> = { status: newStatus, updated_at: now }
+    if (newStatus === 'resolved') {
+      patch.resolved_at = now
+      patch.closed_at = null
+    } else if (newStatus === 'closed') {
+      patch.resolved_at = current.resolved_at ?? now
+      patch.closed_at = now
+    } else {
+      patch.resolved_at = null
+      patch.closed_at = null
+    }
+
+    const { error } = await supabase.from('tickets').update(patch).eq('id', ticketId).eq('company_id', user.company_id)
+    if (error) throw error
+
+    const { error: historyError } = await supabase.from('ticket_status_history').insert({
+      ticket_id: ticketId,
+      from_status: current.status,
+      to_status: newStatus,
+      changed_by: user.id,
+      note: note ?? null,
+    })
+    if (historyError) throw historyError
+
+    await fetchTickets()
+    toast({ title: 'Status updated', description: `Ticket status changed to ${newStatus.replace('_', ' ')}.` })
+  }, [fetchTickets, toast, user?.company_id, user?.id])
+
+  const assignTicket = useCallback(async (ticketId: string, assigneeId: string) => {
+    if (!user?.id || !user.company_id) throw new Error('User is not authenticated or has no company.')
+
+    // Close the previous active assignment instead of writing a removed
+    // tickets.assigned_to column.
+    const { error: closeError } = await supabase.from('ticket_assignments')
+      .update({ unassigned_at: new Date().toISOString() })
+      .eq('ticket_id', ticketId).is('unassigned_at', null)
+    if (closeError) throw closeError
+
+    const { error: insertError } = await supabase.from('ticket_assignments').insert({
+      ticket_id: ticketId,
+      assignee_id: assigneeId,
+      assigned_by: user.id,
+    })
+    if (insertError) throw insertError
+
+    const { error: ticketError } = await supabase.from('tickets').update({
+      status: 'in_progress',
+      accepted_by: user.id,
+      accepted_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      creator: {
-        id: user.id,
-        full_name: ((user as any).user_metadata?.full_name as string) || 'Current User',
-        email: user.email || ''
-      }
-    }
+    }).eq('id', ticketId).eq('company_id', user.company_id)
+    if (ticketError) throw ticketError
 
-    try {
-      // Add optimistic ticket
-      setTickets(prev => [optimisticTicket, ...prev])
-
-      const { data, error: err } = await supabase
-        .from('tickets')
-        .insert({
-          ...ticketData,
-          created_by: user.id,
-          company_id: user.company_id, // CRITICAL: Company filter
-          status: 'open'
-        })
-        .select()
-        .single()
-
-      if (err) throw err
-
-      // Log initial status with company_id
-      if (data?.id) {
-        await supabase.from('ticket_status_history').insert({
-          ticket_id: data.id,
-          status: 'open',
-          changed_by: user.id,
-          company_id: user.company_id // CRITICAL: Company filter
-        })
-      }
-
-      // Refresh tickets to get actual data
-      await fetchTickets()
-      toast({
-        title: 'Success',
-        description: 'Ticket created successfully',
-      })
-
-      return data
-    } catch (err) {
-      // Remove optimistic ticket on error
-      setTickets(prev => prev.filter(t => t.id !== optimisticTicket.id))
-      const message = err instanceof Error ? err.message : 'Failed to create ticket'
-      toast({
-        title: 'Error creating ticket',
-        description: message,
-        variant: 'destructive'
-      })
-      throw err
-    }
-  }, [user?.id, user?.company_id, fetchTickets, toast])
-
-  const updateTicketStatus = useCallback(async (ticketId: string, newStatus: TicketStatus) => {
-    if (!user?.id || !user?.company_id) {
-      throw new Error('User not authenticated or no company associated')
-    }
-
-    // Update optimistically
-    setTickets(prev => prev.map(ticket => {
-      if (ticket.id === ticketId) {
-        return {
-          ...ticket,
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        }
-      }
-      return ticket
-    }))
-
-    try {
-      // Update ticket status with company filter
-      const { error: updateErr } = await supabase
-        .from('tickets')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq('id', ticketId)
-        .eq('company_id', user.company_id) // CRITICAL: Company filter
-
-      if (updateErr) throw updateErr
-
-      // Log status change with company_id
-      const { error: historyErr } = await supabase
-        .from('ticket_status_history')
-        .insert({
-          ticket_id: ticketId,
-          status: newStatus,
-          changed_by: user.id,
-          company_id: user.company_id // CRITICAL: Company filter
-        })
-
-      if (historyErr) throw historyErr
-
-      // Refresh to ensure consistency
-      await fetchTickets()
-      toast({
-        title: 'Status updated',
-        description: `Ticket status changed to ${newStatus.replace('_', ' ')}`
-      })
-    } catch (err) {
-      // Revert optimistic update on error
-      await fetchTickets()
-      const message = err instanceof Error ? err.message : 'Failed to update status'
-      toast({
-        title: 'Error updating status',
-        description: message,
-        variant: 'destructive'
-      })
-      throw err
-    }
-  }, [user?.id, user?.company_id, fetchTickets, toast])
-
-  const assignTicket = useCallback(async (ticketId: string, userId: string) => {
-    if (!user?.company_id) {
-      throw new Error('No company associated with user')
-    }
-
-    try {
-      // Update optimistically
-      setTickets(prev => prev.map(ticket => {
-        if (ticket.id === ticketId) {
-          return {
-            ...ticket,
-            assigned_to: userId,
-            status: 'in_progress',
-            updated_at: new Date().toISOString()
-          }
-        }
-        return ticket
-      }))
-
-      const { error: err } = await supabase
-        .from('tickets')
-        .update({ 
-          assigned_to: userId, 
-          status: 'in_progress',
-          accepted_at: new Date().toISOString(),
-          accepted_by: user.id,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', ticketId)
-        .eq('company_id', user.company_id) // CRITICAL: Company filter
-
-      if (err) throw err
-
-      // Log status change to in_progress
-      await supabase.from('ticket_status_history').insert({
-        ticket_id: ticketId,
-        status: 'in_progress',
-        changed_by: user.id,
-        company_id: user.company_id // CRITICAL: Company filter
-      })
-
-      await fetchTickets()
-      toast({
-        title: 'Ticket assigned',
-        description: 'Assignment updated successfully'
-      })
-    } catch (err) {
-      // Revert optimistic update
-      await fetchTickets()
-      const message = err instanceof Error ? err.message : 'Failed to assign ticket'
-      toast({
-        title: 'Error assigning ticket',
-        description: message,
-        variant: 'destructive'
-      })
-      throw err
-    }
-  }, [user?.id, user?.company_id, fetchTickets, toast])
+    await fetchTickets()
+    toast({ title: 'Ticket assigned', description: 'The active assignment was updated.' })
+  }, [fetchTickets, toast, user?.company_id, user?.id])
 
   const deleteTicket = useCallback(async (ticketId: string) => {
-    if (!user?.company_id) {
-      throw new Error('No company associated with user')
-    }
+    if (!user?.company_id) throw new Error('No company associated with the authenticated user.')
 
-    try {
-      // Delete comments first (foreign key constraint)
-      const { error: commentsError } = await supabase
-        .from('ticket_comments')
-        .delete()
-        .eq('ticket_id', ticketId)
-        .eq('company_id', user.company_id) // CRITICAL: Company filter
+    // Child records use FK cascades where defined; delete explicit relationship
+    // rows first for deterministic behaviour.
+    const { error: assetLinkError } = await supabase.from('asset_tickets').delete().eq('ticket_id', ticketId)
+    if (assetLinkError) throw assetLinkError
+    const { error: ticketError } = await supabase.from('tickets').delete().eq('id', ticketId).eq('company_id', user.company_id)
+    if (ticketError) throw ticketError
 
-      if (commentsError) throw commentsError
+    setTickets((previous) => previous.filter((ticket) => ticket.id !== ticketId))
+    toast({ title: 'Ticket deleted', description: 'The ticket was deleted successfully.' })
+  }, [toast, user?.company_id])
 
-      // Delete status history
-      const { error: historyError } = await supabase
-        .from('ticket_status_history')
-        .delete()
-        .eq('ticket_id', ticketId)
-        .eq('company_id', user.company_id) // CRITICAL: Company filter
-
-      if (historyError) throw historyError
-
-      // Delete the ticket
-      const { error: ticketError } = await supabase
-        .from('tickets')
-        .delete()
-        .eq('id', ticketId)
-        .eq('company_id', user.company_id) // CRITICAL: Company filter
-
-      if (ticketError) throw ticketError
-
-      // Update local state
-      setTickets(prev => prev.filter(t => t.id !== ticketId))
-
-      toast({
-        title: 'Success',
-        description: 'Ticket deleted successfully'
-      })
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete ticket'
-      toast({
-        title: 'Error deleting ticket',
-        description: message,
-        variant: 'destructive'
-      })
-      throw err
-    }
-  }, [user?.company_id, toast])
-
-  // Set up real-time subscriptions with company filtering
   useEffect(() => {
     if (!user?.company_id) return
+    void fetchTickets()
 
-    // Create subscription channels with company filter
-    const ticketChanges = supabase
-      .channel('ticket-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'tickets',
-        filter: `company_id=eq.${user.company_id}` // CRITICAL: Company filter
-      }, () => {
-        fetchTickets()
-      })
+    const channel = supabase.channel(`tickets:${user.company_id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets', filter: `company_id=eq.${user.company_id}` }, () => void fetchTickets())
       .subscribe()
 
-    const historyChanges = supabase
-      .channel('history-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'ticket_status_history',
-        filter: `company_id=eq.${user.company_id}` // CRITICAL: Company filter
-      }, () => {
-        fetchTickets()
-      })
-      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+  }, [fetchTickets, user?.company_id])
 
-    // Initial fetch
-    fetchTickets()
-
-    // Cleanup subscriptions
-    return () => {
-      supabase.removeChannel(ticketChanges)
-      supabase.removeChannel(historyChanges)
-    }
-  }, [user?.company_id, fetchTickets])
-
-  return {
-    tickets,
-    loading,
-    error,
-    fetchTickets,
-    createTicket,
-    updateTicketStatus,
-    assignTicket,
-    deleteTicket
-  }
+  return { tickets, loading, error, fetchTickets, createTicket, updateTicketStatus, assignTicket, deleteTicket }
 }

@@ -1,0 +1,5 @@
+import { adminClient, body, errorResponse, json, requireUser, roleCheck } from "../_shared.ts";
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-company-id" } });
+  try { const { user, supabase } = await requireUser(req); const input = await body(req); const companyId = String(input.company_id ?? req.headers.get("x-company-id") ?? ""); if (!companyId) throw new Error("company_id is required"); await roleCheck(supabase,user.id,companyId,["admin","hr","manager"]); const email=String(input.email??"").trim().toLowerCase(); if(!email) throw new Error("email is required"); const admin=adminClient(); const {data:invite,error}=await admin.auth.admin.inviteUserByEmail(email,{data:{company_id:companyId,role:input.role??"employee",full_name:input.full_name??""}}); if(error) throw error; return json({ok:true,user_id:invite.user?.id??null,email}); } catch(e){return errorResponse(e)}
+});

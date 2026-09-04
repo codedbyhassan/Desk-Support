@@ -1,44 +1,25 @@
-// src/context/NotificationContext.tsx
-import { createContext, useContext, useState, useEffect, ReactNode, useRef, useMemo, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../lib/auth'
-import useSound from 'use-sound'
-import { Toast } from '@/components/ToastNotification'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/lib/auth'
+import { fetchSupabasePage } from '@/lib/dataAccess'
+import type { Toast } from '@/components/ToastNotification'
 
-type Notification = {
+export interface AppNotification {
   id: string
+  company_id: string
+  recipient_id: string
   title: string
-  message: string
+  body: string
   type: string
-  read: boolean
+  entity_type: string | null
+  entity_id: string | null
+  action_url: string | null
+  metadata: Record<string, unknown>
+  read_at: string | null
   created_at: string
-  link?: string
-  entity_id?: string
-  entity_type?: string
-  sender_name?: string
-  sender_avatar?: string
 }
-
-// ✅ Helper function to generate navigation links from notification data
-const generateNotificationLink = (entityType?: string, entityId?: string): string | undefined => {
-  if (!entityType || !entityId) return undefined
-  
-  switch (entityType) {
-    case 'ticket':
-      return `/app/tickets/${entityId}`
-    case 'team':
-      return `/app/teams/${entityId}`
-    case 'asset':
-      return `/app/assets/${entityId}`
-    case 'department':
-      return `/app/departments/${entityId}`
-    default:
-      return undefined
-  }
-}
-
-type NotificationContextType = {
-  notifications: Notification[]
+interface NotificationContextType {
+  notifications: AppNotification[]
   unreadCount: number
   loading: boolean
   toasts: Toast[]
@@ -52,721 +33,110 @@ type NotificationContextType = {
   dismissToast: (id: string) => void
   fetchError: string | null
 }
-
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
 
+const NOTIFICATION_COLUMNS = 'id,company_id,recipient_id,title,body,type,entity_type,entity_id,action_url,metadata,read_at,created_at'
+function routeFor(n: AppNotification) {
+  if (n.action_url) return n.action_url
+  if (!n.entity_type || !n.entity_id) return undefined
+  const map: Record<string, string> = { ticket: '/app/tickets', team: '/app/teams', asset: '/app/assets', department: '/app/departments' }
+  return map[n.entity_type] ? `${map[n.entity_type]}/${n.entity_id}` : undefined
+}
+function isCurrentEntity(path: string, n: AppNotification) {
+  const route = routeFor(n)
+  return !!route && (path === route || path.startsWith(`${route}/`))
+}
+
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const { user, company } = useAuth() // ✅ Get user from AuthContext instead of making separate auth calls
-  const [currentPath, setCurrentPath] = useState(window.location.pathname)
-  const [notifications, setNotifications] = useState<Notification[]>([])
+  const { user } = useAuth()
+  const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [toasts, setToasts] = useState<Toast[]>([])
-  const [loading, setLoading] = useState(true)
-  const [userId, setUserId] = useState<string | null>(null)
-  const [companyId, setCompanyId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
-  const initialLoadCompleteRef = useRef(false)
-  const earlyNotificationsBufferRef = useRef<Notification[]>([])
-  const processedMessageIdsRef = useRef<Set<string>>(new Set())
-  const processedNotificationIdsRef = useRef<Set<string>>(new Set())
-  const audioContextInitializedRef = useRef(false)
+  const [currentPath, setCurrentPath] = useState(() => window.location.hash.replace(/^#/, '') || window.location.pathname)
+  const loaded = useRef(false)
+  const seen = useRef(new Set<string>())
 
-  // Load notification sound with lazy initialization
-  const [playNotification] = useSound('/sounds/notification.mp3', {
-    volume: 0.5,
-    // Disable autoplay - will be triggered only after user gesture
-  })
+  const refreshNotifications = useCallback(async () => {
+    if (!user?.id || !user.company_id) {
+      setNotifications([]); setLoading(false); return
+    }
+    setLoading(true); setFetchError(null)
+    try {
+      const page = await fetchSupabasePage<AppNotification>('notifications', 0, {
+        pageSize: 250,
+        columns: NOTIFICATION_COLUMNS,
+        orderBy: 'created_at',
+        ascending: false,
+        filter: (query) => query.eq('company_id', user.company_id).eq('recipient_id', user.id),
+      })
+      const rows = page.data.map((row) => ({ ...row, metadata: row.metadata && typeof row.metadata === 'object' ? row.metadata : {} }))
+      setNotifications(rows); seen.current = new Set(rows.map((n) => n.id)); loaded.current = true
+    } catch (error) {
+      setFetchError(error instanceof Error ? error.message : 'Failed to load notifications.')
+      setNotifications([])
+    } finally { setLoading(false) }
+  }, [user?.company_id, user?.id])
 
-  // Initialize AudioContext on first user interaction
   useEffect(() => {
-    const initializeAudioContext = () => {
-      if (!audioContextInitializedRef.current) {
-        try {
-          // Attempt to play a silent sound to wake up the AudioContext
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-          if (audioContext.state === 'suspended') {
-            audioContext.resume()
-          }
-          audioContextInitializedRef.current = true
-          console.log('[NotificationContext] AudioContext initialized')
-        } catch (error) {
-          console.debug('[NotificationContext] AudioContext initialization skipped:', error)
-        }
-      }
-      // Remove listeners after first interaction
-      document.removeEventListener('click', initializeAudioContext)
-      document.removeEventListener('touchstart', initializeAudioContext)
-      document.removeEventListener('keydown', initializeAudioContext)
-    }
-
-    // Add listeners for user gestures
-    document.addEventListener('click', initializeAudioContext, { once: true })
-    document.addEventListener('touchstart', initializeAudioContext, { once: true })
-    document.addEventListener('keydown', initializeAudioContext, { once: true })
-
-    return () => {
-      document.removeEventListener('click', initializeAudioContext)
-      document.removeEventListener('touchstart', initializeAudioContext)
-      document.removeEventListener('keydown', initializeAudioContext)
-    }
+    const onRoute = () => setCurrentPath(window.location.hash.replace(/^#/, '') || window.location.pathname)
+    window.addEventListener('hashchange', onRoute); window.addEventListener('popstate', onRoute)
+    return () => { window.removeEventListener('hashchange', onRoute); window.removeEventListener('popstate', onRoute) }
   }, [])
 
-  // ✅ Get user data from AuthContext (no race condition with auth loading)
   useEffect(() => {
-    console.log('📍 NotificationContext: Auth state changed', {
-      hasUser: !!user,
-      userId: user?.id,
-      hasCompany: !!company,
-      companyId: company?.id
-    })
-    
-    if (user?.id) {
-      setUserId(user.id)
-      setCompanyId(company?.id || null)
-    } else {
-      setUserId(null)
-      setCompanyId(null)
-    }
-  }, [user, company])
-
-  // ✅ Check if user is currently viewing the entity
-  // Use window.location.hash directly since app uses HashRouter
-  const shouldShowNotification = useCallback((notification: Notification): boolean => {
-    // Get current path from hash (HashRouter stores route in hash)
-    // Remove # from hash to get the actual path
-    const hashPath = window.location.hash.replace('#', '') || window.location.pathname
-    const pathname = hashPath || currentPath // Fallback to state if hash is empty
-    const entityType = notification.entity_type
-    const entityId = notification.entity_id
-
-    console.log('🔍 Checking shouldShowNotification:', {
-      pathname,
-      hashPath,
-      currentPathState: currentPath,
-      windowHash: window.location.hash,
-      windowPathname: window.location.pathname,
-      entityType,
-      entityId
-    })
-
-    // If no entity info, always show
-    if (!entityType || !entityId) {
-      console.log('✅ No entity info, showing notification')
-      return true
-    }
-
-    switch (entityType) {
-      case 'ticket':
-        if (pathname === `/app/tickets/${entityId}` || pathname.startsWith(`/app/tickets/${entityId}/`)) {
-          console.log('⏸️ User is viewing ticket, skipping notification')
-          return false
-        }
-        break
-      case 'team':
-        // Don't show if user is in the team chat (route is /app/teams/:teamId)
-        const teamPath = `/app/teams/${entityId}`
-        if (pathname === teamPath || pathname.startsWith(`${teamPath}/`)) {
-          console.log('⏸️ User is viewing team chat, skipping notification', {
-            pathname,
-            teamPath,
-            matches: pathname === teamPath || pathname.startsWith(`${teamPath}/`)
-          })
-          return false
-        }
-        break
-      case 'asset':
-        if (pathname === `/app/assets/${entityId}` || pathname.startsWith(`/app/assets/${entityId}/`)) {
-          console.log('⏸️ User is viewing asset, skipping notification')
-          return false
-        }
-        break
-      case 'department':
-        if (pathname === `/app/departments/${entityId}` || pathname.startsWith(`/app/departments/${entityId}/`)) {
-          console.log('⏸️ User is viewing department, skipping notification')
-          return false
-        }
-        break
-    }
-
-    console.log('✅ User is not viewing entity, showing notification')
-    return true
-  }, [currentPath])
-
-  // ✅ Create Instagram-style toast
-  const createToast = (notification: Notification): Toast => {
-    const typeMap: Record<string, 'info' | 'success' | 'warning' | 'error'> = {
-      ticket_assigned: 'info',
-      ticket_commented: 'success',
-      ticket_status_changed: 'warning',
-      team_message: 'info',
-      asset_assigned: 'info',
-      asset_updated: 'warning',
-      department_ticket: 'info',
-    }
-
-    // Generate link using the helper function
-    const link = notification.link || generateNotificationLink(notification.entity_type, notification.entity_id)
-
-    return {
-      id: notification.id,
-      title: notification.title,
-      message: notification.message,
-      type: typeMap[notification.type] || 'info',
-      notificationType: notification.type,
-      onClick: link ? () => {
-        // Use window.location for navigation to ensure full page reload if needed
-        window.location.href = link!
-      } : undefined,
-      duration: 5000
-    }
-  }
-
-  // ✅ Show toast with sound - memoized to prevent infinite loops
-  const showToast = useCallback((notification: Notification) => {
-    if (!shouldShowNotification(notification)) {
-      console.log('⏸️ Skipping notification - user is on that page')
-      return
-    }
-
-    // Prevent duplicate toasts
-    setToasts(prev => {
-      // Check if toast with same ID already exists
-      if (prev.some(t => t.id === notification.id)) {
-        return prev
-      }
-      console.log('🔔 Showing notification toast:', notification.title)
-      const toast = createToast(notification)
-      return [...prev, toast]
-    })
-    
-    try {
-      playNotification()
-    } catch (error) {
-      console.error('Failed to play notification sound:', error)
-    }
-  }, [shouldShowNotification, playNotification])
-
-  // Refs to store latest function versions for use in useEffect without causing re-renders
-  const shouldShowNotificationRef = useRef(shouldShowNotification)
-  const showToastRef = useRef(showToast)
-  
-  // ✅ Keep refs updated - use useLayoutEffect to run synchronously before paint
-  useEffect(() => {
-    shouldShowNotificationRef.current = shouldShowNotification
-    showToastRef.current = showToast
-  })
-  
-  // Remove the synchronous ref updates that were causing re-renders
-  // shouldShowNotificationRef.current = shouldShowNotification
-  // showToastRef.current = showToast
-
-  const fetchNotifications = async (): Promise<void> => {
-    try {
-      if (!userId) {
-        setNotifications([])
-        setLoading(false)
-        setFetchError(null)
-        return
-      }
-
-      console.log('📥 Fetching notifications for userId:', userId)
-      setFetchError(null)
-
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('❌ Error fetching notifications:', error)
-        const errorMsg = error.message?.includes('permission') || error.message?.includes('row-level security')
-          ? 'Permission Error: Contact support if issue persists'
-          : `Failed to load notifications: ${error.message}`
-        setFetchError(errorMsg)
-        setNotifications([])
-      } else {
-        console.log('✅ Fetched notifications:', data?.length || 0)
-        setFetchError(null)
-        const mappedData = (data || []).map(n => ({
-          ...n,
-          link: n.link || undefined,
-          entity_id: n.entity_id || undefined,
-          entity_type: n.entity_type || undefined,
-        }))
-        setNotifications(mappedData)
-        if (data && data.length > 0) {
-          const ids = new Set(data.map(n => n.id))
-          processedNotificationIdsRef.current = ids
-        } else {
-          processedNotificationIdsRef.current = new Set()
-        }
-      }
-    } catch (error) {
-      console.error('❌ Exception fetching notifications:', error)
-      setFetchError('Network Error: Check your connection and try again')
-      setNotifications([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ✅ Real-time subscriptions
-  useEffect(() => {
-    console.log('🔌 Notification subscriptions effect triggered', { userId, companyId })
-    
-    if (!userId || !companyId) {
-      // Reset state when user/company is not available
-      setNotifications([])
-      setToasts([])
-      processedNotificationIdsRef.current = new Set()
-      processedMessageIdsRef.current = new Set()
-      initialLoadCompleteRef.current = false
-      setLoading(false) // ✅ Set loading to false when no user
-      console.log('⏸️ No userId or companyId, skipping subscriptions')
-      return
-    }
-
-    console.log('🚀 Setting up notification subscriptions for userId:', userId, 'companyId:', companyId)
-
-    // Reset state when userId/companyId changes (e.g., on refresh or login)
-    processedNotificationIdsRef.current = new Set()
-    processedMessageIdsRef.current = new Set()
-    initialLoadCompleteRef.current = false
-    setToasts([]) // Clear any existing toasts
-    setLoading(true) // ✅ Set loading to true when starting to fetch
-
-    const setupSubscriptions = async () => {
-      try {
-        // Add timeout fallback to prevent infinite loading
-        const timeoutId = setTimeout(() => {
-          console.warn('⚠️ Notification fetch timeout - setting loading to false')
-          setLoading(false)
-        }, 10000) // 10 second timeout
-
-        await fetchNotifications()
-        
-        clearTimeout(timeoutId)
-        initialLoadCompleteRef.current = true
-        console.log('✅ Initial load complete, subscriptions ready')
-        
-        // ✅ Process any notifications that arrived during initial load
-        if (earlyNotificationsBufferRef.current.length > 0) {
-          console.log('📦 Processing buffered early notifications:', earlyNotificationsBufferRef.current.length)
-          const bufferedNotifications = [...earlyNotificationsBufferRef.current]
-          earlyNotificationsBufferRef.current = []
-          
-          // Add buffered notifications to state
-          setNotifications(prev => {
-            const newNotifications = [...bufferedNotifications, ...prev]
-            const uniqueIds = new Set<string>()
-            return newNotifications.filter(n => {
-              if (uniqueIds.has(n.id)) return false
-              uniqueIds.add(n.id)
-              return true
-            })
-          })
-        }
-      } catch (error) {
-        console.error('❌ Error setting up subscriptions:', error)
-        setLoading(false) // ✅ Ensure loading is set to false on error
-      }
-    }
-
-    setupSubscriptions()
-
-    // Subscribe to notifications table
-    const notificationsChannel = supabase
-      .channel(`user-notifications-${userId}`, {
-        config: {
-          broadcast: { self: false }
-        }
+    loaded.current = false; seen.current.clear(); setToasts([]); void refreshNotifications()
+    if (!user?.id || !user.company_id) return
+    const channel = supabase.channel(`notifications:${user.company_id}:${user.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}` }, (payload) => {
+        const n = payload.new as AppNotification
+        if (n.company_id !== user.company_id || seen.current.has(n.id)) return
+        seen.current.add(n.id); setNotifications((prev) => [n, ...prev])
+        if (!loaded.current || isCurrentEntity(currentPath, n)) return
+        const route = routeFor(n)
+        setToasts((prev) => prev.some((t) => t.id === n.id) ? prev : [...prev, { id: n.id, title: n.title, message: n.body, type: n.type.includes('error') ? 'error' : n.type.includes('success') ? 'success' : n.type.includes('status') ? 'warning' : 'info', notificationType: n.type, onClick: route ? () => { window.location.hash = route } : undefined, duration: 5000 }])
       })
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`
-        },
-        (payload) => {
-          console.log('📬 New notification received:', payload)
-          const newNotification = payload.new as Notification
-          
-          // Prevent duplicate notifications - use ref for synchronous check
-          if (processedNotificationIdsRef.current.has(newNotification.id)) {
-            console.log('⏭️ Skipping duplicate notification:', newNotification.id)
-            return
-          }
-          
-          processedNotificationIdsRef.current.add(newNotification.id)
-          
-          // ✅ Buffer notifications that arrive before initial load is complete
-          if (!initialLoadCompleteRef.current) {
-            console.log('⏸️ Buffering early notification (initial load not complete):', newNotification.id)
-            earlyNotificationsBufferRef.current.push(newNotification)
-            return
-          }
-          
-          // Only add notification if user is not currently viewing that entity
-          console.log('🔍 Checking if should show notification, ref exists:', !!shouldShowNotificationRef.current)
-          const shouldShow = shouldShowNotificationRef.current ? shouldShowNotificationRef.current(newNotification) : true
-          console.log('🔍 Should show result:', shouldShow)
-          
-          if (shouldShow) {
-            setNotifications(prev => {
-              // Double check in state as well
-              if (prev.some(n => n.id === newNotification.id)) {
-                return prev
-              }
-              return [newNotification, ...prev]
-            })
-            
-            // Show toast only for real-time notifications (not initial load)
-            if (initialLoadCompleteRef.current) {
-              console.log('🔔 Showing toast, ref exists:', !!showToastRef.current)
-              if (showToastRef.current) {
-                showToastRef.current(newNotification)
-              } else {
-                console.error('❌ showToastRef.current is null!')
-              }
-            } else {
-              console.log('⏸️ Initial load not complete, skipping toast')
-            }
-          } else {
-            console.log('⏸️ Skipping notification - user is viewing that entity')
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`
-        },
-        (payload) => {
-          setNotifications(prev =>
-            prev.map(n => n.id === payload.new.id ? payload.new as Notification : n)
-          )
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`
-        },
-        (payload) => {
-          setNotifications(prev =>
-            prev.filter(n => n.id !== payload.old.id)
-          )
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Notifications channel subscription status:', status)
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to notifications channel')
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Error subscribing to notifications channel')
-        }
-      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}` }, (payload) => {
+        const n = payload.new as AppNotification
+        if (n.company_id !== user.company_id) return
+        setNotifications((prev) => prev.map((item) => item.id === n.id ? n : item))
+      }).subscribe()
+    return () => { void supabase.removeChannel(channel) }
+  }, [currentPath, refreshNotifications, user?.company_id, user?.id])
 
-    // Subscribe to team_messages for faster team chat notifications
-    // IMPORTANT: This subscription respects RLS policies, so all users in the company
-    // should be able to receive events if they have SELECT permission on team_messages
-    const teamMessagesChannel = supabase
-      .channel(`team-messages-notifications-${userId}`, {
-        config: {
-          broadcast: { self: false }
-        }
-      })
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'team_messages',
-          filter: `company_id=eq.${companyId}`
-        },
-        async (payload) => {
-          console.log('📨 Team message received (userId:', userId, 'companyId:', companyId, '):', payload)
-          const message = payload.new as any
-          
-          // Skip if this is our own message
-          if (message.sender_id === userId) {
-            console.log('⏭️ Skipping own message')
-            return
-          }
+  const markAsRead = useCallback(async (id: string) => {
+    if (!user?.id || !user.company_id) return
+    const now = new Date().toISOString()
+    const { error } = await supabase.from('notifications').update({ read_at: now }).eq('id', id).eq('company_id', user.company_id).eq('recipient_id', user.id)
+    if (error) throw error
+    setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read_at: now } : n))
+  }, [user?.company_id, user?.id])
 
-          // Prevent duplicate processing - use ref for synchronous check
-          if (processedMessageIdsRef.current.has(message.id)) {
-            console.log('⏭️ Skipping duplicate message:', message.id)
-            return
-          }
-          
-          processedMessageIdsRef.current.add(message.id)
+  const markAllAsRead = useCallback(async () => {
+    if (!user?.id || !user.company_id) return
+    const now = new Date().toISOString()
+    const { error } = await supabase.from('notifications').update({ read_at: now }).eq('company_id', user.company_id).eq('recipient_id', user.id).is('read_at', null)
+    if (error) throw error
+    setNotifications((prev) => prev.map((n) => n.read_at ? n : { ...n, read_at: now }))
+  }, [user?.company_id, user?.id])
 
-          try {
-            console.log('🔍 Checking team membership for team:', message.team_id, 'userId:', userId)
-            
-            // Skip if no team_id (safety check)
-            if (!message.team_id) {
-              console.log('⏭️ No team_id in message')
-              return
-            }
+  const deleteNotification = useCallback(async (id: string) => {
+    if (!user?.id || !user.company_id) return
+    const { error } = await supabase.from('notifications').delete().eq('id', id).eq('company_id', user.company_id).eq('recipient_id', user.id)
+    if (error) throw error
+    setNotifications((prev) => prev.filter((n) => n.id !== id)); setToasts((prev) => prev.filter((t) => t.id !== id))
+  }, [user?.company_id, user?.id])
 
-            // Get sender and team info in parallel (no RLS issues)
-            const [senderResult, teamResult] = await Promise.all([
-              (async () => {
-                try {
-                  const result = await supabase
-                    .from('users')
-                    .select('full_name, email')
-                    .eq('id', message.sender_id)
-                    .single()
-                  return result
-                } catch {
-                  return { data: null }
-                }
-              })(),
-              (async () => {
-                try {
-                  const result = await supabase
-                    .from('teams')
-                    .select('id, name')
-                    .eq('id', message.team_id)
-                    .single()
-                  return result
-                } catch {
-                  return { data: null }
-                }
-              })(),
-            ])
-            
-            const { data: senderData } = senderResult
-            const { data: teamData } = teamResult
+  const deleteAllRead = useCallback(async () => {
+    if (!user?.id || !user.company_id) return
+    const { error } = await supabase.from('notifications').delete().eq('company_id', user.company_id).eq('recipient_id', user.id).not('read_at', 'is', null)
+    if (error) throw error
+    setNotifications((prev) => prev.filter((n) => !n.read_at))
+  }, [user?.company_id, user?.id])
 
-            // Only proceed if we have team data (means user can see it via RLS on teams table)
-            if (!teamData) {
-              console.log('⏭️ User cannot access this team')
-              return
-            }
+  const dismissToast = useCallback((id: string) => setToasts((prev) => prev.filter((t) => t.id !== id)), [])
+  const unreadCount = useMemo(() => notifications.reduce((count, n) => count + (n.read_at ? 0 : 1), 0), [notifications])
 
-            console.log('✅ User can access team, creating notification')
-
-            // Create notification immediately (don't wait for database trigger)
-            const notification: Notification = {
-              id: `temp-${message.id}-${Date.now()}`,
-              title: `New message in ${teamData.name || 'team'}`,
-              message: `${senderData?.full_name || 'Someone'}: ${message.content?.substring(0, 50) || 'Sent a message'}`,
-              type: 'team_message',
-              read: false,
-              created_at: new Date().toISOString(),
-              link: `/app/teams/${message.team_id}`,
-              entity_id: message.team_id,
-              entity_type: 'team',
-              sender_name: senderData?.full_name,
-            }
-
-            console.log('🔔 Creating notification:', notification.title)
-
-            // Only add notification if user is not currently viewing that entity
-            console.log('🔍 Checking if should show notification (team), ref exists:', !!shouldShowNotificationRef.current)
-            const shouldShow = shouldShowNotificationRef.current ? shouldShowNotificationRef.current(notification) : true
-            console.log('🔍 shouldShowNotification result:', shouldShow)
-            
-            if (shouldShow) {
-              // Add to notifications immediately - check for duplicates in state
-              setNotifications(prev => {
-                // Check for duplicate within 2 seconds for same team
-                const recentDuplicate = prev.some(n => 
-                  n.entity_id === message.team_id && 
-                  n.type === 'team_message' && 
-                  Math.abs(new Date(n.created_at).getTime() - new Date(notification.created_at).getTime()) < 2000
-                )
-                
-                if (recentDuplicate) {
-                  console.log('⏭️ Duplicate notification prevented')
-                  return prev
-                }
-                console.log('✅ Adding notification to state')
-                return [notification, ...prev]
-              })
-
-              // Show toast immediately
-              console.log('📬 Initial load complete?', initialLoadCompleteRef.current)
-              if (initialLoadCompleteRef.current) {
-                console.log('🔔 Showing toast notification, ref exists:', !!showToastRef.current)
-                if (showToastRef.current) {
-                  showToastRef.current(notification)
-                } else {
-                  console.error('❌ showToastRef.current is null!')
-                }
-              } else {
-                console.log('⏸️ Skipping toast - initial load not complete, will show after load')
-                // Queue the toast to show after initial load
-                setTimeout(() => {
-                  if (initialLoadCompleteRef.current && shouldShowNotificationRef.current && shouldShowNotificationRef.current(notification)) {
-                    console.log('🔔 Showing queued toast notification')
-                    if (showToastRef.current) {
-                      showToastRef.current(notification)
-                    } else {
-                      console.error('❌ showToastRef.current is null in timeout!')
-                    }
-                  }
-                }, 1000)
-              }
-            } else {
-              console.log('⏸️ Skipping notification - user is viewing that team chat')
-            }
-          } catch (error) {
-            console.error('❌ Error processing team message notification:', error)
-            console.error('Error details:', {
-              message: error instanceof Error ? error.message : String(error),
-              stack: error instanceof Error ? error.stack : undefined
-            })
-          }
-        }
-      )
-      .subscribe((status, err) => {
-        console.log('📡 Team messages channel subscription status:', status, 'userId:', userId)
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to team messages channel for userId:', userId)
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Error subscribing to team messages channel:', err)
-        } else if (status === 'TIMED_OUT') {
-          console.warn('⚠️ Team messages channel subscription timed out for userId:', userId)
-        } else if (status === 'CLOSED') {
-          console.warn('⚠️ Team messages channel closed for userId:', userId)
-        } else {
-          console.warn('⚠️ Team messages channel status:', status, 'for userId:', userId)
-        }
-      })
-
-    return () => {
-      console.log('🧹 Cleaning up subscriptions for userId:', userId)
-      supabase.removeChannel(notificationsChannel)
-      supabase.removeChannel(teamMessagesChannel)
-    }
-  }, [userId, companyId])
-
-  const markAsRead = async (id: string) => {
-    try {
-      if (!userId) return
-      
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true, read_at: new Date().toISOString() })
-        .eq('id', id)
-        .eq('user_id', userId)
-
-      if (!error) {
-        setNotifications(prev =>
-          prev.map(n => n.id === id ? { ...n, read: true } : n)
-        )
-      }
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error)
-    }
-  }
-
-  const markAllAsRead = async () => {
-    try {
-      if (!userId) return
-
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true, read_at: new Date().toISOString() })
-        .eq('user_id', userId)
-        .eq('read', false)
-
-      if (!error) {
-        setNotifications(prev =>
-          prev.map(n => ({ ...n, read: true }))
-        )
-      }
-    } catch (error) {
-      console.error('Failed to mark all as read:', error)
-    }
-  }
-
-  const deleteNotification = async (id: string) => {
-    try {
-      if (!userId) return
-      
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', userId)
-
-      if (!error) {
-        setNotifications(prev => prev.filter(n => n.id !== id))
-      }
-    } catch (error) {
-      console.error('Failed to delete notification:', error)
-    }
-  }
-
-  const deleteAllRead = async () => {
-    try {
-      if (!userId) return
-
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('user_id', userId)
-        .eq('read', true)
-
-      if (!error) {
-        setNotifications(prev => prev.filter(n => !n.read))
-      }
-    } catch (error) {
-      console.error('Failed to delete read notifications:', error)
-    }
-  }
-
-  const dismissToast = (id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id))
-  }
-
-  // Calculate unread count - only count notifications that should be shown
-  // This recalculates whenever currentPath or notifications change
-  const unreadCount = useMemo(() => {
-    return notifications.filter(n => !n.read && shouldShowNotification(n)).length
-  }, [notifications, shouldShowNotification])
-
-  return (
-    <NotificationContext.Provider
-      value={{
-        notifications,
-        unreadCount,
-        loading,
-        toasts,
-        currentPath,
-        setCurrentPath,
-        markAsRead,
-        markAllAsRead,
-        deleteNotification,
-        deleteAllRead,
-        refreshNotifications: fetchNotifications,
-        dismissToast,
-        fetchError,
-      }}
-    >
-      {children}
-    </NotificationContext.Provider>
-  )
+  return <NotificationContext.Provider value={{ notifications, unreadCount, loading, toasts, currentPath, setCurrentPath, markAsRead, markAllAsRead, deleteNotification, deleteAllRead, refreshNotifications, dismissToast, fetchError }}>{children}</NotificationContext.Provider>
 }
-
-export function useNotifications() {
-  const context = useContext(NotificationContext)
-  if (context === undefined) {
-    throw new Error('useNotifications must be used within a NotificationProvider')
-  }
-  return context
-}
+export function useNotifications() { const value = useContext(NotificationContext); if (!value) throw new Error('useNotifications must be used within NotificationProvider'); return value }
