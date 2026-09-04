@@ -1,4 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
+import type { Asset, Ticket, User } from '@/types/database'
+
+export type { Asset, User }
+export type Tickets = Ticket
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
