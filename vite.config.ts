@@ -18,9 +18,7 @@ export default defineConfig({
     host: '0.0.0.0',
     open: true,
     hmr: {
-      protocol: 'ws',
-      host: 'localhost',
-      port: 4000,
+      clientPort: 4000,
     },
   },
   preview: {
