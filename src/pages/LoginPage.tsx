@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
-import { ArrowRight, BarChart3, Building2, Check, Lock, Mail, Shield, User } from 'lucide-react'
+import { ArrowRight, BarChart3, Building2, Check, Lock, Mail, User } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface LoginPageProps { defaultToSignUp?: boolean }
@@ -18,7 +18,7 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
   const [fullName, setFullName] = useState('')
   const [companyName, setCompanyName] = useState('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     const trimmedEmail = email.trim().toLowerCase()
     const trimmedPassword = password
