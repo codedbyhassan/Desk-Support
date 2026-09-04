@@ -43,15 +43,16 @@ export default function LoginPage({ defaultToSignUp = false }: LoginPageProps) {
         toast.success('Logged in successfully!')
         setTimeout(() => navigate('/app/dashboard', { replace: true }), 100)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Auth error:', error)
+      const errorMessage = error instanceof Error ? error.message : ''
       let message = isSignUp ? 'Failed to create account' : 'Failed to login'
-      if (error.message?.includes('Invalid login credentials')) message = 'Invalid email or password. Please check your credentials.'
-      else if (error.message?.includes('Email not confirmed')) message = 'Please confirm your email before logging in.'
-      else if (error.message?.toLowerCase().includes('already registered')) message = 'An account with this email already exists.'
-      else if (error.message?.toLowerCase().includes('timeout')) message = 'Connection timeout. Please try again.'
-      else if (error.message?.toLowerCase().includes('fetch')) message = 'Network error. Please check your connection.'
-      else if (error.message) message = error.message
+      if (errorMessage.includes('Invalid login credentials')) message = 'Invalid email or password. Please check your credentials.'
+      else if (errorMessage.includes('Email not confirmed')) message = 'Please confirm your email before logging in.'
+      else if (errorMessage.toLowerCase().includes('already registered')) message = 'An account with this email already exists.'
+      else if (errorMessage.toLowerCase().includes('timeout')) message = 'Connection timeout. Please try again.'
+      else if (errorMessage.toLowerCase().includes('fetch')) message = 'Network error. Please check your connection.'
+      else if (errorMessage) message = errorMessage
       toast.error(message, { duration: 5000 })
     } finally { setLoading(false) }
   }
