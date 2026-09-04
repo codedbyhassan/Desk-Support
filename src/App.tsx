@@ -63,7 +63,7 @@ function AppRoutes() {
     <Route path="/app/tickets/:id" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
 
     <Route path="/app/assets" element={<ProtectedRoute><AssetsPage /></ProtectedRoute>} />
-    <Route path="/app/assets/new" element={<ProtectedRoute><AssetsPage newAsset /></ProtectedRoute>} />
+    <Route path="/app/assets/new" element={<ProtectedRoute><AssetsPage /></ProtectedRoute>} />
     <Route path="/app/assets/:id" element={<ProtectedRoute><AssetDetailPage /></ProtectedRoute>} />
 
     <Route path="/app/departments" element={<ProtectedRoute><DepartmentsPage /></ProtectedRoute>} />
