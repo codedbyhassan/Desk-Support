@@ -58,11 +58,11 @@ export default function Layout({ children }: LayoutProps) {
   const navItems = allNavItems.filter(item => !(item.adminOnly && user?.role !== 'admin') && !(item.adminOrHR && user?.role !== 'admin' && user?.role !== 'hr'))
 
   return <DashboardTabProvider>
-    <div className="min-h-screen bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
+    <div className="min-h-screen bg-background text-foreground">
       <Sidebar navItems={navItems} primaryColor={primaryColor} />
       <Header navItems={navItems} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} primaryColor={primaryColor} />
-      <main className="lg:pl-[248px] pt-16 lg:pt-[72px] pb-24 lg:pb-10 min-h-screen">
-        <div className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <main className="min-h-[calc(100vh-72px)] lg:ml-[248px] pb-24 lg:pb-10">
+        <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           {children}
         </div>
       </main>
