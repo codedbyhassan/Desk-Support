@@ -1,57 +1,32 @@
 import { useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import { useAuth } from '../lib/auth'
+import { useNavigate } from 'react-router-dom'
+import { Activity, ArrowRight, BarChart3, Bell, Building2, CheckCircle2, Clock3, FolderOpen, Package, Plus, Ticket, Users } from 'lucide-react'
+import { useAuth } from '@/lib/auth'
+import { useAnalytics } from '@/hooks/useAnalytics'
+import { getExactCompanyCounts, type ExactCompanyCounts } from '@/lib/dataAccess'
 import Loader from '@/components/Loader'
-import AdminDashboard from './dashboard/AdminDashboard'
-import EmployeeDashboard from './dashboard/EmployeeDashboard'
-import ManagerDashboard from './dashboard/ManagerDashboard'
-import HRDashboard from './dashboard/HRDashboard'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+
+const EMPTY_COUNTS: ExactCompanyCounts = { users_total:0, users_unique:0, departments_total:0, teams_total:0, ticket_categories_total:0, tickets_total:0, tickets_open:0, tickets_in_progress:0, tickets_pending:0, tickets_resolved:0, tickets_closed:0, tickets_unresolved:0, tickets_overdue:0, assets_total:0, asset_assignments_active:0, ticket_assignments_active:0, ticket_comments_total:0, ticket_attachments_total:0, workspace_folders_total:0, workspace_files_total:0, notifications_unread:0, attendance_today:0, qr_codes_active:0, qr_scans_today:0, video_calls_total:0, video_calls_active:0, subscriptions_total:0, payments_total:0, audit_logs_total:0 }
+
+type Icon = typeof Activity
+function Metric({ label, value, icon: IconComponent, onClick, detail }: { label:string; value:number|string; icon:Icon; onClick?:()=>void; detail?:string }) {
+  return <Card className="p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer" onClick={onClick}><div className="flex items-start justify-between gap-4"><div><p className="text-sm text-muted-foreground">{label}</p><p className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{value}</p>{detail&&<p className="mt-1 text-xs text-muted-foreground">{detail}</p>}</div><div className="rounded-2xl bg-primary/10 p-3 text-primary"><IconComponent className="h-5 w-5"/></div></div></Card>
+}
 
 export default function DashboardPage() {
-  const { user, loading: authLoading } = useAuth()
-  const { pathname } = useLocation()
-  const [pageLoading, setPageLoading] = useState(true)
-  
-  // Determine active tab from route - must match exactly
-  const getActiveTab = () => {
-    if (pathname === '/app/dashboard/users') return 'users'
-    if (pathname === '/app/dashboard/assets') return 'assets'
-    return 'overview'
-  }
-  
-  const activeTab = getActiveTab()
-
-  useEffect(() => {
-    if (!authLoading) {
-      // Small delay to ensure smooth transition
-      const timer = setTimeout(() => {
-        setPageLoading(false)
-      }, 300)
-      return () => clearTimeout(timer)
-    }
-  }, [authLoading])
-  
-  // Reset loading when route changes
-  useEffect(() => {
-    setPageLoading(false)
-  }, [pathname])
-
-  if (pageLoading || !user) {
-    return <Loader fullPage />
-  }
-
-  // Route based on user role
-  if (user.role === 'admin') {
-    return <AdminDashboard activeTab={activeTab} />
-  }
-
-  if (user.role === 'manager') {
-    return <ManagerDashboard />
-  }
-
-  if (user.role === 'hr') {
-    return <HRDashboard />
-  }
-
-  return <EmployeeDashboard />
+  const { user, company } = useAuth(); const navigate=useNavigate(); const { metrics,ticketTrend,loading:analyticsLoading,error:analyticsError,fetchAnalytics }=useAnalytics();
+  const [counts,setCounts]=useState<ExactCompanyCounts>(EMPTY_COUNTS); const [loading,setLoading]=useState(true); const [error,setError]=useState<string|null>(null)
+  useEffect(()=>{if(!user?.company_id)return;let cancelled=false;setLoading(true);Promise.all([getExactCompanyCounts(user.company_id),fetchAnalytics()]).then(([nextCounts])=>{if(!cancelled)setCounts(nextCounts)}).catch(err=>{if(!cancelled)setError(err instanceof Error?err.message:'Unable to load dashboard')}).finally(()=>{if(!cancelled)setLoading(false)});return()=>{cancelled=true}},[user?.company_id,fetchAnalytics])
+  if(!user||loading||analyticsLoading)return <Loader/>
+  const resolved=counts.tickets_resolved+counts.tickets_closed; const openWork=counts.tickets_open+counts.tickets_in_progress+counts.tickets_pending; const recentTrend=ticketTrend.slice(-7); const maxTrend=Math.max(1,...recentTrend.map(p=>Math.max(p.created,p.resolved)))
+  return <div className="space-y-7">
+    <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-sm font-medium text-primary">{company?.name||'Workspace'}</p><h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">Good to see you, {user.full_name?.split(' ')[0]||'there'}.</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Your support workspace at a glance. Everything below is sourced from your company data.</p></div><div className="flex gap-2"><Button variant="outline" onClick={()=>navigate('/app/notifications')}><Bell className="mr-2 h-4 w-4"/>Notifications</Button><Button onClick={()=>navigate('/app/tickets/new')}><Plus className="mr-2 h-4 w-4"/>New ticket</Button></div></section>
+    {(error||analyticsError)&&<Card className="border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{error||analyticsError}</Card>}
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Metric label="Total tickets" value={metrics.totalTickets} icon={Ticket} onClick={()=>navigate('/app/tickets')} detail={`${openWork} currently open`}/><Metric label="Resolved" value={resolved} icon={CheckCircle2} onClick={()=>navigate('/app/tickets')} detail={`${metrics.totalTickets?Math.round(resolved/metrics.totalTickets*100):0}% resolution rate`}/><Metric label="Assets" value={metrics.totalAssets} icon={Package} onClick={()=>navigate('/app/assets')} detail={`${metrics.availableAssets} available`}/><Metric label="Team members" value={counts.users_total} icon={Users} onClick={()=>navigate('/app/users')} detail={`${counts.teams_total} teams`}/></section>
+    <section className="grid gap-5 lg:grid-cols-[1.7fr_1fr]"><Card className="p-5 sm:p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-muted-foreground">Ticket activity</p><h2 className="mt-1 text-lg font-semibold">Last 7 days</h2></div><BarChart3 className="h-5 w-5 text-muted-foreground"/></div><div className="mt-7 flex h-44 items-end gap-2 sm:gap-3">{recentTrend.map(point=><div key={point.date} className="flex min-w-0 flex-1 flex-col items-center gap-2"><div className="flex h-36 w-full items-end justify-center gap-1"><div className="w-2 rounded-t-md bg-primary/30" style={{height:`${Math.max(6,point.created/maxTrend*100)}%`}}/><div className="w-2 rounded-t-md bg-primary" style={{height:`${Math.max(6,point.resolved/maxTrend*100)}%`}}/></div><span className="text-[10px] text-muted-foreground">{new Date(point.date).toLocaleDateString(undefined,{weekday:'short'})}</span></div>)}{!recentTrend.length&&<div className="grid w-full place-items-center text-sm text-muted-foreground">No ticket activity yet.</div>}</div><div className="mt-4 flex gap-4 text-xs text-muted-foreground"><span>Created</span><span className="font-medium text-primary">Resolved</span></div></Card>
+    <Card className="p-5 sm:p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-muted-foreground">Workspace</p><h2 className="mt-1 text-lg font-semibold">Quick access</h2></div><ArrowRight className="h-5 w-5 text-muted-foreground"/></div><div className="mt-5 space-y-2">{[['Tickets',counts.tickets_total,Ticket,'/app/tickets'],['Assets',counts.assets_total,Package,'/app/assets'],['Departments',counts.departments_total,Building2,'/app/departments'],['Teams',counts.teams_total,Users,'/app/teams'],['Files',counts.workspace_files_total,FolderOpen,'/app/workspace']].map(([label,value,IconComponent,href])=>{const I=IconComponent as Icon;return <button key={String(label)} onClick={()=>navigate(String(href))} className="flex w-full items-center justify-between rounded-xl border border-border/60 p-3 text-left transition-colors hover:bg-muted/60"><span className="flex items-center gap-3"><span className="rounded-lg bg-muted p-2"><I className="h-4 w-4"/></span><span className="text-sm font-medium">{label}</span></span><span className="text-sm text-muted-foreground">{value}</span></button>})}</div></Card></section>
+    <section className="grid gap-4 sm:grid-cols-3"><Card className="p-5"><div className="flex items-center gap-3"><Clock3 className="h-5 w-5 text-primary"/><div><p className="text-sm text-muted-foreground">Avg. resolution</p><p className="text-xl font-semibold">{metrics.avgResolutionTime?`${metrics.avgResolutionTime.toFixed(1)}h`:'—'}</p></div></div></Card><Card className="p-5"><div className="flex items-center gap-3"><Package className="h-5 w-5 text-primary"/><div><p className="text-sm text-muted-foreground">Asset utilization</p><p className="text-xl font-semibold">{metrics.utilizationRate}%</p></div></div></Card><Card className="p-5"><div className="flex items-center gap-3"><Activity className="h-5 w-5 text-primary"/><div><p className="text-sm text-muted-foreground">Active assignments</p><p className="text-xl font-semibold">{counts.ticket_assignments_active}</p></div></div></Card></section>
+  </div>
 }
