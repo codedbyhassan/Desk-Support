@@ -29,16 +29,20 @@ import WorkspacePage from './pages/WorkspacePage'
 import NotificationsPage from './pages/NotificationsPage'
 import Layout from './app/layout'
 
+function LoadingRoute() {
+  return <div className="min-h-screen grid place-items-center text-sm text-muted-foreground">Loading…</div>
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth(); const location = useLocation()
-  if (loading) return <div className="min-h-screen grid place-items-center text-sm text-muted-foreground">Loading…</div>
+  if (loading) return <LoadingRoute />
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />
   return <Layout>{children}</Layout>
 }
 
 function AdminOrHRRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return <div className="min-h-screen grid place-items-center text-sm text-muted-foreground">Loading…</div>
+  if (loading) return <LoadingRoute />
   if (!user || (user.role !== 'admin' && user.role !== 'hr')) return <Navigate to="/app/dashboard" replace />
   return <Layout>{children}</Layout>
 }
@@ -50,16 +54,20 @@ function AppRoutes() {
     <Route path="/login" element={user ? <Navigate to="/app/dashboard" replace /> : <LoginPage defaultToSignUp={false} />} />
     <Route path="/signup" element={user ? <Navigate to="/app/dashboard" replace /> : <LoginPage defaultToSignUp />} />
     <Route path="/verify-email" element={<VerificationPage />} />
+
     <Route path="/app" element={<ProtectedRoute><Navigate to="/app/dashboard" replace /></ProtectedRoute>} />
     <Route path="/app/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-    <Route path="/app/dashboard/users" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-    <Route path="/app/dashboard/assets" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+    <Route path="/app/dashboard/users" element={<Navigate to="/app/users" replace />} />
+    <Route path="/app/dashboard/assets" element={<Navigate to="/app/assets" replace />} />
+
     <Route path="/app/tickets" element={<ProtectedRoute><TicketsPage /></ProtectedRoute>} />
     <Route path="/app/tickets/new" element={<ProtectedRoute><TicketsPage newTicket /></ProtectedRoute>} />
     <Route path="/app/tickets/:id" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
+
     <Route path="/app/assets" element={<ProtectedRoute><AssetsPage /></ProtectedRoute>} />
     <Route path="/app/assets/new" element={<ProtectedRoute><AssetsPage newAsset /></ProtectedRoute>} />
     <Route path="/app/assets/:id" element={<ProtectedRoute><AssetDetailPage /></ProtectedRoute>} />
+
     <Route path="/app/departments" element={<ProtectedRoute><DepartmentsPage /></ProtectedRoute>} />
     <Route path="/app/departments/:id" element={<ProtectedRoute><DepartmentDetailPage /></ProtectedRoute>} />
     <Route path="/app/teams" element={<ProtectedRoute><TeamsPage /></ProtectedRoute>} />
