@@ -1,13 +1,16 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
+
+const srcDir = fileURLToPath(new URL('./src', import.meta.url))
 
 export default defineConfig({
   plugins: [react()],
   base: './',
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': srcDir,
     },
   },
   server: {
@@ -19,7 +22,7 @@ export default defineConfig({
       protocol: 'ws',
       host: 'localhost',
       port: 4000,
-    }
+    },
   },
   preview: {
     port: 4000,
@@ -40,6 +43,6 @@ export default defineConfig({
       '@supabase/supabase-js',
       'lucide-react',
       'react-hot-toast',
-    ]
-  }
-});
+    ],
+  },
+})
