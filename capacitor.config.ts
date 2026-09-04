@@ -1,32 +1,32 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+import type { CapacitorConfig } from '@capacitor/cli'
+
+const devServerUrl = process.env.CAPACITOR_DEV_SERVER_URL
 
 const config: CapacitorConfig = {
   appId: 'com.desksupport.pro',
   appName: 'DeskSupport Pro',
   webDir: 'dist',
-  
-  server: {
-    androidScheme: 'https',
-    iosScheme: 'https',
-    // 🔧 DEVELOPMENT MODE: Comment out these lines for production build
-    url: 'http://172.20.10.2:4000',
-    cleartext: true,
-    // 📝 For production, comment out url and cleartext above
-  },
-  
+  ...(devServerUrl
+    ? {
+        server: {
+          url: devServerUrl,
+          cleartext: devServerUrl.startsWith('http://'),
+          androidScheme: 'https',
+          iosScheme: 'https',
+        },
+      }
+    : {}),
   ios: {
     contentInset: 'always',
     scrollEnabled: true,
     backgroundColor: '#ffffff',
     limitsNavigationsToAppBoundDomains: false,
   },
-  
   android: {
     backgroundColor: '#ffffff',
-    allowMixedContent: true,
+    allowMixedContent: false,
     captureInput: true,
   },
-  
   plugins: {
     Camera: {
       permissions: ['camera'],
@@ -49,6 +49,6 @@ const config: CapacitorConfig = {
       backgroundColor: '#ffffff',
     },
   },
-};
+}
 
-export default config;
+export default config
