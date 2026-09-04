@@ -15,14 +15,21 @@ import { NavItem } from '@/components/layout/types'
 interface LayoutProps { children: ReactNode }
 
 export default function Layout({ children }: LayoutProps) {
-  const { user } = useAuth(); const { customTheme } = useTheme(); const { pathname } = useLocation(); const { toasts, dismissToast, setCurrentPath } = useNotifications()
-  const [activeTicketCount, setActiveTicketCount] = useState(0); const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const primaryColor = customTheme?.primary || '#185ee0'
+  const { user } = useAuth()
+  const { customTheme } = useTheme()
+  const { pathname } = useLocation()
+  const { toasts, dismissToast, setCurrentPath } = useNotifications()
+  const [activeTicketCount, setActiveTicketCount] = useState(0)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const primaryColor = customTheme?.primary || '#2563eb'
 
   useEffect(() => { setCurrentPath(pathname) }, [pathname, setCurrentPath])
 
   useEffect(() => {
-    if (!user?.id || !user.company_id || pathname.startsWith('/app/tickets')) { setActiveTicketCount(0); return }
+    if (!user?.id || !user.company_id || pathname.startsWith('/app/tickets')) {
+      setActiveTicketCount(0)
+      return
+    }
     let cancelled = false
     const fetchActiveTicketCount = async () => {
       const { data: assignments, error } = await supabase.from('ticket_assignments').select('ticket_id').eq('assignee_id', user.id).is('unassigned_at', null)
@@ -39,7 +46,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const allNavItems: NavItem[] = [
     { id:'dashboard', name:'Dashboard', href:'/app/dashboard', icon:LayoutDashboard, description:'Overview and insights' },
-    { id:'tickets', name:'Tickets', href:'/app/tickets', icon:Ticket, badge:activeTicketCount>0?String(activeTicketCount):undefined, description:'Manage support tickets' },
+    { id:'tickets', name:'Tickets', href:'/app/tickets', icon:Ticket, badge:activeTicketCount > 0 ? String(activeTicketCount) : undefined, description:'Manage support tickets' },
     { id:'assets', name:'Assets', href:'/app/assets', icon:Package, description:'Hardware and software' },
     { id:'departments', name:'Departments', href:'/app/departments', icon:Building2, description:'Company departments' },
     { id:'teams', name:'Teams', href:'/app/teams', icon:Users, description:'Team management' },
@@ -50,13 +57,17 @@ export default function Layout({ children }: LayoutProps) {
   ]
   const navItems = allNavItems.filter(item => !(item.adminOnly && user?.role !== 'admin') && !(item.adminOrHR && user?.role !== 'admin' && user?.role !== 'hr'))
 
-  return <DashboardTabProvider><div className="min-h-screen transition-colors duration-300 relative overflow-hidden">
-    <div className="dark:hidden fixed inset-0" style={{background:'var(--bg-gradient-main)'}} /><div className="hidden dark:block fixed inset-0" style={{background:'var(--bg-gradient-main-dark)'}} />
-    <div className="fixed inset-0 pointer-events-none z-0 opacity-30 dark:opacity-20" style={{background:'linear-gradient(135deg, hsl(var(--primary-100)) 0%, hsl(var(--secondary-100)) 50%, hsl(var(--primary-100)) 100%)'}} />
-    <div className="fixed top-0 left-1/4 w-[600px] h-[600px] bg-white/40 dark:bg-white/8 rounded-full blur-3xl pointer-events-none z-0 animate-pulse" style={{animationDuration:'8s'}} />
-    <div className="fixed bottom-0 right-1/4 w-[500px] h-[500px] bg-white/30 dark:bg-white/6 rounded-full blur-3xl pointer-events-none z-0 animate-pulse" style={{animationDuration:'10s',animationDelay:'1s'}} />
-    <Sidebar navItems={navItems} primaryColor={primaryColor} /><Header navItems={navItems} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} primaryColor={primaryColor}/>
-    <main className="lg:ml-16 pt-3 lg:pt-4 pb-28 lg:pb-0 px-4 lg:px-8 py-4 lg:py-6 relative z-10 overflow-hidden"><div className="dark:hidden absolute inset-0 pointer-events-none opacity-25" style={{background:'var(--bg-gradient-card)'}}/><div className="hidden dark:block absolute inset-0 pointer-events-none opacity-20" style={{background:'var(--bg-gradient-card-dark, linear-gradient(135deg, hsl(var(--primary-950)) 0%, hsl(var(--secondary-950)) 100%)'}}/><div className="relative z-10 max-w-7xl mx-auto space-y-6">{children}</div></main>
-    <MobileBottomNav/><ToastContainer toasts={toasts} onDismiss={dismissToast}/>
-  </div></DashboardTabProvider>
+  return <DashboardTabProvider>
+    <div className="min-h-screen bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
+      <Sidebar navItems={navItems} primaryColor={primaryColor} />
+      <Header navItems={navItems} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} primaryColor={primaryColor} />
+      <main className="lg:pl-[248px] pt-16 lg:pt-[72px] pb-24 lg:pb-10 min-h-screen">
+        <div className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          {children}
+        </div>
+      </main>
+      <MobileBottomNav />
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+    </div>
+  </DashboardTabProvider>
 }
