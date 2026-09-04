@@ -26,7 +26,7 @@ import SettingsPage from './pages/SettingsPage'
 import QRScannerPage from './pages/QRScannerPage'
 import WorkspacePage from './pages/WorkspacePage'
 import NotificationsPage from './pages/NotificationsPage'
-import Layout from './app/layout'
+import Layout from './components/layout/Layout'
 
 function LoadingRoute() {
   return <div className="min-h-screen grid place-items-center text-sm text-muted-foreground">Loading…</div>
