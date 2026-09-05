@@ -1,21 +1,27 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 
-export interface AuthProfile { id:string; email:string; full_name:string; avatar_url:string|null; phone:string|null; last_seen_at:string|null; is_online:boolean; created_at:string; updated_at:string; role:string; company_id:string; membership_id:string; department_id:string|null }
+export interface AuthProfile { id:string; email:string; full_name:string; avatar_path:string|null; avatar_url:string|null; phone:string|null; last_seen_at:string|null; is_online:boolean; created_at:string; updated_at:string; role:string; company_id:string; membership_id:string; department_id:string|null }
 export interface AuthCompany { id:string; name:string; email:string|null; phone:string|null; address:string|null; website:string|null; logo_url:string|null; subscription_plan?: string; status:'active'|'suspended'|'archived'; created_at:string; updated_at:string }
 export interface CompanySettings { company_id:string; primary_color:string|null; secondary_color:string|null; accent_color:string|null; default_theme:'light'|'dark'|'system'; date_format:string; time_format:'12h'|'24h'; currency_code:string; timezone:string; enable_email_notifications:boolean; enable_push_notifications:boolean; enable_asset_qr_codes:boolean; enable_ticket_attachments:boolean; created_at:string; updated_at:string }
-interface AuthContextType { user:AuthProfile|null; session:Session|null; company:AuthCompany|null; settings:CompanySettings|null; loading:boolean; error:string|null; signIn:(email:string,password:string)=>Promise<void>; signUp:(email:string,password:string,fullName:string,companyName:string,role?:'admin'|'employee')=>Promise<{emailConfirmationRequired:boolean}>; signOut:()=>Promise<void>; updateProfile:(data:Partial<Pick<AuthProfile,'full_name'|'avatar_url'|'phone'|'department_id'>>)=>Promise<void>; updateCompany:(data:Partial<Omit<AuthCompany,'id'|'created_at'|'updated_at'>>)=>Promise<void>; updateSettings:(data:Partial<Omit<CompanySettings,'company_id'|'created_at'|'updated_at'>>)=>Promise<void>; refreshProfile:()=>Promise<void> }
+interface AuthContextType { user:AuthProfile|null; session:Session|null; company:AuthCompany|null; settings:CompanySettings|null; loading:boolean; error:string|null; signIn:(email:string,password:string)=>Promise<void>; signUp:(email:string,password:string,fullName:string,companyName:string,role?:'admin'|'employee')=>Promise<{emailConfirmationRequired:boolean}>; signOut:()=>Promise<void>; updateProfile:(data:Partial<Pick<AuthProfile,'full_name'|'avatar_path'|'phone'|'department_id'>>)=>Promise<void>; updateCompany:(data:Partial<Omit<AuthCompany,'id'|'created_at'|'updated_at'>>)=>Promise<void>; updateSettings:(data:Partial<Omit<CompanySettings,'company_id'|'created_at'|'updated_at'>>)=>Promise<void>; refreshProfile:()=>Promise<void> }
 const AuthContext=createContext<AuthContextType|undefined>(undefined)
 const WORKSPACE_CACHE_PREFIX='desk-support-workspace:'
 type Workspace=Pick<AuthContextType,'user'|'company'|'settings'>
-
 type PersistedAuth={access_token?:string;refresh_token?:string;expires_at?:number;expires_in?:number;token_type?:string;user?:Session['user']}
 
 function readWorkspaceCache(userId:string):Workspace|null{try{const raw=window.localStorage.getItem(`${WORKSPACE_CACHE_PREFIX}${userId}`);return raw?JSON.parse(raw) as Workspace:null}catch{return null}}
 function writeWorkspaceCache(userId:string,workspace:Workspace){try{window.localStorage.setItem(`${WORKSPACE_CACHE_PREFIX}${userId}`,JSON.stringify(workspace))}catch{}}
 function clearWorkspaceCache(userId:string){try{window.localStorage.removeItem(`${WORKSPACE_CACHE_PREFIX}${userId}`)}catch{}}
 function readPersistedUserId():string|null{try{const raw=window.localStorage.getItem('desk-support-auth');if(!raw)return null;const parsed=JSON.parse(raw) as PersistedAuth;return parsed.user?.id??null}catch{return null}}
+
+async function resolveAvatarUrl(path:string|null){
+ if(!path)return null
+ const {data,error}=await supabase.storage.from('profile-images').createSignedUrl(path,3600)
+ if(error){console.warn('Could not create profile image URL:',error.message);return null}
+ return data.signedUrl
+}
 
 async function loadWorkspace(userId:string,email:string):Promise<Workspace>{
  const {data:profiles,error:pe}=await supabase.from('profiles').select('*').eq('id',userId).limit(1);if(pe)throw pe
@@ -25,7 +31,8 @@ async function loadWorkspace(userId:string,email:string):Promise<Workspace>{
  const {data:company,error:ce}=await supabase.from('companies').select('*').eq('id',membership.company_id).limit(1);if(ce)throw ce
  const companyRow=company?.[0]??null;if(!companyRow)throw new Error('Your company could not be loaded.')
  const {data:settingsRows,error:se}=await supabase.from('company_settings').select('*').eq('company_id',membership.company_id).limit(1);if(se)throw se
- return {user:{...profile,email,role:membership.role,company_id:membership.company_id,membership_id:membership.id,department_id:membership.department_id} as AuthProfile,company:companyRow as AuthCompany,settings:(settingsRows?.[0]??null) as CompanySettings|null}
+ const avatarUrl=await resolveAvatarUrl(profile.avatar_path ?? null)
+ return {user:{...profile,email,avatar_url:avatarUrl,role:membership.role,company_id:membership.company_id,membership_id:membership.id,department_id:membership.department_id} as AuthProfile,company:companyRow as AuthCompany,settings:(settingsRows?.[0]??null) as CompanySettings|null}
 }
 async function ensureProvisioned(session:Session){const email=session.user.email??'';try{return await loadWorkspace(session.user.id,email)}catch(error){const message=error instanceof Error?error.message:'';if(!message.includes('not provisioned'))throw error;const metadata=session.user.user_metadata as {company_name?:string;full_name?:string}|undefined;if(!metadata?.company_name)throw error;const {error:fnError}=await supabase.functions.invoke('create-company',{body:{name:metadata.company_name,full_name:metadata.full_name??''}});if(fnError)throw fnError;return loadWorkspace(session.user.id,email)}}
 
@@ -40,7 +47,7 @@ export function AuthProvider({children}:{children:ReactNode}){
  const signIn=useCallback(async(email:string,password:string)=>{setState(prev=>({...prev,loading:true,error:null}));const {error}=await supabase.auth.signInWithPassword({email:email.trim(),password});if(error){setState(prev=>({...prev,loading:false,error:error.message}));throw error}},[])
  const signUp=useCallback(async(email:string,password:string,fullName:string,companyName:string)=>{setState(prev=>({...prev,loading:true,error:null}));const {data,error}=await supabase.auth.signUp({email:email.trim(),password,options:{data:{full_name:fullName.trim(),company_name:companyName.trim()},emailRedirectTo:window.location.origin}});if(error){setState(prev=>({...prev,loading:false,error:error.message}));throw error}if(!data.user){setState(prev=>({...prev,loading:false}));throw new Error('Account creation failed.')}setState(prev=>({...prev,session:data.session,loading:!!data.session}));return {emailConfirmationRequired:!data.session}},[])
  const signOut=useCallback(async()=>{const userId=state.user?.id;const {error}=await supabase.auth.signOut();if(error)throw error;if(userId)clearWorkspaceCache(userId)},[state.user?.id])
- const updateProfile=useCallback(async(data:Partial<Pick<AuthProfile,'full_name'|'avatar_url'|'phone'|'department_id'>>)=>{if(!state.user)throw new Error('No authenticated user.');const {data:updated,error}=await supabase.from('profiles').update(data).eq('id',state.user.id).select('*').single();if(error)throw error;setState(prev=>({...prev,user:{...prev.user!,...updated}}))},[state.user?.id])
+ const updateProfile=useCallback(async(data:Partial<Pick<AuthProfile,'full_name'|'avatar_path'|'phone'|'department_id'>>)=>{if(!state.user)throw new Error('No authenticated user.');const {data:updated,error}=await supabase.from('profiles').update(data).eq('id',state.user.id).select('*').single();if(error)throw error;const avatarUrl=await resolveAvatarUrl(updated.avatar_path ?? null);setState(prev=>({...prev,user:{...prev.user!,...updated,avatar_url:avatarUrl}}))},[state.user?.id])
  const updateCompany=useCallback(async(data:Partial<Omit<AuthCompany,'id'|'created_at'|'updated_at'>>)=>{if(!state.company)throw new Error('No company selected.');if(state.user?.role!=='admin')throw new Error('Only company administrators can update company details.');const {data:updated,error}=await supabase.from('companies').update(data).eq('id',state.company.id).select('*').single();if(error)throw error;setState(prev=>({...prev,company:updated as AuthCompany}))},[state.company?.id,state.user?.role])
  const updateSettings=useCallback(async(data:Partial<Omit<CompanySettings,'company_id'|'created_at'|'updated_at'>>)=>{if(!state.company)throw new Error('No company selected.');if(state.user?.role!=='admin')throw new Error('Only company administrators can update settings.');const {data:updated,error}=await supabase.from('company_settings').update(data).eq('company_id',state.company.id).select('*').single();if(error)throw error;setState(prev=>({...prev,settings:updated as CompanySettings}))},[state.company?.id,state.user?.role])
  return <AuthContext.Provider value={{...state,signIn,signUp,signOut,updateProfile,updateCompany,updateSettings,refreshProfile}}>{children}</AuthContext.Provider>
