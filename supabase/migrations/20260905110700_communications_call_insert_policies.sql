@@ -1,0 +1,2 @@
+create policy calls_insert on public.calls for insert to authenticated with check(initiator_id=(select auth.uid()) and private.is_company_member(company_id,(select auth.uid())) and (conversation_id is null or private.is_conversation_member(conversation_id,(select auth.uid()))));
+create policy call_participants_insert on public.call_participants_v2 for insert to authenticated with check(exists(select 1 from public.calls c where c.id=call_id and c.initiator_id=(select auth.uid())) and private.is_company_member((select company_id from public.calls where id=call_id),user_id));
