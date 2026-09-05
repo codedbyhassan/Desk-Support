@@ -1,84 +1,158 @@
 import * as React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Package } from 'lucide-react'
+import { Search, Package, Ticket as TicketIcon, User, Loader2 } from 'lucide-react'
 import { Button } from './ui/button'
-import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from './ui/command'
-import { useAssets } from '@/hooks/useAssets'
-import { useTickets } from '@/hooks/useTickets'
+import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/lib/auth'
+
+type SearchResult = {
+  id: string
+  title: string
+  subtitle?: string
+  type: 'ticket' | 'asset'
+  href: string
+}
 
 export function SearchCommand() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [open, setOpen] = React.useState(false)
-  const { assets } = useAssets()
-  const { tickets } = useTickets()
+  const [query, setQuery] = React.useState('')
+  const [results, setResults] = React.useState<SearchResult[]>([])
+  const [loading, setLoading] = React.useState(false)
+  const requestId = React.useRef(0)
 
   React.useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        setOpen((open) => !open)
+    const down = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault()
+        setOpen(value => !value)
       }
     }
     document.addEventListener('keydown', down)
     return () => document.removeEventListener('keydown', down)
   }, [])
 
+  React.useEffect(() => {
+    if (!open) {
+      setQuery('')
+      setResults([])
+      return
+    }
+    const term = query.trim()
+    if (!user?.company_id || term.length < 2) {
+      setResults([])
+      setLoading(false)
+      return
+    }
+
+    const currentRequest = ++requestId.current
+    const timer = window.setTimeout(async () => {
+      setLoading(true)
+      try {
+        const [{ data: ticketData, error: ticketError }, { data: assetData, error: assetError }] = await Promise.all([
+          supabase.rpc('search_tickets', {
+            p_company_id: user.company_id,
+            p_cursor_created_at: null,
+            p_cursor_id: null,
+            p_limit: 8,
+            p_status: null,
+            p_assignee_id: null,
+            p_asset_id: null,
+            p_team_id: null,
+            p_department_id: null,
+            p_priority: null,
+            p_search: term,
+            p_archived: false,
+            p_created_by: null,
+          } as never),
+          supabase
+            .from('assets')
+            .select('id,name,asset_tag,serial_number,manufacturer,model')
+            .eq('company_id', user.company_id)
+            .is('archived_at', null)
+            .or(`name.ilike.%${term}%,asset_tag.ilike.%${term}%,serial_number.ilike.%${term}%,manufacturer.ilike.%${term}%,model.ilike.%${term}%`)
+            .order('created_at', { ascending: false })
+            .limit(8),
+        ])
+
+        if (ticketError) throw ticketError
+        if (assetError) throw assetError
+        if (currentRequest !== requestId.current) return
+
+        const payload = (ticketData ?? {}) as { items?: Array<Record<string, unknown>> }
+        const tickets: SearchResult[] = (payload.items ?? []).map(ticket => ({
+          id: String(ticket.id),
+          title: String(ticket.title ?? ticket.subject ?? 'Untitled ticket'),
+          subtitle: ticket.ticket_number ? `Ticket ${String(ticket.ticket_number)}` : 'Support ticket',
+          type: 'ticket',
+          href: `/app/tickets/${String(ticket.id)}`,
+        }))
+        const assets: SearchResult[] = ((assetData ?? []) as Array<Record<string, unknown>>).map(asset => ({
+          id: String(asset.id),
+          title: String(asset.name ?? 'Unnamed asset'),
+          subtitle: asset.asset_tag ? `Asset ${String(asset.asset_tag)}` : 'Asset record',
+          type: 'asset',
+          href: `/app/assets/${String(asset.id)}`,
+        }))
+        setResults([...tickets, ...assets])
+      } catch (error) {
+        console.error('Global search failed:', error)
+        if (currentRequest === requestId.current) setResults([])
+      } finally {
+        if (currentRequest === requestId.current) setLoading(false)
+      }
+    }, 220)
+
+    return () => window.clearTimeout(timer)
+  }, [open, query, user?.company_id])
+
+  const selectResult = (result: SearchResult) => {
+    navigate(result.href)
+    setOpen(false)
+  }
+
   return (
     <>
       <Button
+        type="button"
         variant="outline"
-        className="relative h-9 w-9 p-0 xl:h-10 xl:w-60 xl:justify-start xl:px-3 xl:py-2"
+        className="h-9 w-full justify-start rounded-lg border-border bg-muted/40 px-3 text-muted-foreground hover:bg-background"
         onClick={() => setOpen(true)}
+        aria-label="Search workspace"
       >
-        <Search className="h-4 w-4 xl:mr-2" aria-hidden="true" />
-        <span className="hidden xl:inline-flex">Search...</span>
-        <kbd className="pointer-events-none absolute right-1.5 hidden h-6 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs xl:flex">
-          <span className="text-xs">⌘</span>K
-        </kbd>
+        <Search className="mr-2 h-4 w-4 shrink-0" aria-hidden="true" />
+        <span className="truncate">Search workspace</span>
+        <kbd className="ml-auto hidden shrink-0 rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[10px] sm:inline-flex" aria-hidden="true">⌘K</kbd>
       </Button>
+
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Search all assets and tickets..." />
+        <CommandInput value={query} onValueChange={setQuery} placeholder="Search tickets and assets..." aria-label="Search tickets and assets" />
         <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
-          <CommandGroup heading="Assets">
-            {assets.slice(0, 5).map((asset) => (
-              <CommandItem
-                key={asset.id}
-                value={asset.name}
-                onSelect={() => {
-                  navigate(`/assets/${asset.id}`)
-                  setOpen(false)
-                }}
-              >
-                <Package className="mr-2 h-4 w-4" />
-                {asset.name}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-          <CommandSeparator />
-          <CommandGroup heading="Tickets">
-            {tickets.slice(0, 5).map((ticket) => (
-              <CommandItem
-                key={ticket.id}
-                value={ticket.title}
-                onSelect={() => {
-                  navigate(`/tickets/${ticket.id}`)
-                  setOpen(false)
-                }}
-              >
-                <Search className="mr-2 h-4 w-4" />
-                {ticket.title}
-              </CommandItem>
-            ))}
-          </CommandGroup>
+          {loading && <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />Searching workspace…</div>}
+          {!loading && query.trim().length < 2 && <div className="py-8 text-center text-sm text-muted-foreground">Type at least 2 characters to search.</div>}
+          {!loading && query.trim().length >= 2 && results.length === 0 && <CommandEmpty>No matching tickets or assets.</CommandEmpty>}
+          {results.some(result => result.type === 'ticket') && (
+            <CommandGroup heading="Tickets">
+              {results.filter(result => result.type === 'ticket').map(result => (
+                <CommandItem key={`ticket-${result.id}`} value={`${result.title} ${result.subtitle ?? ''}`} onSelect={() => selectResult(result)}>
+                  <TicketIcon className="mr-2 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span className="min-w-0"><span className="block truncate">{result.title}</span><span className="block truncate text-xs text-muted-foreground">{result.subtitle}</span></span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+          {results.some(result => result.type === 'asset') && (
+            <CommandGroup heading="Assets">
+              {results.filter(result => result.type === 'asset').map(result => (
+                <CommandItem key={`asset-${result.id}`} value={`${result.title} ${result.subtitle ?? ''}`} onSelect={() => selectResult(result)}>
+                  <Package className="mr-2 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span className="min-w-0"><span className="block truncate">{result.title}</span><span className="block truncate text-xs text-muted-foreground">{result.subtitle}</span></span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
         </CommandList>
       </CommandDialog>
     </>
