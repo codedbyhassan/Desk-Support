@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth'
 import { useToast } from './use-toast'
 
 export interface AttendanceStatus {
-  status: 'clocked_in' | 'clocked_out' | 'not_started' | 'on_break'
+  status: 'clocked_in' | 'clocked_out' | 'not_started'
   check_in_time?: string
   check_out_time?: string
   clockInTime?: string
@@ -17,12 +17,16 @@ export interface QRCodeInfo {
   company_id: string
   type: string
   location_name: string
-  action: 'clock_in' | 'clock_out' | 'toggle'
   is_active: boolean
   expires_at?: string
-  requires_auth: boolean
-  requires_gps: boolean
-  requires_photo: boolean
+}
+
+type ScanResult = {
+  ok: boolean
+  action: 'clock_in' | 'clock_out'
+  company_id: string
+  session: { id: string; started_at: string; ended_at: string | null; type: string; source: string }
+  scan_id: string
 }
 
 export function useAttendance() {
@@ -33,25 +37,26 @@ export function useAttendance() {
 
   const fetchAttendanceStatus = useCallback(async () => {
     if (!user?.id || !user.company_id) return
-    const today = new Date().toISOString().slice(0, 10)
-    const { data, error } = await supabase.from('attendance')
-      .select('status,check_in,check_out')
+    const { data, error } = await supabase
+      .from('attendance_sessions')
+      .select('started_at,ended_at')
       .eq('company_id', user.company_id)
       .eq('user_id', user.id)
-      .eq('attendance_date', today)
+      .eq('type', 'work')
+      .order('started_at', { ascending: false })
+      .limit(1)
       .maybeSingle()
-    if (error) { console.error('Error fetching attendance:', error); return }
+    if (error) return
     if (!data) { setAttendanceStatus({ status: 'not_started' }); return }
-
-    const checkedIn = !!data.check_in && !data.check_out
-    const checkIn = data.check_in ? new Date(data.check_in) : null
+    const checkedIn = !!data.started_at && !data.ended_at
+    const checkIn = data.started_at ? new Date(data.started_at) : null
     const elapsedMs = checkIn && checkedIn ? Math.max(0, Date.now() - checkIn.getTime()) : 0
     const hours = Math.floor(elapsedMs / 3600000)
     const minutes = Math.floor((elapsedMs % 3600000) / 60000)
     setAttendanceStatus({
       status: checkedIn ? 'clocked_in' : 'clocked_out',
-      check_in_time: data.check_in ?? undefined,
-      check_out_time: data.check_out ?? undefined,
+      check_in_time: data.started_at ?? undefined,
+      check_out_time: data.ended_at ?? undefined,
       clockInTime: checkIn?.toLocaleTimeString(),
       elapsedHours: checkedIn ? `${hours}h ${minutes}m` : undefined,
     })
@@ -64,7 +69,8 @@ export function useAttendance() {
 
   const validateQRCode = useCallback(async (code: string): Promise<QRCodeInfo | null> => {
     if (!user?.company_id) throw new Error('User is not authenticated.')
-    const { data, error } = await supabase.from('qr_codes')
+    const { data, error } = await supabase
+      .from('qr_codes')
       .select('id,code,company_id,name,status,expires_at')
       .eq('code', code)
       .eq('company_id', user.company_id)
@@ -79,18 +85,13 @@ export function useAttendance() {
       company_id: data.company_id,
       type: 'attendance',
       location_name: data.name,
-      action: 'toggle',
-      is_active: data.status === 'active',
+      is_active: true,
       expires_at: data.expires_at ?? undefined,
-      requires_auth: true,
-      requires_gps: false,
-      requires_photo: false,
     }
   }, [user?.company_id])
 
-  const determineAction = useCallback((qrCode: QRCodeInfo, currentStatus: AttendanceStatus['status']): 'clock_in' | 'clock_out' => {
-    if (qrCode.action === 'clock_in' || qrCode.action === 'clock_out') return qrCode.action
-    return currentStatus === 'clocked_in' || currentStatus === 'on_break' ? 'clock_out' : 'clock_in'
+  const determineAction = useCallback((_qrCode: QRCodeInfo, currentStatus: AttendanceStatus['status']): 'clock_in' | 'clock_out' => {
+    return currentStatus === 'clocked_in' ? 'clock_out' : 'clock_in'
   }, [])
 
   const registerAttendance = useCallback(async (qrData: string, location?: { latitude: number; longitude: number }) => {
@@ -99,35 +100,15 @@ export function useAttendance() {
     try {
       const code = parseQRCodeData(qrData)
       if (!code) throw new Error('Invalid attendance QR code format.')
-      const qrCode = await validateQRCode(code)
-      if (!qrCode) throw new Error('QR code validation failed.')
-      const action = determineAction(qrCode, attendanceStatus.status)
-      const today = new Date().toISOString().slice(0, 10)
-      const { data: existing, error: existingError } = await supabase.from('attendance')
-        .select('id,status,check_in,check_out,metadata')
-        .eq('company_id', user.company_id).eq('user_id', user.id).eq('attendance_date', today).maybeSingle()
-      if (existingError) throw existingError
-
-      const now = new Date().toISOString()
-      let result
-      if (action === 'clock_in') {
-        if (existing?.check_in && !existing.check_out) throw new Error('You are already clocked in.')
-        if (existing) {
-          const { data, error } = await supabase.from('attendance').update({ check_in: now, check_out: null, status: 'present', metadata: { ...(existing.metadata ?? {}), qr_code_id: qrCode.id, ...(location ? { latitude: location.latitude, longitude: location.longitude } : {}) }, updated_at: now }).eq('id', existing.id).select().single()
-          if (error) throw error
-          result = data
-        } else {
-          const { data, error } = await supabase.from('attendance').insert({ company_id: user.company_id, user_id: user.id, attendance_date: today, status: 'present', check_in: now, created_by: user.id, metadata: { qr_code_id: qrCode.id, ...(location ? { latitude: location.latitude, longitude: location.longitude } : {}) } }).select().single()
-          if (error) throw error
-          result = data
-        }
-      } else {
-        if (!existing?.check_in || existing.check_out) throw new Error('You are not currently clocked in.')
-        const { data, error } = await supabase.from('attendance').update({ check_out: now, updated_at: now }).eq('id', existing.id).eq('company_id', user.company_id).select().single()
-        if (error) throw error
-        result = data
-      }
-
+      const { data, error } = await supabase.rpc('scan_attendance_qr', {
+        p_code: code,
+        p_latitude: location?.latitude ?? null,
+        p_longitude: location?.longitude ?? null,
+        p_metadata: { source: 'attendance_scanner' },
+      })
+      if (error) throw error
+      if (!data) throw new Error('Attendance scan returned no result.')
+      const result = data as unknown as ScanResult
       await fetchAttendanceStatus()
       return result
     } catch (error) {
@@ -135,7 +116,7 @@ export function useAttendance() {
       toast({ title: 'Attendance error', description: message, variant: 'destructive' })
       throw error
     } finally { setLoading(false) }
-  }, [attendanceStatus.status, determineAction, fetchAttendanceStatus, parseQRCodeData, toast, user?.company_id, user?.id, validateQRCode])
+  }, [fetchAttendanceStatus, parseQRCodeData, toast, user?.company_id, user?.id])
 
   return { loading, attendanceStatus, fetchAttendanceStatus, registerAttendance, parseQRCodeData, validateQRCode, determineAction }
 }
