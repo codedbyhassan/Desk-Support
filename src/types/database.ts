@@ -37,7 +37,7 @@ export interface Message{id:string;conversation_id:string;sender_id:string;messa
 export interface MessageAttachment{id:string;message_id:string;storage_path:string;file_name:string;mime_type:string;file_size_bytes:number;width:number|null;height:number|null;duration_seconds:number|null;created_at:string}
 export interface MessageReaction{message_id:string;user_id:string;reaction:string;created_at:string}
 export interface MessageReadReceipt{message_id:string;user_id:string;read_at:string}
-export interface Call{id:string;company_id:string;conversation_id:string|null;initiator_id:string;call_type:CallType;status:CallStatus;started_at:string|null;connected_at:string|null;ended_at:string|null;end_reason:string|null;metadata:Json;created_at:string;updated_at:string}
+export interface Call{id:string;company_id:string;conversation_id:string|null;ticket_id:string|null;asset_id:string|null;team_id:string|null;initiator_id:string;call_type:CallType;status:CallStatus;started_at:string|null;connected_at:string|null;ended_at:string|null;end_reason:string|null;metadata:Json;created_at:string;updated_at:string}
 export interface CallParticipant{call_id:string;user_id:string;role:'initiator'|'participant';status:'invited'|'ringing'|'connecting'|'connected'|'declined'|'missed'|'joined'|'left';joined_at:string|null;left_at:string|null;created_at:string}
 export function transformDbAsset(asset:Asset):Asset{return asset}
 export function transformDbUser(user:User):User{return user}
