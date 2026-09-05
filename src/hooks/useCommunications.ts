@@ -7,92 +7,16 @@ export type ConversationMember = { conversation_id:string; user_id:string; role:
 export type Message = { id:string; conversation_id:string; sender_id:string; message_type:string; body:string|null; reply_to_id:string|null; metadata:Record<string,unknown>; edited_at:string|null; deleted_at:string|null; created_at:string; updated_at:string; sender?: { id:string; full_name:string; avatar_path:string|null } }
 
 export function useCommunications(activeConversationId?: string|null) {
-  const { user, company } = useAuth()
-  const [conversations,setConversations]=useState<Conversation[]>([])
-  const [messages,setMessages]=useState<Message[]>([])
-  const [people,setPeople]=useState<ConversationMember['profile'][]>([])
-  const [loading,setLoading]=useState(true)
-  const [sending,setSending]=useState(false)
-  const [error,setError]=useState<string|null>(null)
-
-  const loadConversations=useCallback(async()=>{
-    if(!user?.id)return
-    const {data,error}=await supabase.from('conversation_members').select('conversation_id,role,joined_at,last_read_at,conversations!inner(id,company_id,kind,title,created_by,created_at,updated_at)').eq('user_id',user.id).order('joined_at',{ascending:false})
-    if(error){setError(error.message);return}
-    const rows=(data??[]).map((r:any)=>r.conversations).filter(Boolean)
-    setConversations(rows)
-  },[user?.id])
-
-  const loadPeople=useCallback(async()=>{
-    if(!company?.id)return
-    const {data,error}=await supabase.from('company_memberships').select('user_id,profiles!inner(id,full_name,avatar_path,is_online,last_seen_at)').eq('company_id',company.id).eq('is_active',true).neq('user_id',user?.id??'')
-    if(error)return
-    setPeople((data??[]).map((r:any)=>r.profiles).filter(Boolean))
-  },[company?.id,user?.id])
-
-  const loadMessages=useCallback(async(conversationId:string)=>{
-    const {data,error}=await supabase.from('messages').select('*,sender:profiles!messages_sender_id_fkey(id,full_name,avatar_path)').eq('conversation_id',conversationId).order('created_at',{ascending:true}).limit(200)
-    if(error){setError(error.message);return}
-    setMessages((data??[]) as Message[])
-    if(user?.id && data?.length){
-      const unread=(data as any[]).filter(m=>m.sender_id!==user.id && !m.deleted_at).map(m=>({message_id:m.id,user_id:user.id,read_at:new Date().toISOString()}))
-      if(unread.length)await supabase.from('message_read_receipts').upsert(unread,{onConflict:'message_id,user_id'})
-      await supabase.from('conversation_members').update({last_read_at:new Date().toISOString()}).eq('conversation_id',conversationId).eq('user_id',user.id)
-    }
-  },[user?.id])
-
-  useEffect(()=>{let alive=true; (async()=>{setLoading(true);await Promise.all([loadConversations(),loadPeople()]);if(alive)setLoading(false)})();return()=>{alive=false}},[loadConversations,loadPeople])
-  useEffect(()=>{if(activeConversationId)void loadMessages(activeConversationId);else setMessages([])},[activeConversationId,loadMessages])
-
-  useEffect(()=>{
-    if(!user?.id)return
-    const channel=supabase.channel(`communications:${user.id}`)
-      .on('postgres_changes',{event:'*',schema:'public',table:'conversation_members',filter:`user_id=eq.${user.id}`},()=>void loadConversations())
-      .on('postgres_changes',{event:'INSERT',schema:'public',table:'calls',filter:`company_id=eq.${company?.id??''}`},()=>void loadConversations())
-      .subscribe()
-    return()=>{void supabase.removeChannel(channel)}
-  },[user?.id,company?.id,loadConversations])
-
-  useEffect(()=>{
-    if(!activeConversationId)return
-    const channel=supabase.channel(`conversation:${activeConversationId}`)
-      .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`conversation_id=eq.${activeConversationId}`},(payload)=>setMessages(prev=>prev.some(m=>m.id===payload.new.id)?prev:[...prev,payload.new as Message]))
-      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'messages',filter:`conversation_id=eq.${activeConversationId}`},(payload)=>setMessages(prev=>prev.map(m=>m.id===payload.new.id?payload.new as Message:m)))
-      .on('postgres_changes',{event:'DELETE',schema:'public',table:'messages',filter:`conversation_id=eq.${activeConversationId}`},(payload)=>setMessages(prev=>prev.filter(m=>m.id!==payload.old.id)))
-      .subscribe()
-    return()=>{void supabase.removeChannel(channel)}
-  },[activeConversationId])
-
-  const startDirectMessage=useCallback(async(otherUserId:string)=>{
-    const {data,error}=await supabase.rpc('create_direct_conversation',{p_other_user_id:otherUserId})
-    if(error)throw error
-    await loadConversations()
-    return data as string
-  },[loadConversations])
-
-  const sendMessage=useCallback(async(body:string,replyToId?:string|null)=>{
-    if(!user?.id||!activeConversationId||!body.trim())return
-    setSending(true);setError(null)
-    const {data,error}=await supabase.from('messages').insert({conversation_id:activeConversationId,sender_id:user.id,message_type:'text',body:body.trim(),reply_to_id:replyToId??null}).select('*,sender:profiles!messages_sender_id_fkey(id,full_name,avatar_path)').single()
-    setSending(false)
-    if(error){setError(error.message);throw error}
-    setMessages(prev=>prev.some(m=>m.id===data.id)?prev:[...prev,data as Message])
-  },[user?.id,activeConversationId])
-
-  const toggleReaction=useCallback(async(messageId:string,reaction:string)=>{
-    if(!user?.id)return
-    const {data:existing}=await supabase.from('conversation_message_reactions').select('message_id').eq('message_id',messageId).eq('user_id',user.id).eq('reaction',reaction).maybeSingle()
-    if(existing)await supabase.from('conversation_message_reactions').delete().eq('message_id',messageId).eq('user_id',user.id).eq('reaction',reaction)
-    else await supabase.from('conversation_message_reactions').insert({message_id:messageId,user_id:user.id,reaction})
-  },[user?.id])
-
-  const startCall=useCallback(async(callType:'audio'|'video'='video')=>{
-    if(!activeConversationId)throw new Error('Select a conversation first')
-    const {data,error}=await supabase.rpc('start_call',{p_conversation_id:activeConversationId,p_call_type:callType})
-    if(error)throw error
-    return data as string
-  },[activeConversationId])
-
-  const activeConversation=useMemo(()=>conversations.find(c=>c.id===activeConversationId)??null,[conversations,activeConversationId])
-  return {conversations,people,messages,activeConversation,loading,sending,error,startDirectMessage,sendMessage,toggleReaction,startCall,refresh:loadConversations}
+ const {user,company}=useAuth(); const [conversations,setConversations]=useState<Conversation[]>([]); const [messages,setMessages]=useState<Message[]>([]); const [people,setPeople]=useState<ConversationMember['profile'][]>([]); const [loading,setLoading]=useState(true); const [sending,setSending]=useState(false); const [error,setError]=useState<string|null>(null)
+ const loadConversations=useCallback(async()=>{if(!user?.id)return;const {data,error}=await supabase.from('conversation_members').select('conversation_id,role,joined_at,last_read_at,conversations!inner(id,company_id,kind,title,created_by,created_at,updated_at)').eq('user_id',user.id).order('joined_at',{ascending:false});if(error){setError(error.message);return}const rows=(data??[]).map((r:any)=>r.conversations).filter(Boolean) as Conversation[];if(!rows.length){setConversations([]);return}const ids=rows.map(r=>r.id);const {data:members}=await supabase.from('conversation_members').select('conversation_id,user_id,role,joined_at,last_read_at,profiles!conversation_members_user_id_fkey(id,full_name,avatar_path,is_online,last_seen_at)').in('conversation_id',ids);const byId=new Map<string,ConversationMember[]>();for(const row of (members??[]) as any[]){const item={...row,profile:row.profiles};delete item.profiles;const list=byId.get(row.conversation_id)??[];list.push(item);byId.set(row.conversation_id,list)}setConversations(rows.map(c=>{const ms=byId.get(c.id)??[];const other=ms.find(m=>m.user_id!==user.id);return {...c,members:ms,title:c.title??(c.kind==='direct'?other?.profile?.full_name??'Direct message':c.kind==='team'?'Team conversation':'Group conversation')}}))},[user?.id])
+ const loadPeople=useCallback(async()=>{if(!company?.id)return;const {data}=await supabase.from('company_memberships').select('user_id,profiles!inner(id,full_name,avatar_path,is_online,last_seen_at)').eq('company_id',company.id).eq('is_active',true).neq('user_id',user?.id??'');setPeople((data??[]).map((r:any)=>r.profiles).filter(Boolean))},[company?.id,user?.id])
+ const loadMessages=useCallback(async(conversationId:string)=>{const {data,error}=await supabase.from('messages').select('*,sender:profiles!messages_sender_id_fkey(id,full_name,avatar_path)').eq('conversation_id',conversationId).order('created_at',{ascending:true}).limit(200);if(error){setError(error.message);return}setMessages((data??[]) as Message[]);if(user?.id&&data?.length){const unread=(data as any[]).filter(m=>m.sender_id!==user.id&&!m.deleted_at).map(m=>({message_id:m.id,user_id:user.id,read_at:new Date().toISOString()}));if(unread.length)await supabase.from('message_read_receipts').upsert(unread,{onConflict:'message_id,user_id'});await supabase.from('conversation_members').update({last_read_at:new Date().toISOString()}).eq('conversation_id',conversationId).eq('user_id',user.id)}},[user?.id])
+ useEffect(()=>{let alive=true;(async()=>{setLoading(true);await Promise.all([loadConversations(),loadPeople()]);if(alive)setLoading(false)})();return()=>{alive=false}},[loadConversations,loadPeople]); useEffect(()=>{if(activeConversationId)void loadMessages(activeConversationId);else setMessages([])},[activeConversationId,loadMessages])
+ useEffect(()=>{if(!user?.id)return;const channel=supabase.channel(`communications:${user.id}`).on('postgres_changes',{event:'*',schema:'public',table:'conversation_members',filter:`user_id=eq.${user.id}`},()=>void loadConversations()).on('postgres_changes',{event:'INSERT',schema:'public',table:'calls',filter:`company_id=eq.${company?.id??''}`},()=>void loadConversations()).subscribe();return()=>{void supabase.removeChannel(channel)}},[user?.id,company?.id,loadConversations])
+ useEffect(()=>{if(!activeConversationId)return;const channel=supabase.channel(`conversation:${activeConversationId}`).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`conversation_id=eq.${activeConversationId}`},payload=>setMessages(prev=>prev.some(m=>m.id===payload.new.id)?prev:[...prev,payload.new as Message])).on('postgres_changes',{event:'UPDATE',schema:'public',table:'messages',filter:`conversation_id=eq.${activeConversationId}`},payload=>setMessages(prev=>prev.map(m=>m.id===payload.new.id?payload.new as Message:m))).subscribe();return()=>{void supabase.removeChannel(channel)}},[activeConversationId])
+ const startDirectMessage=useCallback(async(otherUserId:string)=>{const {data,error}=await supabase.rpc('create_direct_conversation',{p_other_user_id:otherUserId});if(error)throw error;await loadConversations();return data as string},[loadConversations])
+ const sendMessage=useCallback(async(body:string,replyToId?:string|null)=>{if(!user?.id||!activeConversationId||!body.trim())return;setSending(true);setError(null);const {data,error}=await supabase.from('messages').insert({conversation_id:activeConversationId,sender_id:user.id,message_type:'text',body:body.trim(),reply_to_id:replyToId??null}).select('*,sender:profiles!messages_sender_id_fkey(id,full_name,avatar_path)').single();setSending(false);if(error){setError(error.message);throw error}setMessages(prev=>prev.some(m=>m.id===data.id)?prev:[...prev,data as Message])},[user?.id,activeConversationId])
+ const toggleReaction=useCallback(async(messageId:string,reaction:string)=>{if(!user?.id)return;const {data:existing}=await supabase.from('conversation_message_reactions').select('message_id').eq('message_id',messageId).eq('user_id',user.id).eq('reaction',reaction).maybeSingle();if(existing)await supabase.from('conversation_message_reactions').delete().eq('message_id',messageId).eq('user_id',user.id).eq('reaction',reaction);else await supabase.from('conversation_message_reactions').insert({message_id:messageId,user_id:user.id,reaction})},[user?.id])
+ const startCall=useCallback(async(callType:'audio'|'video'='video')=>{if(!activeConversationId)throw new Error('Select a conversation first');const {data,error}=await supabase.rpc('start_call',{p_conversation_id:activeConversationId,p_call_type:callType});if(error)throw error;return data as string},[activeConversationId])
+ const activeConversation=useMemo(()=>conversations.find(c=>c.id===activeConversationId)??null,[conversations,activeConversationId]);return {conversations,people,messages,activeConversation,loading,sending,error,startDirectMessage,sendMessage,toggleReaction,startCall,refresh:loadConversations}
 }
