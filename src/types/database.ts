@@ -2,7 +2,6 @@
  * Refresh from Supabase after every schema migration; do not hand-maintain domain models here. */
 export type Json = string | number | boolean | null | { [key:string]: Json | undefined } | Json[]
 type RecordTable = { Row: Record<string, unknown>; Insert: Record<string, unknown>; Update: Record<string, unknown>; Relationships: [] }
-type TextEnum<T extends string> = T
 
 export type Database = {
   __InternalSupabase: { PostgrestVersion: '14.5' }
@@ -77,4 +76,14 @@ export type Tables<T extends keyof DefaultSchema['Tables']> = DefaultSchema['Tab
 export type TablesInsert<T extends keyof DefaultSchema['Tables']> = DefaultSchema['Tables'][T]['Insert']
 export type TablesUpdate<T extends keyof DefaultSchema['Tables']> = DefaultSchema['Tables'][T]['Update']
 export type Enums<T extends keyof DefaultSchema['Enums']> = DefaultSchema['Enums'][T]
-void (null as unknown as TextEnum<string>)
+
+export type {
+  AssetStatus, AssetCondition, TicketStatus, TicketPriority, TicketChannel, UserRole,
+  ConversationKind, MessageType, CallType, CallStatus, Company, Department, Team, User,
+  Asset, AssetAssignment, AssetImage, AssetMaintenance, AssetHistory, AssetTicket,
+  AssetInsert, AssetUpdate, AssetFilters, Ticket, TicketAssignment, TicketAttachment,
+  TicketComment, TicketStatusHistory, TicketResolution, TicketSlaPolicy, TicketWithRelations,
+  AuditLog, Conversation, ConversationMember, Message, MessageAttachment, MessageReaction,
+  MessageReadReceipt, Call, CallParticipant,
+} from './domain'
+export { transformDbAsset, transformDbUser, transformDbTicket } from './domain'
