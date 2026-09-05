@@ -1,3 +1,0 @@
-/** Runtime client schema marker. Keep generated schema snapshots out of feature logic. */
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
-export type Database = any
