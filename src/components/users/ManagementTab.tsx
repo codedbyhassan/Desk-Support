@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Loader2, MoreHorizontal, Search, ShieldCheck, UserCheck, UserPlus, UserX, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
@@ -32,13 +32,15 @@ const PAGE_SIZE = 100
 export default function ManagementTab() {
   const { user: currentUser } = useAuth(); const { toast } = useToast(); const companyId = currentUser?.company_id
   const [memberships, setMemberships] = useState<Membership[]>([]); const [departments, setDepartments] = useState<{id:string;name:string}[]>([])
-  const [totalUsers, setTotalUsers] = useState(0); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false)
+  const [totalUsers, setTotalUsers] = useState(0); const [activeUsers, setActiveUsers] = useState(0); const [inactiveUsers, setInactiveUsers] = useState(0)
+  const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false)
   const [query, setQuery] = useState(''); const [tab, setTab] = useState<'all'|'active'|'inactive'>('all')
   const [inviteOpen, setInviteOpen] = useState(false); const [edit, setEdit] = useState<Membership|null>(null); const [statusTarget, setStatusTarget] = useState<Membership|null>(null)
   const [form, setForm] = useState({email:'',full_name:'',role:'employee',department_id:'none',phone:''})
 
-  const load = async () => {
-    if (!companyId) return; setLoading(true)
+  const load = useCallback(async () => {
+    if (!companyId) { setLoading(false); return }
+    setLoading(true)
     try {
       const [members, depts, counts] = await Promise.all([
         fetchSupabasePage<Membership>('company_memberships', 0, {
@@ -50,23 +52,27 @@ export default function ManagementTab() {
         getExactCompanyCounts(companyId),
       ])
       if (depts.error) throw depts.error
-      setMemberships(members.data); setDepartments(depts.data ?? []); setTotalUsers(counts.users_total)
-    } catch (error:any) { console.error('Failed to load people:',error); toast({title:'Unable to load people',description:error.message??'Please try again.',variant:'destructive'}) }
-    finally { setLoading(false) }
-  }
-  useEffect(()=>{void load()},[companyId])
+      setMemberships(members.data); setDepartments(depts.data ?? [])
+      setTotalUsers(counts.users_total); setActiveUsers(counts.users_active); setInactiveUsers(counts.users_inactive)
+    } catch (error: unknown) {
+      console.error('Failed to load people:', error)
+      toast({ title:'Unable to load people', description:error instanceof Error ? error.message : 'Please try again.', variant:'destructive' })
+    } finally { setLoading(false) }
+  }, [companyId, toast])
+
+  useEffect(()=>{void load()},[load])
 
   const visible = useMemo(()=>{const n=query.trim().toLowerCase(); return memberships.filter(m=>{
     const matches=tab==='all'||(tab==='active'?m.is_active:!m.is_active); const hay=`${m.profile?.full_name??''} ${m.role} ${m.department?.name??''}`.toLowerCase(); return matches&&(!n||hay.includes(n))
   })},[memberships,query,tab])
 
-  const invite = async (event:React.FormEvent)=>{event.preventDefault();if(!companyId)return;const email=form.email.trim().toLowerCase();const fullName=form.full_name.trim();if(!email||!fullName){toast({title:'Required fields missing',description:'Full name and email are required.',variant:'destructive'});return}setSaving(true);try{const payload={company_id:companyId,email,full_name:fullName,role:form.role,department_id:form.department_id==='none'?null:form.department_id,phone:form.phone.trim()||null};const {data,error}=await supabase.functions.invoke('invite-user',{body:payload});if(error)throw error;if(!data?.ok)throw new Error(data?.error??'Invitation failed');toast({title:'Invitation sent',description:`${fullName} can now finish their account setup.`});setInviteOpen(false);setForm({email:'',full_name:'',role:'employee',department_id:'none',phone:''});await load()}catch(error:any){toast({title:'Invitation failed',description:error.message??'Please try again.',variant:'destructive'})}finally{setSaving(false)}}
-  const saveEdit=async()=>{if(!companyId||!edit)return;setSaving(true);try{const payload={company_id:companyId,user_id:edit.user_id,full_name:edit.profile?.full_name??'User',role:edit.role,department_id:edit.department_id};const {data,error}=await supabase.functions.invoke('provision-user',{body:payload});if(error)throw error;if(!data?.ok)throw new Error(data?.error??'Update failed');toast({title:'Membership updated'});setEdit(null);await load()}catch(error:any){toast({title:'Update failed',description:error.message??'Please try again.',variant:'destructive'})}finally{setSaving(false)}}
-  const toggleStatus=async()=>{if(!companyId||!statusTarget)return;setSaving(true);try{const payload={company_id:companyId,user_id:statusTarget.user_id,is_active:!statusTarget.is_active};const {data,error}=await supabase.functions.invoke('manage-user-status',{body:payload});if(error)throw error;if(!data?.ok)throw new Error(data?.error??'Status update failed');toast({title:statusTarget.is_active?'Member deactivated':'Member reactivated'});setStatusTarget(null);await load()}catch(error:any){toast({title:'Status update failed',description:error.message??'Please try again.',variant:'destructive'})}finally{setSaving(false)}}
+  const invite = async (event:React.FormEvent)=>{event.preventDefault();if(!companyId)return;const email=form.email.trim().toLowerCase();const fullName=form.full_name.trim();if(!email||!fullName){toast({title:'Required fields missing',description:'Full name and email are required.',variant:'destructive'});return}setSaving(true);try{const payload={company_id:companyId,email,full_name:fullName,role:form.role,department_id:form.department_id==='none'?null:form.department_id,phone:form.phone.trim()||null};const {data,error}=await supabase.functions.invoke('invite-user',{body:payload});if(error)throw error;if(!data?.ok)throw new Error(data?.error??'Invitation failed');toast({title:'Invitation sent',description:`${fullName} can now finish their account setup.`});setInviteOpen(false);setForm({email:'',full_name:'',role:'employee',department_id:'none',phone:''});await load()}catch(error:unknown){toast({title:'Invitation failed',description:error instanceof Error?error.message:'Please try again.',variant:'destructive'})}finally{setSaving(false)}}
+  const saveEdit=async()=>{if(!companyId||!edit)return;setSaving(true);try{const payload={company_id:companyId,user_id:edit.user_id,full_name:edit.profile?.full_name??'User',role:edit.role,department_id:edit.department_id};const {data,error}=await supabase.functions.invoke('provision-user',{body:payload});if(error)throw error;if(!data?.ok)throw new Error(data?.error??'Update failed');toast({title:'Membership updated'});setEdit(null);await load()}catch(error:unknown){toast({title:'Update failed',description:error instanceof Error?error.message:'Please try again.',variant:'destructive'})}finally{setSaving(false)}}
+  const toggleStatus=async()=>{if(!companyId||!statusTarget)return;setSaving(true);try{const payload={company_id:companyId,user_id:statusTarget.user_id,is_active:!statusTarget.is_active};const {data,error}=await supabase.functions.invoke('manage-user-status',{body:payload});if(error)throw error;if(!data?.ok)throw new Error(data?.error??'Status update failed');toast({title:statusTarget.is_active?'Member deactivated':'Member reactivated'});setStatusTarget(null);await load()}catch(error:unknown){toast({title:'Status update failed',description:error instanceof Error?error.message:'Please try again.',variant:'destructive'})}finally{setSaving(false)}}
   const initials=(name?:string)=>(name??'U').split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase()
 
   return <div className="space-y-6">
-    <div className="grid gap-4 sm:grid-cols-3"><Card className="p-5"><p className="text-sm text-muted-foreground">Total members</p><p className="mt-1 text-2xl font-semibold">{totalUsers}</p></Card><Card className="p-5"><p className="text-sm text-muted-foreground">Active</p><p className="mt-1 text-2xl font-semibold">{memberships.filter(m=>m.is_active).length}</p></Card><Card className="p-5"><p className="text-sm text-muted-foreground">Inactive</p><p className="mt-1 text-2xl font-semibold">{memberships.filter(m=>!m.is_active).length}</p></Card></div>
+    <div className="grid gap-4 sm:grid-cols-3"><Card className="p-5"><p className="text-sm text-muted-foreground">Total members</p><p className="mt-1 text-2xl font-semibold">{totalUsers}</p></Card><Card className="p-5"><p className="text-sm text-muted-foreground">Active</p><p className="mt-1 text-2xl font-semibold">{activeUsers}</p></Card><Card className="p-5"><p className="text-sm text-muted-foreground">Inactive</p><p className="mt-1 text-2xl font-semibold">{inactiveUsers}</p></Card></div>
     <Card className="overflow-hidden"><div className="flex flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-between"><div><h2 className="text-lg font-semibold">People</h2><p className="text-sm text-muted-foreground">Manage company membership, roles and access.</p></div><Button onClick={()=>setInviteOpen(true)}><UserPlus className="mr-2 h-4 w-4"/>Invite member</Button></div>
       <div className="flex flex-col gap-3 border-b p-4 sm:flex-row"><div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/><Input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search people, roles or departments..." className="pl-9"/></div><Tabs value={tab} onValueChange={v=>setTab(v as typeof tab)}><TabsList><TabsTrigger value="all">All</TabsTrigger><TabsTrigger value="active">Active</TabsTrigger><TabsTrigger value="inactive">Inactive</TabsTrigger></TabsList></Tabs></div>
       {loading?<div className="flex min-h-64 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin"/></div>:visible.length===0?<div className="flex min-h-64 flex-col items-center justify-center gap-2 p-8 text-center"><Users className="h-8 w-8 text-muted-foreground"/><p className="font-medium">No members found</p></div>:<div className="divide-y">{visible.map(m=><div key={m.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex min-w-0 items-center gap-3"><Avatar><AvatarFallback>{initials(m.profile?.full_name)}</AvatarFallback></Avatar><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="truncate font-medium">{m.profile?.full_name??'Unnamed user'}</p><Badge variant={m.is_active?'secondary':'outline'}>{m.is_active?'Active':'Inactive'}</Badge></div><p className="truncate text-sm text-muted-foreground">{m.role} · {m.department?.name??'No department'}</p></div></div><div className="flex items-center gap-2"><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4"/></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={()=>setEdit(m)}><ShieldCheck className="mr-2 h-4 w-4"/>Edit role</DropdownMenuItem><DropdownMenuItem onClick={()=>setStatusTarget(m)}>{m.is_active?<><UserX className="mr-2 h-4 w-4"/>Deactivate</>:<><UserCheck className="mr-2 h-4 w-4"/>Reactivate</>}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></div>)}</div>}
