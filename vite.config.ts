@@ -37,7 +37,6 @@ export default defineConfig({
       'react-router-dom',
       '@supabase/supabase-js',
       'lucide-react',
-      'react-hot-toast',
     ],
   },
 })
