@@ -21,9 +21,10 @@ const ROLES = [
   { value: 'employee', label: 'Employee' }, { value: 'contractor', label: 'Contractor' }, { value: 'viewer', label: 'Viewer' },
 ] as const
 
+type Profile = { id:string; username:string; full_name:string; avatar_path:string|null; phone:string|null }
 type Membership = {
   id: string; user_id: string; company_id: string; role: string; department_id: string | null; is_active: boolean; joined_at: string
-  profile: { id:string; username:string; full_name: string; avatar_path: string | null; phone: string | null } | null
+  profile: Profile | null
   department: { name: string } | null
 }
 
@@ -43,16 +44,31 @@ export default function ManagementTab() {
     setLoading(true)
     try {
       const [members, depts, counts] = await Promise.all([
-        fetchSupabasePage<Membership>('company_memberships', 0, {
+        fetchSupabasePage<Omit<Membership,'profile'|'department'>>('company_memberships', 0, {
           pageSize: PAGE_SIZE, orderBy:'joined_at', ascending:false,
-          columns:'id,user_id,company_id,role,department_id,is_active,joined_at,profiles!company_memberships_user_id_fkey(id,username,full_name,avatar_path,phone),departments!company_memberships_department_id_fkey(name)',
+          columns:'id,user_id,company_id,role,department_id,is_active,joined_at',
           filter:q=>q.eq('company_id',companyId),
         }),
         supabase.from('departments').select('id,name').eq('company_id',companyId).order('name'),
         getExactCompanyCounts(companyId),
       ])
       if (depts.error) throw depts.error
-      setMemberships(members.data); setDepartments(depts.data ?? [])
+
+      const userIds = [...new Set(members.data.map(member => member.user_id).filter(Boolean))]
+      const profileRows = userIds.length
+        ? await supabase.from('profiles').select('id,username,full_name,avatar_path,phone').in('id', userIds)
+        : { data: [], error: null }
+      if (profileRows.error) throw profileRows.error
+
+      const profilesById = new Map<string, Profile>((profileRows.data ?? []).map(profile => [profile.id, profile as Profile]))
+      const departmentsById = new Map<string, {name:string}>((depts.data ?? []).map(department => [department.id, { name: department.name }]))
+      const normalized = members.data.map(member => ({
+        ...member,
+        profile: profilesById.get(member.user_id) ?? null,
+        department: member.department_id ? departmentsById.get(member.department_id) ?? null : null,
+      })) as Membership[]
+
+      setMemberships(normalized); setDepartments(depts.data ?? [])
       setTotalUsers(counts.users_total); setActiveUsers(counts.users_active); setInactiveUsers(counts.users_inactive)
     } catch (error: unknown) {
       console.error('Failed to load people:', error)
