@@ -34,7 +34,7 @@ This log records structural cleanup performed during Phase 1. It deliberately ex
 
 ## Migration reconciliation — NOT YET COMPLETE
 
-Remote Supabase migration history was inspected directly. The live project currently has 73 migration versions, beginning at `20260903231856` and ending at `20260905125424`.
+Remote Supabase migration history was inspected directly. The live project has **77 migration versions**, beginning at `20260903231856` and ending at `20260905125424`.
 
 The Git repository does not yet contain an exact one-to-one representation of that history. The repository still contains the older `0001`–`0016` naming scheme and is missing a number of live migrations from the `20260903...` and `20260904...` periods, plus several later timestamp/name variants.
 
