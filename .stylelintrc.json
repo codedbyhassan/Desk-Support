@@ -1,0 +1,14 @@
+{
+  "extends": ["stylelint-config-standard"],
+  "rules": {
+    "declaration-block-no-duplicate-properties": true,
+    "declaration-no-important": null,
+    "property-no-unknown": true,
+    "selector-pseudo-class-no-unknown": true,
+    "color-no-invalid-hex": true
+  },
+  "ignoreFiles": [
+    "dist/**",
+    "node_modules/**"
+  ]
+}
