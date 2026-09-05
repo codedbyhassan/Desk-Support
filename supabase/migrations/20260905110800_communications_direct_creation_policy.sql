@@ -1,0 +1,2 @@
+drop policy if exists conversation_members_insert on public.conversation_members;
+create policy conversation_members_insert on public.conversation_members for insert to authenticated with check((private.can_manage_conversation(conversation_id,(select auth.uid())) or exists(select 1 from public.conversations c where c.id=conversation_id and c.created_by=(select auth.uid()))) and private.is_company_member((select company_id from public.conversations where id=conversation_id),user_id));
