@@ -1,25 +1,20 @@
-import React from 'react'
-import { useParams, useLocation, useNavigate } from 'react-router-dom'
-import VideoCallView from '@/components/teams/VideoCallView'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Monitor, Loader2 } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/lib/auth'
+import { useWebRTCCall } from '@/hooks/useWebRTCCall'
 
-export default function CallPage() {
-  const { roomId } = useParams()
-  const { search } = useLocation()
-  const navigate = useNavigate()
-  const params = new URLSearchParams(search)
-  const mode = (params.get('mode') as 'lecture' | 'video') || 'video'
-  const initiator = params.get('initiator') === '1'
+function initials(name:string){return name.split(/\s+/).map(p=>p[0]).join('').slice(0,2).toUpperCase()}
+function VideoTile({stream,name,muted=false}:{stream:MediaStream|null;name:string;muted?:boolean}){const ref=useRef<HTMLVideoElement>(null);useEffect(()=>{if(ref.current)ref.current.srcObject=stream;return()=>{if(ref.current)ref.current.srcObject=null}},[stream]);return <div className="relative min-h-[260px] overflow-hidden rounded-2xl bg-slate-900"><video ref={ref} autoPlay playsInline muted={muted} className="h-full min-h-[260px] w-full object-cover"/>{!stream&&<div className="absolute inset-0 grid place-items-center"><div className="grid h-20 w-20 place-items-center rounded-full bg-slate-700 text-xl font-semibold text-white">{initials(name)}</div></div>}<div className="absolute bottom-3 left-3 rounded-lg bg-black/50 px-2.5 py-1.5 text-xs font-medium text-white backdrop-blur">{name}</div></div>}
 
-  if (!roomId) return <div className="p-6">No room specified</div>
-
-  const handleLeave = () => {
-    navigate(`/app/teams`)
-  }
-
-  return (
-    <div className="min-h-screen bg-background p-4">
-      <h2 className="text-xl font-semibold mb-4">Team Call — {roomId}</h2>
-      <VideoCallView roomId={roomId} mode={mode} initiator={initiator} onLeave={handleLeave} />
-    </div>
-  )
+export default function CallPage(){
+ const {callId}=useParams(); const [params]=useSearchParams(); const navigate=useNavigate(); const {user}=useAuth(); const [call,setCall]=useState<any>(null); const [participants,setParticipants]=useState<any[]>([]); const [error,setError]=useState<string|null>(null); const [elapsed,setElapsed]=useState(0); const type=params.get('type')==='audio'?'audio':'video'
+ const ids=useMemo(()=>participants.map(p=>p.user_id),[participants]); const rtc=useWebRTCCall(callId??null,ids)
+ useEffect(()=>{if(!callId||!user?.id)return;let alive=true;(async()=>{const {data,error}=await supabase.from('calls').select('*').eq('id',callId).single();if(error){if(alive)setError(error.message);return}const {data:ps,error:pe}=await supabase.from('call_participants_v2').select('call_id,user_id,role,status,profiles!call_participants_v2_user_id_fkey(id,full_name)').eq('call_id',callId);if(pe){if(alive)setError(pe.message);return}if(alive){setCall(data);setParticipants(ps??[]);}})();const ch=supabase.channel(`call-state:${callId}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'calls',filter:`id=eq.${callId}`},p=>setCall(p.new)).on('postgres_changes',{event:'UPDATE',schema:'public',table:'call_participants_v2',filter:`call_id=eq.${callId}`},p=>setParticipants(prev=>prev.map(x=>x.user_id===p.new.user_id?{...x,...p.new}:x))).subscribe();return()=>{alive=false;void supabase.removeChannel(ch)}},[callId,user?.id])
+ useEffect(()=>{if(!call||!user?.id)return;const mine=call.initiator_id===user.id;void rtc.start().then(()=>{if(mine)void rtc.connect()}).catch(e=>setError(e instanceof Error?e.message:'Could not access camera or microphone'));void supabase.rpc('update_call_status',{p_call_id:call.id,p_status:'connecting'}).catch(()=>{});return()=>{rtc.leave()}},[call?.id,call?.initiator_id,user?.id])
+ useEffect(()=>{const i=setInterval(()=>setElapsed(v=>v+1),1000);return()=>clearInterval(i)},[])
+ const leave=async()=>{if(callId)await supabase.rpc('update_call_status',{p_call_id:callId,p_status:'ended',p_reason:'left'});rtc.leave();navigate('/app/communications')}
+ const mins=Math.floor(elapsed/60).toString().padStart(2,'0');const secs=(elapsed%60).toString().padStart(2,'0');
+ return <div className="fixed inset-0 z-[100] flex flex-col bg-slate-950 text-white"><header className="flex h-16 items-center justify-between border-b border-white/10 px-5"><div><p className="text-sm font-semibold">{type==='video'?'Video call':'Audio call'}</p><p className="text-xs text-slate-400">{call?.status==='ringing'?'Ringing…':`${mins}:${secs}`}</p></div><div className="text-xs text-slate-400">{participants.length} participant{participants.length===1?'':'s'}</div></header><main className="min-h-0 flex-1 overflow-auto p-4 md:p-6"><div className={`mx-auto grid h-full max-w-6xl gap-4 ${Object.keys(rtc.remoteStreams).length>1?'md:grid-cols-2':'md:grid-cols-[minmax(0,1fr)_280px]'}`}><div className="min-h-[320px]"><VideoTile stream={type==='video'?rtc.localStream:null} name="You" muted/><div className="mt-3 text-xs text-slate-400">{error||'Secure peer-to-peer media connection'}</div></div>{participants.filter(p=>p.user_id!==user?.id).map(p=><VideoTile key={p.user_id} stream={rtc.remoteStreams[p.user_id]??null} name={p.profiles?.full_name||`User ${p.user_id.slice(0,6)}`}/>)}</div></main><footer className="flex h-24 items-center justify-center gap-3 border-t border-white/10"><button onClick={rtc.toggleAudio} className="grid h-12 w-12 place-items-center rounded-full bg-white/10 hover:bg-white/20">{rtc.muted?<MicOff/>:<Mic/>}</button><button onClick={rtc.toggleVideo} className="grid h-12 w-12 place-items-center rounded-full bg-white/10 hover:bg-white/20">{rtc.videoOff?<VideoOff/>:<Video/>}</button><button className="grid h-12 w-12 place-items-center rounded-full bg-white/10 hover:bg-white/20" title="Screen sharing" onClick={async()=>{try{const s=await navigator.mediaDevices.getDisplayMedia({video:true});const track=s.getVideoTracks()[0];Object.values((rtc as any).pcs??{}).forEach((pc:any)=>{const sender=pc.getSenders().find((x:any)=>x.track?.kind==='video');if(sender)sender.replaceTrack(track)})}catch{}}}><Monitor/></button><button onClick={()=>void leave()} className="grid h-12 w-14 place-items-center rounded-full bg-red-600 hover:bg-red-500"><PhoneOff/></button></footer>{!call&&!error&&<div className="absolute inset-0 grid place-items-center bg-slate-950/90"><Loader2 className="h-8 w-8 animate-spin"/></div>}</div>
 }
