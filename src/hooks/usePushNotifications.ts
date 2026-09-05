@@ -1,8 +1,3 @@
-/**
- * usePushNotifications Hook
- * Manages push notification initialization and status
- */
-
 import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/lib/auth'
 import { PushNotificationService } from '@/services/pushNotificationService'
@@ -15,132 +10,67 @@ interface PushNotificationStatus {
   permission: NotificationPermission
 }
 
+const emptyStatus: PushNotificationStatus = { supported: false, registered: false, subscribed: false, permission: 'default' }
+
 export function usePushNotifications() {
   const { user } = useAuth()
   const { toast } = useToast()
-  const [status, setStatus] = useState<PushNotificationStatus>({
-    supported: false,
-    registered: false,
-    subscribed: false,
-    permission: 'default',
-  })
+  const [status, setStatus] = useState<PushNotificationStatus>(emptyStatus)
   const [loading, setLoading] = useState(false)
-
-  // Get VAPID key from environment
   const VAPID_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string
 
-  // Check status on mount
-  useEffect(() => {
-    const checkStatus = async () => {
-      const newStatus = await PushNotificationService.getSubscriptionStatus()
-      setStatus(newStatus)
-      console.log('[Push Hook] Status:', newStatus)
-    }
+  const refreshStatus = useCallback(async () => {
+    const next = await PushNotificationService.getSubscriptionStatus(user?.id, user?.company_id)
+    setStatus(next)
+    return next
+  }, [user?.company_id, user?.id])
 
-    checkStatus()
-  }, [])
+  useEffect(() => { void refreshStatus() }, [refreshStatus])
 
-  // Initialize push notifications
   const initialize = useCallback(async () => {
-    if (!user?.id || !VAPID_KEY) {
-      console.warn('[Push Hook] Missing user or VAPID key')
+    if (!user?.id || !user.company_id || !VAPID_KEY) {
+      toast({ title: 'Push setup unavailable', description: 'Push notifications are not configured for this workspace.', variant: 'destructive' })
       return false
     }
-
     if (!PushNotificationService.isSupported()) {
-      toast({
-        title: 'Not Supported',
-        description: 'Push notifications are not supported in your browser',
-        variant: 'destructive',
-      })
+      toast({ title: 'Not supported', description: 'Push notifications are not supported in this browser.', variant: 'destructive' })
       return false
     }
-
     setLoading(true)
     try {
-      const success = await PushNotificationService.initialize(user.id, user.company_id || '', VAPID_KEY)
-
-      if (success) {
-        const newStatus = await PushNotificationService.getSubscriptionStatus()
-        setStatus(newStatus)
-        toast({
-          title: 'Enabled',
-          description: 'Push notifications have been enabled',
-        })
-        return true
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to enable push notifications',
-          variant: 'destructive',
-        })
+      const success = await PushNotificationService.initialize(user.id, user.company_id, VAPID_KEY)
+      const next = await refreshStatus()
+      if (!success || !next.subscribed) {
+        toast({ title: 'Push was not enabled', description: 'The browser or server did not confirm a registered push subscription.', variant: 'destructive' })
         return false
       }
-    } catch (error) {
-      console.error('[Push Hook] Error initializing:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to enable push notifications',
-        variant: 'destructive',
-      })
-      return false
+      toast({ title: 'Push enabled', description: 'This browser is now registered for push notifications.' })
+      return true
     } finally {
       setLoading(false)
     }
-  }, [user?.id, user?.company_id, VAPID_KEY, toast])
+  }, [VAPID_KEY, refreshStatus, toast, user?.company_id, user?.id])
 
-  // Disable push notifications
   const disable = useCallback(async () => {
     setLoading(true)
     try {
-      const success = await PushNotificationService.unsubscribeFromPush()
-
-      if (success) {
-        const newStatus = await PushNotificationService.getSubscriptionStatus()
-        setStatus(newStatus)
-        toast({
-          title: 'Disabled',
-          description: 'Push notifications have been disabled',
-        })
-        return true
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to disable push notifications',
-          variant: 'destructive',
-        })
+      const success = await PushNotificationService.unsubscribeFromPush(user?.id)
+      const next = await refreshStatus()
+      if (!success || next.subscribed) {
+        toast({ title: 'Push is still enabled', description: 'The browser and server did not confirm revocation.', variant: 'destructive' })
         return false
       }
-    } catch (error) {
-      console.error('[Push Hook] Error disabling:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to disable push notifications',
-        variant: 'destructive',
-      })
-      return false
+      toast({ title: 'Push disabled', description: 'This browser is no longer registered for push notifications.' })
+      return true
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [refreshStatus, toast, user?.id])
 
-  // Cleanup on logout
   const cleanup = useCallback(async () => {
-    await PushNotificationService.cleanup()
-    setStatus({
-      supported: false,
-      registered: false,
-      subscribed: false,
-      permission: 'default',
-    })
-  }, [])
+    await PushNotificationService.cleanup(user?.id)
+    setStatus(emptyStatus)
+  }, [user?.id])
 
-  return {
-    status,
-    loading,
-    initialize,
-    disable,
-    cleanup,
-    isSupported: PushNotificationService.isSupported(),
-  }
+  return { status, loading, initialize, disable, cleanup, refreshStatus, isSupported: PushNotificationService.isSupported() }
 }
