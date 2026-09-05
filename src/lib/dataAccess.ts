@@ -48,6 +48,7 @@ type SupabaseQuery = {
   order: (column: string, options: { ascending: boolean }) => SupabaseQuery
   eq: (column: string, value: unknown) => SupabaseQuery
   is: (column: string, value: null) => SupabaseQuery
+  in: (column: string, values: unknown[]) => SupabaseQuery
   or: (condition: string) => SupabaseQuery
   not: (column: string, operator: string, value: unknown) => SupabaseQuery
   range: (from: number, to: number) => Promise<{ data: unknown[] | null; error: { message: string } | null }>
@@ -55,7 +56,10 @@ type SupabaseQuery = {
 type QueryFilter = (query: SupabaseQuery) => SupabaseQuery
 
 export async function getExactCompanyCounts(companyId: string): Promise<ExactCompanyCounts> {
-  const { data, error } = await (supabase.rpc as unknown as (fn: string, args: { p_company_id: string }) => Promise<{ data: ExactCompanyCounts | null; error: { message: string } | null }>)('get_company_counts', { p_company_id: companyId })
+  const { data, error } = await (supabase.rpc as unknown as (fn: string, args: { p_company_id: string }) => Promise<{ data: ExactCompanyCounts | null; error: { message: string } | null }>)(
+    'get_company_counts',
+    { p_company_id: companyId },
+  )
   if (error) throw new Error(error.message)
   if (!data) throw new Error('No company counts were returned.')
   return data
