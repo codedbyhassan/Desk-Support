@@ -1,0 +1,16 @@
+alter function public.generate_profile_username() set search_path=public,private;
+alter function public.normalize_username(text) set search_path=public,private;
+revoke execute on function public.can_use_feature(uuid,text) from public;
+grant execute on function public.can_use_feature(uuid,text) to authenticated;
+revoke execute on function public.scan_attendance_qr(text,numeric,numeric,jsonb) from public;
+grant execute on function public.scan_attendance_qr(text,numeric,numeric,jsonb) to authenticated;
+revoke execute on function public.search_tickets(uuid,timestamptz,uuid,integer,text,uuid,uuid,uuid,uuid,text,text,boolean,uuid) from public;
+grant execute on function public.search_tickets(uuid,timestamptz,uuid,integer,text,uuid,uuid,uuid,uuid,text,text,boolean,uuid) to authenticated;
+revoke execute on function public.sync_team_conversation(uuid) from public;
+grant execute on function public.sync_team_conversation(uuid) to authenticated;
+revoke execute on function public.trg_create_team_conversation() from public;
+revoke execute on function public.trg_sync_company_entitlements() from public;
+revoke execute on function public.trg_sync_team_conversation() from public;
+create index if not exists attendance_sessions_qr_code_id_idx on public.attendance_sessions(qr_code_id);
+create index if not exists attendance_sessions_user_id_idx on public.attendance_sessions(user_id);
+create index if not exists presence_sessions_company_id_idx on public.presence_sessions(company_id);
