@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTickets } from '@/hooks/useTickets'
 import { TicketList } from '@/components/Ticket/TicketList'
 import { TicketForm } from '@/components/Ticket/TicketForm'
@@ -15,13 +15,165 @@ import { useToast } from '@/hooks/use-toast'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 
 interface TicketsPageProps { newTicket?: boolean }
-type TicketTab='incoming'|'outgoing'
-export default function TicketsPage({newTicket=false}:TicketsPageProps){
- const navigate=useNavigate();const location=useLocation();const {user}=useAuth();const {toast}=useToast();const {tickets,loading,fetchTickets}=useTickets();const [activeTab,setActiveTab]=useState<TicketTab>('incoming');const [showForm,setShowForm]=useState(newTicket||location.search.includes('new=true')||location.pathname==='/app/tickets/new');const [searchQuery,setSearchQuery]=useState('');const [statusFilter,setStatusFilter]=useState('all');const [priorityFilter,setPriorityFilter]=useState('all');const [archiveDialogOpen,setArchiveDialogOpen]=useState(false);const [ticketToArchive,setTicketToArchive]=useState<string|null>(null);const [archiving,setArchiving]=useState(false)
- useEffect(()=>{if(user?.company_id)void fetchTickets()},[fetchTickets,user?.company_id])
- const openCreateDialog=()=>{setShowForm(true);if(location.pathname!=='/app/tickets/new')navigate('/app/tickets/new')};const closeCreateDialog=()=>{setShowForm(false);if(location.pathname==='/app/tickets/new')navigate('/app/tickets')};const handleCreated=(id:string)=>{setShowForm(false);void fetchTickets();navigate(`/app/tickets/${id}`)}
- const archive=async()=>{if(!ticketToArchive||!user?.company_id)return;setArchiving(true);try{const {error}=await supabase.from('tickets').update({archived_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',ticketToArchive).eq('company_id',user.company_id);if(error)throw error;toast({title:'Ticket archived',description:'The ticket was removed from active queues.'});void fetchTickets()}catch(error){toast({title:'Could not archive ticket',description:error instanceof Error?error.message:'Please try again.',variant:'destructive'})}finally{setArchiving(false);setArchiveDialogOpen(false);setTicketToArchive(null)}}
- const matches=(ticket:typeof tickets[number])=>{const q=searchQuery.trim().toLowerCase();return(!q||ticket.subject.toLowerCase().includes(q)||ticket.description?.toLowerCase().includes(q)||String(ticket.ticket_number).includes(q))&&(statusFilter==='all'||ticket.status===statusFilter)&&(priorityFilter==='all'||ticket.priority===priorityFilter)}
- const personal=tickets.filter(t=>t.created_by===user?.id&&matches(t));const incoming=tickets.filter(t=>t.assigned_to===user?.id&&matches(t));const displayed=activeTab==='incoming'?incoming:personal;const open=tickets.filter(t=>t.status==='open').length;const progress=tickets.filter(t=>t.status==='in_progress').length;const resolved=tickets.filter(t=>t.status==='resolved'||t.status==='closed').length;const high=tickets.filter(t=>(t.priority==='high'||t.priority==='urgent')&&!['resolved','closed'].includes(t.status)).length
- return <div className="space-y-6"><section className="flex justify-end gap-2"><Button variant="outline" className="h-9 rounded-lg"><Download className="mr-2 h-4 w-4"/>Export</Button><Button onClick={openCreateDialog} className="h-9 rounded-lg"><Plus className="mr-2 h-4 w-4"/>New ticket</Button></section><section className="grid grid-cols-2 gap-3 lg:grid-cols-4">{([['Open',open,AlertCircle,'text-blue-600'],['In progress',progress,Clock3,'text-amber-600'],['Resolved',resolved,CheckCircle2,'text-emerald-600'],['High priority',high,AlertCircle,'text-red-600']] as Array<[string,number,LucideIcon,string]>).map(([label,value,Icon,color])=><Card key={label} className="border-border bg-card shadow-none"><div className="flex items-center justify-between p-4"><div><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-1 text-xl font-semibold">{value}</p></div><Icon className={`h-5 w-5 ${color}`}/></div></Card>)}</section><Dialog open={showForm} onOpenChange={open=>open?openCreateDialog():closeCreateDialog()}><DialogContent className="max-w-2xl p-0"><TicketForm onSubmit={handleCreated}/></DialogContent></Dialog><Card className="overflow-hidden border-border bg-card shadow-none"><div className="border-b border-border p-4 sm:p-5"><div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-semibold">{activeTab==='incoming'?'Assigned to me':'Created by me'}</h2><p className="text-xs text-muted-foreground">{displayed.length} matching {displayed.length===1?'ticket':'tickets'}</p></div><div className="inline-flex w-fit rounded-lg border border-border bg-muted/50 p-1"><button onClick={()=>setActiveTab('incoming')} className={`rounded-md px-3 py-1.5 text-xs font-medium ${activeTab==='incoming'?'bg-background text-foreground shadow-sm':'text-muted-foreground'}`}>Assigned to me <span className="ml-1 opacity-60">{incoming.length}</span></button><button onClick={()=>setActiveTab('outgoing')} className={`rounded-md px-3 py-1.5 text-xs font-medium ${activeTab==='outgoing'?'bg-background text-foreground shadow-sm':'text-muted-foreground'}`}>Created by me <span className="ml-1 opacity-60">{personal.length}</span></button></div></div><div className="flex flex-col gap-2 sm:flex-row"><div className="relative min-w-0 flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/><Input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Search ticket number, subject or description" className="h-10 rounded-lg pl-9"/></div><div className="flex gap-2"><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="h-10 w-[145px] rounded-lg"><Filter className="mr-2 h-4 w-4"/><SelectValue/></SelectTrigger><SelectContent><SelectItem value="all">All status</SelectItem><SelectItem value="open">Open</SelectItem><SelectItem value="in_progress">In progress</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="resolved">Resolved</SelectItem><SelectItem value="closed">Closed</SelectItem></SelectContent></Select><Select value={priorityFilter} onValueChange={setPriorityFilter}><SelectTrigger className="h-10 w-[145px] rounded-lg"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="all">All priority</SelectItem><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem><SelectItem value="urgent">Urgent</SelectItem></SelectContent></Select></div></div></div><div className="min-h-[280px] overflow-x-auto"><TicketList tickets={displayed} loading={loading} onRowClick={id=>navigate(`/app/tickets/${id}`)} actions={user?.role==='admin'?ticket=><Button variant="ghost" size="icon" onClick={event=>{event.stopPropagation();setTicketToArchive(ticket.id);setArchiveDialogOpen(true)}} className="h-8 w-8 text-muted-foreground hover:text-destructive" title="Archive ticket"><Trash2 className="h-4 w-4"/></Button>:undefined}/></div></Card><AlertDialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Archive ticket?</AlertDialogTitle><AlertDialogDescription>The ticket will leave active queues but remain in the database for audit history.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={archiving}>Cancel</AlertDialogCancel><AlertDialogAction onClick={archive} disabled={archiving}>{archiving?'Archiving…':'Archive ticket'}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div>
+type TicketTab = 'incoming' | 'outgoing'
+
+function csvCell(value: unknown) {
+  const text = String(value ?? '')
+  return `"${text.replace(/"/g, '""')}"`
+}
+
+export default function TicketsPage({ newTicket = false }: TicketsPageProps) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { user } = useAuth()
+  const { toast } = useToast()
+  const { tickets, loading, fetchTickets } = useTickets()
+  const [activeTab, setActiveTab] = useState<TicketTab>('incoming')
+  const [showForm, setShowForm] = useState(newTicket || location.search.includes('new=true') || location.pathname === '/app/tickets/new')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [priorityFilter, setPriorityFilter] = useState('all')
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false)
+  const [ticketToArchive, setTicketToArchive] = useState<string | null>(null)
+  const [archiving, setArchiving] = useState(false)
+
+  const openCreateDialog = () => {
+    setShowForm(true)
+    if (location.pathname !== '/app/tickets/new') navigate('/app/tickets/new')
+  }
+
+  const closeCreateDialog = () => {
+    setShowForm(false)
+    if (location.pathname === '/app/tickets/new') navigate('/app/tickets')
+  }
+
+  const handleCreated = (id: string) => {
+    setShowForm(false)
+    void fetchTickets(undefined, { showLoading: false })
+    navigate(`/app/tickets/${id}`)
+  }
+
+  const exportTickets = () => {
+    if (!displayed.length) {
+      toast({ title: 'Nothing to export', description: 'There are no tickets matching the current view.' })
+      return
+    }
+
+    const headers = ['Ticket', 'Subject', 'Status', 'Priority', 'Channel', 'Requester', 'Assignee', 'Created', 'Due']
+    const lines = displayed.map(ticket => [
+      ticket.ticket_number,
+      ticket.subject,
+      ticket.status,
+      ticket.priority,
+      ticket.channel,
+      ticket.requester?.full_name,
+      ticket.assignee?.full_name,
+      ticket.created_at,
+      ticket.due_at,
+    ].map(csvCell).join(','))
+
+    const blob = new Blob([[headers.map(csvCell).join(','), ...lines].join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `desk-support-tickets-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(url)
+    toast({ title: 'Export complete', description: `${displayed.length} ticket${displayed.length === 1 ? '' : 's'} exported.` })
+  }
+
+  const archive = async () => {
+    if (!ticketToArchive || !user?.company_id) return
+    setArchiving(true)
+    try {
+      const { error } = await supabase
+        .from('tickets')
+        .update({ archived_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq('id', ticketToArchive)
+        .eq('company_id', user.company_id)
+      if (error) throw error
+      toast({ title: 'Ticket archived', description: 'The ticket was removed from active queues.' })
+      void fetchTickets(undefined, { showLoading: false })
+    } catch (error) {
+      toast({ title: 'Could not archive ticket', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' })
+    } finally {
+      setArchiving(false)
+      setArchiveDialogOpen(false)
+      setTicketToArchive(null)
+    }
+  }
+
+  const matches = (ticket: typeof tickets[number]) => {
+    const q = searchQuery.trim().toLowerCase()
+    return (
+      (!q || ticket.subject.toLowerCase().includes(q) || ticket.description?.toLowerCase().includes(q) || String(ticket.ticket_number).includes(q))
+      && (statusFilter === 'all' || ticket.status === statusFilter)
+      && (priorityFilter === 'all' || ticket.priority === priorityFilter)
+    )
+  }
+
+  const personal = tickets.filter(t => t.created_by === user?.id && matches(t))
+  const incoming = tickets.filter(t => t.assigned_to === user?.id && matches(t))
+  const displayed = activeTab === 'incoming' ? incoming : personal
+  const open = tickets.filter(t => t.status === 'open').length
+  const progress = tickets.filter(t => t.status === 'in_progress').length
+  const resolved = tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length
+  const high = tickets.filter(t => (t.priority === 'high' || t.priority === 'urgent') && !['resolved', 'closed'].includes(t.status)).length
+
+  return (
+    <div className="space-y-6">
+      <section className="flex justify-end gap-2">
+        <Button variant="outline" className="h-9 rounded-lg" onClick={exportTickets}>
+          <Download className="mr-2 h-4 w-4" />Export
+        </Button>
+        <Button onClick={openCreateDialog} className="h-9 rounded-lg">
+          <Plus className="mr-2 h-4 w-4" />New ticket
+        </Button>
+      </section>
+
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {([['Open', open, AlertCircle, 'text-blue-600'], ['In progress', progress, Clock3, 'text-amber-600'], ['Resolved', resolved, CheckCircle2, 'text-emerald-600'], ['High priority', high, AlertCircle, 'text-red-600']] as Array<[string, number, LucideIcon, string]>).map(([label, value, Icon, color]) => (
+          <Card key={label} className="border-border bg-card shadow-none">
+            <div className="flex items-center justify-between p-4">
+              <div><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-1 text-xl font-semibold">{value}</p></div>
+              <Icon className={`h-5 w-5 ${color}`} />
+            </div>
+          </Card>
+        ))}
+      </section>
+
+      <Dialog open={showForm} onOpenChange={open => open ? openCreateDialog() : closeCreateDialog()}>
+        <DialogContent className="max-w-2xl p-0"><TicketForm onSubmit={handleCreated} /></DialogContent>
+      </Dialog>
+
+      <Card className="overflow-hidden border-border bg-card shadow-none">
+        <div className="border-b border-border p-4 sm:p-5">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div><h2 className="font-semibold">{activeTab === 'incoming' ? 'Assigned to me' : 'Created by me'}</h2><p className="text-xs text-muted-foreground">{displayed.length} matching {displayed.length === 1 ? 'ticket' : 'tickets'}</p></div>
+            <div className="inline-flex w-fit rounded-lg border border-border bg-muted/50 p-1">
+              <button onClick={() => setActiveTab('incoming')} className={`rounded-md px-3 py-1.5 text-xs font-medium ${activeTab === 'incoming' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}>Assigned to me <span className="ml-1 opacity-60">{incoming.length}</span></button>
+              <button onClick={() => setActiveTab('outgoing')} className={`rounded-md px-3 py-1.5 text-xs font-medium ${activeTab === 'outgoing' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}>Created by me <span className="ml-1 opacity-60">{personal.length}</span></button>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="relative min-w-0 flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search ticket number, subject or description" className="h-10 rounded-lg pl-9" /></div>
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="h-10 w-[145px] rounded-lg"><Filter className="mr-2 h-4 w-4" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All status</SelectItem><SelectItem value="open">Open</SelectItem><SelectItem value="in_progress">In progress</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="resolved">Resolved</SelectItem><SelectItem value="closed">Closed</SelectItem></SelectContent></Select>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}><SelectTrigger className="h-10 w-[145px] rounded-lg"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All priority</SelectItem><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem><SelectItem value="urgent">Urgent</SelectItem></SelectContent></Select>
+            </div>
+          </div>
+        </div>
+        <div className="min-h-[280px] overflow-x-auto"><TicketList tickets={displayed} loading={loading} onRowClick={id => navigate(`/app/tickets/${id}`)} actions={user?.role === 'admin' ? ticket => <Button variant="ghost" size="icon" onClick={event => { event.stopPropagation(); setTicketToArchive(ticket.id); setArchiveDialogOpen(true) }} className="h-8 w-8 text-muted-foreground hover:text-destructive" title="Archive ticket"><Trash2 className="h-4 w-4" /></Button> : undefined} /></div>
+      </Card>
+
+      <AlertDialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>Archive ticket?</AlertDialogTitle><AlertDialogDescription>The ticket will leave active queues but remain in the database for audit history.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel disabled={archiving}>Cancel</AlertDialogCancel><AlertDialogAction onClick={archive} disabled={archiving}>{archiving ? 'Archiving…' : 'Archive ticket'}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  )
 }
