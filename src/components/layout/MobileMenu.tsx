@@ -1,53 +1,27 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '@/lib/auth'
 import { useTheme } from '@/context/ThemeContext'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet'
-import { Sun, Moon, LogOut, BarChart3, Menu } from 'lucide-react'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Sun, Moon, LogOut, Menu, ChevronRight } from 'lucide-react'
 import { NavItem } from './types'
+import { useAuth } from '@/lib/auth'
 
 interface MobileMenuProps {
   navItems: NavItem[]
   mobileMenuOpen: boolean
   setMobileMenuOpen: (open: boolean) => void
-  primaryColor: string
-  hidden?: boolean
 }
 
-export function MobileMenu({ 
-  navItems, 
-  mobileMenuOpen, 
-  setMobileMenuOpen, 
-  primaryColor,
-  hidden = false
-}: MobileMenuProps) {
-  const { user, signOut } = useAuth()
+export function MobileMenu({ navItems, mobileMenuOpen, setMobileMenuOpen }: MobileMenuProps) {
+  const { signOut } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
-  // Helper function to lighten a color
-  const lightenColor = (color: string, percent: number): string => {
-    const num = parseInt(primaryColor.replace("#", ""), 16)
-    const amt = Math.round(2.55 * percent)
-    const R = (num >> 16) + amt
-    const G = (num >> 8 & 0x00FF) + amt
-    const B = (num & 0x0000FF) + amt
-    return "#" + (
-      0x1000000 +
-      (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
-      (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
-      (B < 255 ? (B < 1 ? 0 : B) : 255)
-    ).toString(16).slice(1)
-  }
+  const isActive = (href: string) => href === '/app/dashboard'
+    ? pathname === '/app' || pathname === '/app/dashboard' || pathname.startsWith('/app/dashboard/')
+    : pathname === href || pathname.startsWith(`${href}/`)
 
   const handleNavChange = (href: string) => {
     navigate(href)
@@ -63,113 +37,77 @@ export function MobileMenu({
     }
   }
 
+  const mainItems = navItems.filter(item => !['settings', 'notifications', 'profile'].includes(item.id))
+  const utilityItems = navItems.filter(item => ['notifications', 'settings', 'profile'].includes(item.id))
+
   return (
     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
       <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={`h-9 w-9 rounded-xl ${hidden ? 'hidden' : 'lg:hidden'}`}
-        >
-          <Menu className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg lg:hidden" aria-label="Open navigation menu">
+          <Menu className="h-5 w-5" aria-hidden="true" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="glass-menu w-[280px] p-0">
-        <SheetHeader className="p-4 border-b">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg bg-[hsla(0,0%,100%,0.15)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.2)]">
-              <BarChart3 className="h-5 w-5 text-foreground" />
-            </div>
-            <SheetTitle className="text-lg font-bold">Dashboard</SheetTitle>
-          </div>
-        </SheetHeader>
-        
-        <div className="py-4">
-          {/* User Info */}
-          <div className="px-4 pb-4 mb-4 border-b">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={user?.avatar_url || undefined} />
-                <AvatarFallback className="text-[hsl(var(--foreground))] bg-[hsla(0,0%,100%,0.15)] backdrop-blur-sm border border-[hsla(0,0%,100%,0.2)]">
-                  {user?.full_name?.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate">{user?.full_name}</p>
-                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-                <Badge variant="secondary" className="mt-1 text-xs">
-                  {user?.role}
-                </Badge>
-              </div>
-            </div>
+      <SheetContent side="left" className="w-[min(88vw,300px)] p-0">
+        <div className="flex h-full flex-col">
+          <div className="border-b border-border px-5 py-5">
+            <p className="text-base font-bold tracking-tight">Desk-Support</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Service workspace</p>
           </div>
 
-          {/* Navigation Items */}
-          <nav className="space-y-1 px-2">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavChange(item.href)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    isActive 
-                      ? 'bg-[hsla(0,0%,100%,0.2)] backdrop-blur-sm text-[hsl(var(--foreground))]'
-                      : 'bg-transparent text-[hsl(var(--muted-foreground))] hover:bg-[hsla(0,0%,100%,0.1)] hover:text-[hsl(var(--foreground))]'
-                  }`}
-                >
-                  <Icon className="h-5 w-5 shrink-0 text-foreground" />
-                  <span className="flex-1 text-left">{item.name}</span>
-                  {item.badge && (
-                    <Badge 
-                      className={`text-xs font-bold ${
-                        isActive 
-                          ? 'bg-[hsla(0,0%,100%,0.3)] backdrop-blur-sm text-[hsl(var(--foreground))]'
-                          : 'bg-[hsla(0,0%,100%,0.15)] backdrop-blur-sm text-[hsl(var(--muted-foreground))]'
-                      }`}
-                    >
-                      {item.badge}
-                    </Badge>
-                  )}
-                </button>
-              )
-            })}
-          </nav>
+          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-5">
+            <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Workspace</p>
+            <nav className="space-y-1" aria-label="Workspace navigation">
+              {mainItems.map(item => {
+                const Icon = item.icon
+                const active = isActive(item.href)
+                return (
+                  <button
+                    type="button"
+                    key={item.id}
+                    onClick={() => handleNavChange(item.href)}
+                    aria-current={active ? 'page' : undefined}
+                    className={`relative flex h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors ${active ? 'bg-primary/10 font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+                  >
+                    {active && <span className="absolute left-0 h-5 w-0.5 rounded-full bg-primary" aria-hidden="true" />}
+                    <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2.2 : 1.9} aria-hidden="true" />
+                    <span className="flex-1 text-left">{item.name}</span>
+                    {item.badge && <Badge className="bg-primary px-1.5 py-0.5 text-[11px] font-bold text-primary-foreground">{item.badge}</Badge>}
+                    {active && <ChevronRight className="h-3.5 w-3.5 opacity-50" aria-hidden="true" />}
+                  </button>
+                )
+              })}
+            </nav>
 
-          {/* Bottom Actions */}
-          <div className="mt-4 px-2 space-y-1">
-            <button
-              onClick={toggleTheme}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                theme === 'dark' 
-                  ? 'text-[hsl(var(--menu-hover-text))] hover:bg-[hsl(var(--avatar-border-dark))]' 
-                  : 'text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              {theme === 'dark' ? (
-                <>
-                  <Sun className="h-5 w-5 text-foreground" />
-                  <span className="text-foreground">Light Mode</span>
-                </>
-              ) : (
-                <>
-                  <Moon className="h-5 w-5 text-foreground" />
-                  <span className="text-foreground">Dark Mode</span>
-                </>
-              )}
+            <p className="mb-2 mt-7 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Account</p>
+            <nav className="space-y-1" aria-label="Account navigation">
+              {utilityItems.map(item => {
+                const Icon = item.icon
+                const active = isActive(item.href)
+                return (
+                  <button
+                    type="button"
+                    key={item.id}
+                    onClick={() => handleNavChange(item.href)}
+                    aria-current={active ? 'page' : undefined}
+                    className={`flex h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors ${active ? 'bg-primary/10 font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+                  >
+                    <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+                    <span className="flex-1 text-left">{item.name}</span>
+                    {item.badge && <Badge className="bg-primary px-1.5 py-0.5 text-[11px] font-bold text-primary-foreground">{item.badge}</Badge>}
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
+
+          <div className="space-y-1 border-t border-border p-3">
+            <button type="button" onClick={toggleTheme} className="flex h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+              {theme === 'dark' ? <Sun className="h-[18px] w-[18px]" aria-hidden="true" /> : <Moon className="h-[18px] w-[18px]" aria-hidden="true" />}
+              {theme === 'dark' ? 'Light mode' : 'Dark mode'}
             </button>
-            
-            <button
-              onClick={handleSignOut}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                theme === 'dark' 
-                  ? 'text-[hsl(var(--menu-hover-text))] hover:bg-[hsl(var(--avatar-border-dark))]' 
-                  : 'text-red-600 hover:bg-red-50'
-              }`}
-            >
-              <LogOut className="h-5 w-5 text-foreground" />
-              <span className="text-foreground">Sign Out</span>
+            <button type="button" onClick={handleSignOut} className="flex h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-destructive hover:bg-destructive/10" aria-label="Sign out">
+              <LogOut className="h-[18px] w-[18px]" aria-hidden="true" />
+              Sign out
             </button>
           </div>
         </div>
@@ -177,4 +115,3 @@ export function MobileMenu({
     </Sheet>
   )
 }
-
