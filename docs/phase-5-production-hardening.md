@@ -1,10 +1,10 @@
 # Phase 5 — Production Hardening
 
-## Architecture decision
+## Architecture decision — one user, one company
 
-Desk-Support commits to **multi-company membership support**. A user may belong to more than one active company. The application must maintain an explicit active-company selection and resolve role, department, settings, tickets, assets, communications, notifications and entitlements against that company. No code may silently select the first membership.
+Desk-Support commits to **one active company per user**. The existing application state model (`user.company_id`, company-scoped permissions and workspace settings) is therefore the canonical model. The database now enforces this with a unique constraint on `company_memberships.user_id`, preventing an account from silently acquiring a second company context that the UI cannot represent safely.
 
-The current database already supports multiple memberships. A company switcher and active-company persistence are therefore mandatory before production rollout.
+This deliberately favors correctness over an unfinished company switcher. If multi-company support is needed later, it must be a dedicated architecture change rather than an implicit behavior.
 
 ## Operational primitives
 
@@ -12,80 +12,74 @@ The database contains:
 - `rate_limit_buckets` and `consume_rate_limit()` for atomic fixed-window controls.
 - `operational_events` for structured operational events and latency/error metadata.
 
-These are intentionally private to service-role workers/functions. Application endpoints should use a server-side service-role boundary for abuse-sensitive operations rather than trusting client-supplied counters.
+These are private to service-role workers/functions. Abuse-sensitive endpoints must enforce limits server-side rather than trusting client counters or company headers.
 
 ## Required endpoint controls
 
 Apply `consume_rate_limit()` at the server boundary for:
-- payment webhooks: strict per-source/IP/event window;
+- payment webhooks: strict per-source/event window;
 - invite and provisioning: per-actor and target-email limits;
 - QR scans: per-user/device and QR-code limits;
 - ticket search: per-user/company query limits.
 
-Do not rate-limit by an untrusted company header alone.
-
 ## Idempotency
 
-- Payment webhooks use the provider event ID as a unique event key and must persist the event before applying subscription state.
+- Payment webhooks use provider event IDs and `subscription_events` as the replay guard.
 - Message creation uses `client_message_id` uniqueness.
-- Notification delivery must claim a pending row atomically before sending and record the attempt/result.
+- Notification delivery must claim a pending row atomically before sending and record attempts/results.
 - Background workers must use bounded exponential backoff and preserve failure state.
 
-## Realtime
+## Realtime and presence
 
-Every realtime consumer should handle `SUBSCRIBED`, `CHANNEL_ERROR`, `TIMED_OUT` and `CLOSED`. On recovery it should remove stale channels, recreate the subscription and perform a bounded state resync. The UI should expose an offline/reconnecting indicator.
-
-## Presence
-
-Presence is ephemeral. `is_online` must be derived from a heartbeat/session model with expiry, not treated as durable profile truth. Multiple tabs must be represented independently and a user is online while at least one valid session is alive.
+Every realtime consumer should handle subscription failure/timeout/close, recreate the channel and resync bounded state. Presence is ephemeral and should expire stale sessions rather than permanently storing `is_online=true`.
 
 ## WebRTC
 
-STUN-only calls are not production reliable. Before public rollout, configure a TURN service and inject short-lived TURN credentials. For calls above 4 participants, use an SFU architecture rather than expanding mesh peer connections.
+STUN-only calls are not production reliable. Configure TURN before public rollout. Calls above four participants should use an SFU rather than expanding mesh connections.
 
 ## Storage lifecycle
 
-Define retention by bucket, remove objects when their owning records are permanently deleted, and run a scheduled orphan scan. Enforce per-file and per-company quotas before accepting uploads.
+Define retention by bucket, remove objects when their owning records are permanently deleted, run scheduled orphan cleanup and enforce file/company quotas.
 
 ## Audit verification
 
-Security-critical mutations must have a corresponding audit event. Verification must cover authentication events, invites, role changes, user deactivation/removal, ticket assignment/status changes, asset assignment/retirement, company settings, and billing lifecycle changes. Audit failures must not be silently ignored.
+Security-critical mutations must have corresponding audit events. Verify login/logout, invites, role changes, deactivation/removal, ticket assignment/status, asset assignment/retirement, company settings and billing lifecycle changes. Audit failures must remain observable.
 
 ## Backup and restore
 
-Verify the Supabase plan's backup frequency and retention in the project dashboard. Perform a restore rehearsal into an isolated project/branch before production launch and record the restore timestamp, row-count checks, authentication/storage checks and application smoke-test result. A configuration check alone is not considered a restore test.
+Verify the Supabase plan's backup frequency/retention in the project dashboard. Perform a restore rehearsal into an isolated environment and record row-count, authentication/storage and application smoke-test results. Configuration alone is not a restore test.
 
 ## Platform matrix
 
 ### Web
-Camera, microphone, Web Push and WebRTC depend on secure context and browser permissions. Storage is browser-managed.
+Camera, microphone, Web Push and WebRTC require browser permissions and appropriate secure-context behavior.
 
 ### Electron
-Use `contextIsolation`, sandboxing, disabled Node integration and a controlled navigation policy. Production DevTools should remain disabled. Package signing and an update mechanism are release concerns.
+Production configuration must keep Node integration disabled, context isolation and sandbox enabled, web security enabled and DevTools disabled. Navigation should be constrained to trusted application URLs.
 
 ### Android/iOS
-Camera, microphone and notification permissions must be declared natively. Push and WebRTC require platform-specific integration; web-only service-worker push is not sufficient for native builds. Native icons/splash assets must be present in the generated platform projects.
+Camera, microphone and notification permissions must be declared natively. Native push/WebRTC require native integration; web service-worker push is not a substitute. Icons and splash assets must be present in generated native projects.
 
 ## Release checklist
 
 - [ ] Production environment variables reconciled with `.env.example`.
-- [ ] All migrations applied and verified against production.
+- [ ] Migrations applied and verified against production.
 - [ ] Edge Functions deployed from the same commit as migrations.
-- [ ] Storage buckets are private where required and policies verified.
+- [ ] Storage buckets/private policies verified.
 - [ ] Rate limits verified under repeated requests.
 - [ ] Webhook replay produces no duplicate state change.
 - [ ] Notification worker retry/claim behavior verified.
 - [ ] Realtime disconnect/reconnect tested.
 - [ ] Presence stale-session expiry tested.
-- [ ] TURN credentials tested from at least two network types.
+- [ ] TURN credentials tested from multiple network types.
 - [ ] Audit events verified for every security-critical action.
 - [ ] Backup configuration verified.
-- [ ] Restore rehearsal completed and documented.
+- [ ] Restore rehearsal completed.
 - [ ] Electron package smoke-tested.
-- [ ] Android/iOS native permissions/assets verified.
-- [ ] Monitoring dashboards checked.
+- [ ] Android/iOS permissions/assets verified.
+- [ ] Monitoring checked.
 - [ ] Rollback procedure rehearsed.
 
 ## Verification rule
 
-Do not mark a hardening item complete solely from static inspection. Each item needs an induced-failure test or an explicit platform/provider limitation recorded beside the checklist item.
+A hardening item is only complete after an induced-failure test or an explicitly recorded provider/platform limitation. Never silently swallow operational failures.
