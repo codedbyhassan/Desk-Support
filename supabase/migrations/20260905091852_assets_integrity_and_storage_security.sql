@@ -13,7 +13,6 @@ alter table public.asset_images add constraint asset_images_mime_type_check chec
 alter table public.asset_images drop constraint if exists asset_images_size_limit_check;
 alter table public.asset_images add constraint asset_images_size_limit_check check (file_size_bytes is null or file_size_bytes <= 10485760);
 create unique index if not exists idx_asset_images_storage_path_unique on public.asset_images(storage_path);
-create unique index if not exists idx_asset_tickets_asset_ticket_unique on public.asset_tickets(asset_id,ticket_id);
 create index if not exists idx_asset_maintenance_next_due on public.asset_maintenance(asset_id,next_due_at) where next_due_at is not null;
 
 -- Asset records are authenticated-only. RLS remains the row-level authorization layer.
@@ -71,17 +70,14 @@ begin
      and not exists (select 1 from public.asset_assignments aa where aa.asset_id = new.id and aa.returned_at is null) then
     raise exception 'An asset can only be marked assigned when it has an active assignment';
   end if;
-
   if new.status in ('active'::public.asset_status,'assigned'::public.asset_status)
      and exists (select 1 from public.asset_maintenance am where am.asset_id = new.id and am.status in ('open','in_progress')) then
     raise exception 'Complete or cancel active maintenance before returning the asset to active or assigned state';
   end if;
-
   if new.status in ('retired'::public.asset_status,'lost'::public.asset_status)
      and exists (select 1 from public.asset_assignments aa where aa.asset_id = new.id and aa.returned_at is null) then
     raise exception 'Return the asset before marking it retired or lost';
   end if;
-
   return new;
 end;
 $$;
@@ -89,24 +85,20 @@ revoke all on function private.prevent_invalid_asset_status() from public;
 drop trigger if exists trg_asset_status_validation on public.assets;
 create trigger trg_asset_status_validation before update of status on public.assets for each row execute function private.prevent_invalid_asset_status();
 
--- Atomic primary-image switching. The partial unique index guarantees that an
--- asset can have at most one primary image.
+-- Atomic primary-image switching. The function is SECURITY INVOKER so the
+-- existing asset-image RLS policies remain the authorization boundary.
 create or replace function public.set_primary_asset_image(p_asset_id uuid, p_image_id uuid)
 returns void
 language plpgsql
-security definer
-set search_path = ''
+security invoker
+set search_path = public
 as $$
-declare
-  v_company_id uuid;
 begin
-  if (select auth.uid()) is null then raise exception 'Authentication required'; end if;
-  select a.company_id into v_company_id from public.assets a where a.id = p_asset_id;
-  if v_company_id is null then raise exception 'Asset not found'; end if;
-  if not (select private.has_company_role(v_company_id, array['admin'::public.membership_role,'hr'::public.membership_role,'manager'::public.membership_role])) then raise exception 'You do not have permission to manage asset images'; end if;
-  if not exists (select 1 from public.asset_images ai where ai.id = p_image_id and ai.asset_id = p_asset_id) then raise exception 'Image does not belong to this asset'; end if;
+  if not exists (select 1 from public.asset_images ai where ai.id = p_image_id and ai.asset_id = p_asset_id) then
+    raise exception 'Image does not belong to this asset';
+  end if;
   update public.asset_images set is_primary = false where asset_id = p_asset_id and is_primary;
-  update public.asset_images set is_primary = true where id = p_image_id;
+  update public.asset_images set is_primary = true where id = p_image_id and asset_id = p_asset_id;
 end;
 $$;
 revoke all on function public.set_primary_asset_image(uuid,uuid) from public, anon;
