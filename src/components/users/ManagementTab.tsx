@@ -23,7 +23,7 @@ const ROLES = [
 
 type Membership = {
   id: string; user_id: string; company_id: string; role: string; department_id: string | null; is_active: boolean; joined_at: string
-  profile: { full_name: string; avatar_url: string | null; phone: string | null } | null
+  profile: { full_name: string; phone: string | null } | null
   department: { name: string } | null
 }
 
@@ -45,7 +45,7 @@ export default function ManagementTab() {
       const [members, depts, counts] = await Promise.all([
         fetchSupabasePage<Membership>('company_memberships', 0, {
           pageSize: PAGE_SIZE, orderBy:'joined_at', ascending:false,
-          columns:'id,user_id,company_id,role,department_id,is_active,joined_at,profiles!company_memberships_user_id_fkey(full_name,avatar_url,phone),departments!company_memberships_department_id_fkey(name)',
+          columns:'id,user_id,company_id,role,department_id,is_active,joined_at,profiles!company_memberships_user_id_fkey(full_name,phone),departments!company_memberships_department_id_fkey(name)',
           filter:q=>q.eq('company_id',companyId),
         }),
         supabase.from('departments').select('id,name').eq('company_id',companyId).order('name'),
