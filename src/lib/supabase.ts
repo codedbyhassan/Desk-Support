@@ -1,8 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Asset, Ticket, User } from '@/types/database'
-
-export type { Asset, User }
-export type Tickets = Ticket
+import type { Database } from '@/types/database'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -12,13 +9,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 /**
- * Single browser Supabase client.
+ * The single browser Supabase client for Desk-Support.
  *
- * The database schema is the runtime source of truth. Generated database
- * typings are maintained separately so stale historical types cannot silently
- * redirect the application to removed tables or columns.
+ * Database is supplied at the client boundary so every feature shares the
+ * same schema contract. Domain/feature types should be derived from
+ * `@/types/database` or `@/types/domain`, never from another client wrapper.
  */
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
