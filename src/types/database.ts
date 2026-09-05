@@ -27,6 +27,18 @@ export interface TicketResolution{id:string;ticket_id:string;resolved_by:string;
 export interface TicketSlaPolicy{id:string;company_id:string;name:string;department_id:string|null;category_id:string|null;priority:TicketPriority|null;first_response_minutes:number;resolution_minutes:number;is_active:boolean;created_at:string;updated_at:string}
 export interface TicketWithRelations extends Ticket{status_history?:TicketStatusHistory[];attachments?:TicketAttachment[];comments?:TicketComment[];resolution?:TicketResolution|null}
 export interface AuditLog{id:string;company_id:string;actor_id:string|null;action:string;entity_type:string;entity_id:string|null;description:string|null;changes:Json;metadata:Json;ip_address?:unknown;user_agent:string|null;occurred_at:string;created_at:string}
+export type ConversationKind='direct'|'group'|'team'|'ticket'
+export type MessageType='text'|'image'|'video'|'audio'|'voice'|'file'|'system'|'call'
+export type CallType='audio'|'video'
+export type CallStatus='initiating'|'ringing'|'connecting'|'connected'|'ended'|'declined'|'missed'|'failed'|'disconnected'
+export interface Conversation{id:string;company_id:string;kind:ConversationKind;title:string|null;avatar_path:string|null;metadata:Json;created_by:string;created_at:string;updated_at:string}
+export interface ConversationMember{conversation_id:string;user_id:string;role:'owner'|'admin'|'member';joined_at:string;last_read_at:string|null;muted_until:string|null;archived_at:string|null}
+export interface Message{id:string;conversation_id:string;sender_id:string;message_type:MessageType;body:string|null;reply_to_id:string|null;metadata:Json;edited_at:string|null;deleted_at:string|null;created_at:string;updated_at:string}
+export interface MessageAttachment{id:string;message_id:string;storage_path:string;file_name:string;mime_type:string;file_size_bytes:number;width:number|null;height:number|null;duration_seconds:number|null;created_at:string}
+export interface MessageReaction{message_id:string;user_id:string;reaction:string;created_at:string}
+export interface MessageReadReceipt{message_id:string;user_id:string;read_at:string}
+export interface Call{id:string;company_id:string;conversation_id:string|null;initiator_id:string;call_type:CallType;status:CallStatus;started_at:string|null;connected_at:string|null;ended_at:string|null;end_reason:string|null;metadata:Json;created_at:string;updated_at:string}
+export interface CallParticipant{call_id:string;user_id:string;role:'initiator'|'participant';status:'invited'|'ringing'|'connecting'|'connected'|'declined'|'missed'|'joined'|'left';joined_at:string|null;left_at:string|null;created_at:string}
 export function transformDbAsset(asset:Asset):Asset{return asset}
 export function transformDbUser(user:User):User{return user}
 export function transformDbTicket(ticket:TicketWithRelations):TicketWithRelations{return ticket}
