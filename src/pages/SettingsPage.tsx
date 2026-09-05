@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,166 +14,27 @@ import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase'
 
 type Section = 'account' | 'security' | 'workspace' | 'notifications' | 'appearance' | 'company' | 'billing'
+type MfaFactor = { id:string;friendly_name?:string|null;factor_type:'totp'|'phone';status:'verified'|'unverified' }
+const sections:Array<{id:Section;label:string;icon:typeof User}>=[{id:'account',label:'Account',icon:User},{id:'security',label:'Security',icon:Shield},{id:'workspace',label:'Workspace',icon:BriefcaseBusiness},{id:'notifications',label:'Notifications',icon:Bell},{id:'appearance',label:'Appearance',icon:Palette},{id:'company',label:'Company',icon:Building2},{id:'billing',label:'Billing',icon:CreditCard}]
+function SectionCard({icon:Icon,title,description,children,id}:{icon:typeof User;title:string;description:string;children:ReactNode;id:string}){return <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-24"><Card className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"><div className="border-b border-border bg-muted/20 px-5 py-5 sm:px-6"><div className="flex items-center gap-3"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Icon className="h-5 w-5" aria-hidden="true"/></div><div><h2 id={`${id}-title`} className="text-base font-semibold sm:text-lg">{title}</h2><p className="mt-0.5 text-sm text-muted-foreground">{description}</p></div></div></div><CardContent className="p-5 sm:p-6">{children}</CardContent></Card></section>}
 
-type MfaFactor = { id: string; friendly_name?: string | null; factor_type: 'totp' | 'phone'; status: 'verified' | 'unverified' }
-
-const sections: Array<{ id: Section; label: string; icon: typeof User }> = [
-  { id: 'account', label: 'Account', icon: User },
-  { id: 'security', label: 'Security', icon: Shield },
-  { id: 'workspace', label: 'Workspace', icon: BriefcaseBusiness },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'appearance', label: 'Appearance', icon: Palette },
-  { id: 'company', label: 'Company', icon: Building2 },
-  { id: 'billing', label: 'Billing', icon: CreditCard },
-]
-
-function SectionCard({ icon: Icon, title, description, children, id }: { icon: typeof User; title: string; description: string; children: React.ReactNode; id: string }) {
-  return <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-24">
-    <Card className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="border-b border-border bg-muted/20 px-5 py-5 sm:px-6">
-        <div className="flex items-center gap-3"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Icon className="h-5 w-5" aria-hidden="true" /></div><div><h2 id={`${id}-title`} className="text-base font-semibold sm:text-lg">{title}</h2><p className="mt-0.5 text-sm text-muted-foreground">{description}</p></div></div>
-      </div>
-      <CardContent className="p-5 sm:p-6">{children}</CardContent>
-    </Card>
-  </section>
-}
-
-export default function SettingsPage() {
-  const { toast } = useToast()
-  const { user, company, settings, loading, updateProfile, updateCompany, updateSettings } = useAuth()
-  const { activeTab, setActiveTab } = useDashboardTab()
-  const selected = (sections.some(section => section.id === activeTab) ? activeTab : 'account') as Section
-  const isAdmin = user?.role === 'admin'
-  const [companyName, setCompanyName] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [editingPassword, setEditingPassword] = useState(false)
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [mfaFactors, setMfaFactors] = useState<MfaFactor[]>([])
-  const [mfaLoading, setMfaLoading] = useState(false)
-  const [mfaCode, setMfaCode] = useState('')
-  const [pendingFactor, setPendingFactor] = useState<{ id: string; secret?: string } | null>(null)
-
-  useEffect(() => { if (company) setCompanyName(company.name || ''); if (user) { setFullName(user.full_name || ''); setPhone(user.phone || '') } }, [company, user])
-  useEffect(() => { if (activeTab !== selected) setActiveTab(selected) }, [activeTab, selected, setActiveTab])
-  useEffect(() => { const loadMfa = async () => { const { data } = await supabase.auth.mfa.listFactors(); setMfaFactors((data?.all ?? []) as MfaFactor[]) }; void loadMfa() }, [])
-
-  const verifiedMfa = useMemo(() => mfaFactors.filter(factor => factor.status === 'verified'), [mfaFactors])
-
-  const handleUpdateProfile = async () => {
-    if (!fullName.trim()) { toast({ title: 'Full name required', description: 'Enter your full name before saving.', variant: 'destructive' }); return }
-    setSaving(true)
-    try { await updateProfile({ full_name: fullName.trim(), phone: phone.trim() || null }); toast({ title: 'Profile updated', description: 'Your account information has been saved.' }) }
-    catch (error) { toast({ title: 'Update failed', description: error instanceof Error ? error.message : 'Failed to update your profile.', variant: 'destructive' }) }
-    finally { setSaving(false) }
-  }
-
-  const handleUpdateCompany = async () => {
-    if (!isAdmin || !companyName.trim()) return
-    setSaving(true)
-    try { await updateCompany({ name: companyName.trim() }); toast({ title: 'Company updated', description: 'Company information has been saved.' }) }
-    catch (error) { toast({ title: 'Update failed', description: error instanceof Error ? error.message : 'Failed to update company.', variant: 'destructive' }) }
-    finally { setSaving(false) }
-  }
-
-  const handlePasswordUpdate = async () => {
-    if (newPassword.length < 8) { toast({ title: 'Password too short', description: 'Use at least 8 characters.', variant: 'destructive' }); return }
-    if (newPassword !== confirmPassword) { toast({ title: 'Passwords do not match', description: 'Confirm the new password and try again.', variant: 'destructive' }); return }
-    setSaving(true)
-    try { const { error } = await supabase.auth.updateUser({ password: newPassword }); if (error) throw error; toast({ title: 'Password updated', description: 'Your password has been changed.' }); setNewPassword(''); setConfirmPassword(''); setEditingPassword(false) }
-    catch (error) { toast({ title: 'Update failed', description: error instanceof Error ? error.message : 'Failed to update your password.', variant: 'destructive' }) }
-    finally { setSaving(false) }
-  }
-
-  const enrollMfa = async () => {
-    setMfaLoading(true)
-    try {
-      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Desk-Support authenticator' })
-      if (error) throw error
-      setPendingFactor({ id: data.id, secret: data.totp?.secret })
-      toast({ title: 'Authenticator created', description: 'Add the secret to your authenticator app, then enter the verification code.' })
-    } catch (error) { toast({ title: 'MFA setup failed', description: error instanceof Error ? error.message : 'Could not start MFA setup.', variant: 'destructive' }) }
-    finally { setMfaLoading(false) }
-  }
-
-  const verifyMfa = async () => {
-    if (!pendingFactor || !/^\d{6}$/.test(mfaCode)) { toast({ title: 'Invalid code', description: 'Enter the 6-digit authenticator code.', variant: 'destructive' }); return }
-    setMfaLoading(true)
-    try {
-      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: pendingFactor.id }); if (challengeError) throw challengeError
-      const { error } = await supabase.auth.mfa.verify({ factorId: pendingFactor.id, challengeId: challenge.id, code: mfaCode }); if (error) throw error
-      const { data } = await supabase.auth.mfa.listFactors(); setMfaFactors((data?.all ?? []) as MfaFactor[]); setPendingFactor(null); setMfaCode(''); toast({ title: 'MFA enabled', description: 'Your authenticator factor is now verified.' })
-    } catch (error) { toast({ title: 'Verification failed', description: error instanceof Error ? error.message : 'The code could not be verified.', variant: 'destructive' }) }
-    finally { setMfaLoading(false) }
-  }
-
-  const removeMfa = async (factorId: string) => {
-    setMfaLoading(true)
-    try { const { error } = await supabase.auth.mfa.unenroll({ factorId }); if (error) throw error; setMfaFactors(current => current.filter(factor => factor.id !== factorId)); toast({ title: 'MFA factor removed', description: 'The authenticator factor has been removed.' }) }
-    catch (error) { toast({ title: 'Could not remove MFA', description: error instanceof Error ? error.message : 'The factor could not be removed.', variant: 'destructive' }) }
-    finally { setMfaLoading(false) }
-  }
-
-  if (loading) return <Loader fullPage />
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Manage your account, workspace and connected capabilities.</p>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[190px_minmax(0,1fr)]">
-        <nav className="h-fit rounded-2xl border border-border bg-card p-2 lg:sticky lg:top-24" aria-label="Settings sections">
-          <div className="grid grid-cols-2 gap-1 sm:grid-cols-4 lg:grid-cols-1">
-            {sections.map(section => { const Icon = section.icon; const active = selected === section.id; return <button type="button" key={section.id} onClick={() => { setActiveTab(section.id); document.getElementById(section.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} className={`flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium ${active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`} aria-current={active ? 'location' : undefined}><Icon className="h-4 w-4 shrink-0" aria-hidden="true" />{section.label}</button> })}
-          </div>
-        </nav>
-
-        <div className="space-y-6">
-          <SectionCard id="account" icon={User} title="Account" description="Update the personal information used across your workspace.">
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              <div className="space-y-2 md:col-span-2"><Label htmlFor="settings-email">Email</Label><Input id="settings-email" value={user?.email || ''} disabled /><p className="text-sm text-muted-foreground">Email changes are intentionally not offered here.</p></div>
-              <div className="space-y-2"><Label htmlFor="settings-name">Full name</Label><Input id="settings-name" value={fullName} onChange={e => setFullName(e.target.value)} /></div>
-              <div className="space-y-2"><Label htmlFor="settings-phone">Phone</Label><Input id="settings-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} /></div>
-            </div>
-            <div className="mt-5 flex justify-end border-t border-border pt-5"><Button type="button" onClick={() => void handleUpdateProfile()} disabled={saving} className="w-full rounded-xl sm:w-auto">{saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Saving…</> : 'Save account'}</Button></div>
-          </SectionCard>
-
-          <SectionCard id="security" icon={Shield} title="Security" description="Change your password and manage a real authenticator-based MFA factor.">
-            <div className="space-y-5">
-              <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold">Password</p><p className="mt-1 text-sm text-muted-foreground">Use at least 8 characters. The change is applied through Supabase Auth.</p></div><Button type="button" variant="outline" onClick={() => setEditingPassword(v => !v)} className="rounded-xl">{editingPassword ? 'Cancel' : 'Change password'}</Button></div>
-              {editingPassword && <div className="grid gap-4 rounded-xl border border-border p-4 md:grid-cols-2"><div className="space-y-2"><Label htmlFor="new-password">New password</Label><Input id="new-password" type="password" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} /></div><div className="space-y-2"><Label htmlFor="confirm-password">Confirm password</Label><Input id="confirm-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} /></div><div className="md:col-span-2"><Button type="button" onClick={() => void handlePasswordUpdate()} disabled={saving} className="w-full sm:w-auto">{saving ? 'Updating…' : 'Update password'}</Button></div></div>}
-              <div className="border-t border-border pt-5"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-semibold">Authenticator app (MFA)</p><p className="mt-1 text-sm text-muted-foreground">{verifiedMfa.length ? `${verifiedMfa.length} verified factor${verifiedMfa.length === 1 ? '' : 's'} active.` : 'No verified authenticator factor is active.'}</p></div><LockKeyhole className="h-5 w-5 text-muted-foreground" aria-hidden="true" /></div>
-                {verifiedMfa.map(factor => <div key={factor.id} className="mt-4 flex flex-col gap-3 rounded-xl border border-border p-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-2 text-sm"><CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />{factor.friendly_name || 'Authenticator app'}<span className="text-muted-foreground">· verified</span></div><Button type="button" variant="outline" onClick={() => void removeMfa(factor.id)} disabled={mfaLoading} className="rounded-xl">Remove</Button></div>)}
-                {!pendingFactor && !verifiedMfa.length && <Button type="button" onClick={() => void enrollMfa()} disabled={mfaLoading} className="mt-4 rounded-xl">{mfaLoading ? 'Starting…' : 'Set up authenticator'}</Button>}
-                {pendingFactor && <div className="mt-4 space-y-4 rounded-xl border border-primary/20 bg-primary/5 p-4"><div className="flex items-center gap-2 text-sm font-semibold"><KeyRound className="h-4 w-4" aria-hidden="true" />Authenticator secret</div><code className="block break-all rounded-lg bg-background p-3 text-xs">{pendingFactor.secret || 'Open your authenticator QR setup if supported by the client.'}</code><div className="space-y-2"><Label htmlFor="mfa-code">6-digit verification code</Label><Input id="mfa-code" inputMode="numeric" maxLength={6} value={mfaCode} onChange={e => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" /></div><div className="flex flex-col gap-2 sm:flex-row"><Button type="button" onClick={() => void verifyMfa()} disabled={mfaLoading} className="rounded-xl">{mfaLoading ? 'Verifying…' : 'Verify and enable'}</Button><Button type="button" variant="ghost" onClick={() => setPendingFactor(null)} disabled={mfaLoading} className="rounded-xl">Cancel</Button></div></div>}
-              </div>
-            </div>
-          </SectionCard>
-
-          <SectionCard id="workspace" icon={BriefcaseBusiness} title="Workspace" description="Workspace identity and configuration that are currently backed by the connected company record.">
-            <div className="grid gap-4 sm:grid-cols-2"><div className="rounded-xl border border-border p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Workspace</p><p className="mt-1 font-semibold">{company?.name || 'Workspace'}</p></div><div className="rounded-xl border border-border p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Timezone</p><p className="mt-1 font-semibold">{settings?.timezone || 'Workspace default'}</p></div></div>
-            <p className="mt-4 text-sm text-muted-foreground">Workspace-wide configuration is managed through the dedicated administrative screens; no local-only workspace switches are exposed here.</p>
-          </SectionCard>
-
-          <SectionCard id="notifications" icon={Bell} title="Notifications" description="Control notification preferences and browser push registration."><NotificationSettingsTab /></SectionCard>
-          <SectionCard id="appearance" icon={Palette} title="Appearance" description="Control the interface theme, density, typography and accessibility options."><AppearanceSettings /></SectionCard>
-
-          <SectionCard id="company" icon={Building2} title="Company" description="Manage company information when your role permits it.">
-            {!isAdmin && <Alert><AlertDescription>Only company administrators can edit company information.</AlertDescription></Alert>}
-            <div className="grid gap-5 md:grid-cols-2"><div className="space-y-2 md:col-span-2"><Label htmlFor="company-name">Company name</Label><Input id="company-name" value={companyName} onChange={e => setCompanyName(e.target.value)} disabled={!isAdmin} /></div><div className="space-y-2"><Label htmlFor="company-plan">Subscription plan</Label><Input id="company-plan" value={company?.subscription_plan || 'Free'} disabled /></div><div className="space-y-2"><Label htmlFor="company-created">Created</Label><Input id="company-created" value={company ? new Date(company.created_at).toLocaleDateString() : ''} disabled /></div></div>
-            {isAdmin && <div className="mt-5 flex justify-end border-t border-border pt-5"><Button type="button" onClick={() => void handleUpdateCompany()} disabled={saving} className="w-full rounded-xl sm:w-auto">{saving ? 'Saving…' : 'Save company'}</Button></div>}
-          </SectionCard>
-
-          <SectionCard id="billing" icon={CreditCard} title="Billing" description="View the subscription state that currently controls workspace entitlements.">
-            <div className="grid gap-4 sm:grid-cols-3"><div className="rounded-xl border border-border p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Plan</p><p className="mt-1 font-semibold">{company?.subscription_plan || 'Free'}</p></div><div className="rounded-xl border border-border p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p><p className="mt-1 font-semibold capitalize">{company?.status || 'Unknown'}</p></div><div className="rounded-xl border border-border p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Access model</p><p className="mt-1 font-semibold">Entitlement-based</p></div></div>
-            <p className="mt-4 text-sm text-muted-foreground">Payment-provider checkout and lifecycle actions are intentionally not represented as local controls unless a provider-backed subscription is present.</p>
-          </SectionCard>
-        </div>
-      </div>
-    </div>
-  )
+export default function SettingsPage(){
+ const{toast}=useToast();const{user,company,settings,loading,updateProfile,updateCompany}=useAuth();const{activeTab,setActiveTab}=useDashboardTab();const selected=(sections.some(section=>section.id===activeTab)?activeTab:'account') as Section;const isAdmin=user?.role==='admin';const[companyName,setCompanyName]=useState('');const[fullName,setFullName]=useState('');const[phone,setPhone]=useState('');const[saving,setSaving]=useState(false);const[editingPassword,setEditingPassword]=useState(false);const[newPassword,setNewPassword]=useState('');const[confirmPassword,setConfirmPassword]=useState('');const[mfaFactors,setMfaFactors]=useState<MfaFactor[]>([]);const[mfaLoading,setMfaLoading]=useState(false);const[mfaCode,setMfaCode]=useState('');const[pendingFactor,setPendingFactor]=useState<{id:string;secret?:string}|null>(null)
+ useEffect(()=>{if(company)setCompanyName(company.name||'');if(user){setFullName(user.full_name||'');setPhone(user.phone||'')}},[company,user]);useEffect(()=>{if(activeTab!==selected)setActiveTab(selected)},[activeTab,selected,setActiveTab]);useEffect(()=>{const loadMfa=async()=>{const{data}=await supabase.auth.mfa.listFactors();setMfaFactors((data?.all??[]) as MfaFactor[])};void loadMfa()},[]);const verifiedMfa=useMemo(()=>mfaFactors.filter(f=>f.status==='verified'),[mfaFactors])
+ const handleUpdateProfile=async()=>{if(!fullName.trim()){toast({title:'Full name required',description:'Enter your full name before saving.',variant:'destructive'});return}setSaving(true);try{await updateProfile({full_name:fullName.trim(),phone:phone.trim()||null});toast({title:'Profile updated',description:'Your account information has been saved.'})}catch(error){toast({title:'Update failed',description:error instanceof Error?error.message:'Failed to update your profile.',variant:'destructive'})}finally{setSaving(false)}}
+ const handleUpdateCompany=async()=>{if(!isAdmin||!companyName.trim())return;setSaving(true);try{await updateCompany({name:companyName.trim()});toast({title:'Company updated',description:'Company information has been saved.'})}catch(error){toast({title:'Update failed',description:error instanceof Error?error.message:'Failed to update company.',variant:'destructive'})}finally{setSaving(false)}}
+ const handlePasswordUpdate=async()=>{if(newPassword.length<8){toast({title:'Password too short',description:'Use at least 8 characters.',variant:'destructive'});return}if(newPassword!==confirmPassword){toast({title:'Passwords do not match',description:'Confirm the new password and try again.',variant:'destructive'});return}setSaving(true);try{const{error}=await supabase.auth.updateUser({password:newPassword});if(error)throw error;toast({title:'Password updated',description:'Your password has been changed.'});setNewPassword('');setConfirmPassword('');setEditingPassword(false)}catch(error){toast({title:'Update failed',description:error instanceof Error?error.message:'Failed to update your password.',variant:'destructive'})}finally{setSaving(false)}}
+ const enrollMfa=async()=>{setMfaLoading(true);try{const{data,error}=await supabase.auth.mfa.enroll({factorType:'totp',friendlyName:'Desk-Support authenticator'});if(error)throw error;setPendingFactor({id:data.id,secret:data.totp?.secret});toast({title:'Authenticator created',description:'Add the secret to your authenticator app, then enter the verification code.'})}catch(error){toast({title:'MFA setup failed',description:error instanceof Error?error.message:'Could not start MFA setup.',variant:'destructive'})}finally{setMfaLoading(false)}}
+ const verifyMfa=async()=>{if(!pendingFactor||!/^[0-9]{6}$/.test(mfaCode)){toast({title:'Invalid code',description:'Enter the 6-digit authenticator code.',variant:'destructive'});return}setMfaLoading(true);try{const{data:challenge,error:challengeError}=await supabase.auth.mfa.challenge({factorId:pendingFactor.id});if(challengeError)throw challengeError;const{error}=await supabase.auth.mfa.verify({factorId:pendingFactor.id,challengeId:challenge.id,code:mfaCode});if(error)throw error;const{data}=await supabase.auth.mfa.listFactors();setMfaFactors((data?.all??[]) as MfaFactor[]);setPendingFactor(null);setMfaCode('');toast({title:'MFA enabled',description:'Your authenticator factor is now verified.'})}catch(error){toast({title:'Verification failed',description:error instanceof Error?error.message:'The code could not be verified.',variant:'destructive'})}finally{setMfaLoading(false)}}
+ const removeMfa=async(factorId:string)=>{setMfaLoading(true);try{const{error}=await supabase.auth.mfa.unenroll({factorId});if(error)throw error;setMfaFactors(current=>current.filter(f=>f.id!==factorId));toast({title:'MFA factor removed',description:'The authenticator factor has been removed.'})}catch(error){toast({title:'Could not remove MFA',description:error instanceof Error?error.message:'The factor could not be removed.',variant:'destructive'})}finally{setMfaLoading(false)}}
+ if(loading)return <Loader fullPage/>
+ return <div className="space-y-6"><div><h1 className="text-2xl font-bold tracking-tight">Settings</h1><p className="mt-1 text-sm text-muted-foreground">Manage your account, workspace and connected capabilities.</p></div><div className="grid gap-6 lg:grid-cols-[190px_minmax(0,1fr)]"><nav className="h-fit rounded-2xl border border-border bg-card p-2 lg:sticky lg:top-24" aria-label="Settings sections"><div className="grid grid-cols-2 gap-1 sm:grid-cols-4 lg:grid-cols-1">{sections.map(section=>{const Icon=section.icon;const active=selected===section.id;return <button type="button" key={section.id} onClick={()=>{setActiveTab(section.id);document.getElementById(section.id)?.scrollIntoView({behavior:'smooth',block:'start'})}} className={`flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium ${active?'bg-primary/10 text-primary':'text-muted-foreground hover:bg-muted hover:text-foreground'}`} aria-current={active?'location':undefined}><Icon className="h-4 w-4 shrink-0" aria-hidden="true"/>{section.label}</button>})}</div></nav><div className="space-y-6">
+ <SectionCard id="account" icon={User} title="Account" description="Update the personal information used across your workspace."><div className="grid grid-cols-1 gap-5 md:grid-cols-2"><div className="space-y-2 md:col-span-2"><Label htmlFor="settings-email">Email</Label><Input id="settings-email" value={user?.email||''} disabled/><p className="text-sm text-muted-foreground">Email changes are intentionally not offered here.</p></div><div className="space-y-2"><Label htmlFor="settings-name">Full name</Label><Input id="settings-name" value={fullName} onChange={e=>setFullName(e.target.value)}/></div><div className="space-y-2"><Label htmlFor="settings-phone">Phone</Label><Input id="settings-phone" type="tel" value={phone} onChange={e=>setPhone(e.target.value)}/></div></div><div className="mt-5 flex justify-end border-t border-border pt-5"><Button type="button" onClick={()=>void handleUpdateProfile()} disabled={saving} className="w-full rounded-xl sm:w-auto">{saving?<><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true"/>Saving…</>:'Save account'}</Button></div></SectionCard>
+ <SectionCard id="security" icon={Shield} title="Security" description="Change your password and manage a real authenticator-based MFA factor."><div className="space-y-5"><div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold">Password</p><p className="mt-1 text-sm text-muted-foreground">Use at least 8 characters. The change is applied through Supabase Auth.</p></div><Button type="button" variant="outline" onClick={()=>setEditingPassword(v=>!v)} className="rounded-xl">{editingPassword?'Cancel':'Change password'}</Button></div>{editingPassword&&<div className="grid gap-4 rounded-xl border border-border p-4 md:grid-cols-2"><div className="space-y-2"><Label htmlFor="new-password">New password</Label><Input id="new-password" type="password" autoComplete="new-password" value={newPassword} onChange={e=>setNewPassword(e.target.value)}/></div><div className="space-y-2"><Label htmlFor="confirm-password">Confirm password</Label><Input id="confirm-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)}/></div><div className="md:col-span-2"><Button type="button" onClick={()=>void handlePasswordUpdate()} disabled={saving} className="w-full sm:w-auto">{saving?'Updating…':'Update password'}</Button></div></div>}<div className="border-t border-border pt-5"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-semibold">Authenticator app (MFA)</p><p className="mt-1 text-sm text-muted-foreground">{verifiedMfa.length?`${verifiedMfa.length} verified factor${verifiedMfa.length===1?'':'s'} active.`:'No verified authenticator factor is active.'}</p></div><LockKeyhole className="h-5 w-5 text-muted-foreground" aria-hidden="true"/></div>{verifiedMfa.map(factor=><div key={factor.id} className="mt-4 flex flex-col gap-3 rounded-xl border border-border p-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-2 text-sm"><CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true"/>{factor.friendly_name||'Authenticator app'}<span className="text-muted-foreground">· verified</span></div><Button type="button" variant="outline" onClick={()=>void removeMfa(factor.id)} disabled={mfaLoading} className="rounded-xl">Remove</Button></div>)}{!pendingFactor&&!verifiedMfa.length&&<Button type="button" onClick={()=>void enrollMfa()} disabled={mfaLoading} className="mt-4 rounded-xl">{mfaLoading?'Starting…':'Set up authenticator'}</Button>}{pendingFactor&&<div className="mt-4 space-y-4 rounded-xl border border-primary/20 bg-primary/5 p-4"><div className="flex items-center gap-2 text-sm font-semibold"><KeyRound className="h-4 w-4" aria-hidden="true"/>Authenticator secret</div><code className="block break-all rounded-lg bg-background p-3 text-xs">{pendingFactor.secret||'Use the authenticator setup provided by your client.'}</code><div className="space-y-2"><Label htmlFor="mfa-code">6-digit verification code</Label><Input id="mfa-code" inputMode="numeric" maxLength={6} value={mfaCode} onChange={e=>setMfaCode(e.target.value.replace(/\D/g,'').slice(0,6))} placeholder="000000"/></div><div className="flex flex-col gap-2 sm:flex-row"><Button type="button" onClick={()=>void verifyMfa()} disabled={mfaLoading} className="rounded-xl">{mfaLoading?'Verifying…':'Verify and enable'}</Button><Button type="button" variant="ghost" onClick={()=>setPendingFactor(null)} disabled={mfaLoading} className="rounded-xl">Cancel</Button></div></div>}</div></div></SectionCard>
+ <SectionCard id="workspace" icon={BriefcaseBusiness} title="Workspace" description="Workspace identity and configuration backed by the connected company record."><div className="grid gap-4 sm:grid-cols-2"><div className="rounded-xl border border-border p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Workspace</p><p className="mt-1 font-semibold">{company?.name||'Workspace'}</p></div><div className="rounded-xl border border-border p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Timezone</p><p className="mt-1 font-semibold">{settings?.timezone||'Workspace default'}</p></div></div><p className="mt-4 text-sm text-muted-foreground">Workspace-wide configuration is managed through the dedicated administrative screens; no local-only workspace switches are exposed here.</p></SectionCard>
+ <SectionCard id="notifications" icon={Bell} title="Notifications" description="Control notification delivery and browser push registration."><NotificationSettingsTab/></SectionCard>
+ <SectionCard id="appearance" icon={Palette} title="Appearance" description="Control theme, density, typography and accessibility options."><AppearanceSettings/></SectionCard>
+ <SectionCard id="company" icon={Building2} title="Company" description="Manage company information when your role permits it.">{!isAdmin&&<Alert><AlertDescription>Only company administrators can edit company information.</AlertDescription></Alert>}<div className="mt-4 grid gap-5 md:grid-cols-2"><div className="space-y-2 md:col-span-2"><Label htmlFor="company-name">Company name</Label><Input id="company-name" value={companyName} onChange={e=>setCompanyName(e.target.value)} disabled={!isAdmin}/></div><div className="space-y-2"><Label htmlFor="company-plan">Subscription plan</Label><Input id="company-plan" value={company?.subscription_plan||'Free'} disabled/></div><div className="space-y-2"><Label htmlFor="company-created">Created</Label><Input id="company-created" value={company?new Date(company.created_at).toLocaleDateString():''} disabled/></div></div>{isAdmin&&<div className="mt-5 flex justify-end border-t border-border pt-5"><Button type="button" onClick={()=>void handleUpdateCompany()} disabled={saving} className="w-full rounded-xl sm:w-auto">{saving?'Saving…':'Save company'}</Button></div>}</SectionCard>
+ <SectionCard id="billing" icon={CreditCard} title="Billing" description="View the subscription state that currently controls workspace entitlements."><div className="grid gap-4 sm:grid-cols-3"><div className="rounded-xl border border-border p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Plan</p><p className="mt-1 font-semibold">{company?.subscription_plan||'Free'}</p></div><div className="rounded-xl border border-border p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p><p className="mt-1 font-semibold capitalize">{company?.status||'Unknown'}</p></div><div className="rounded-xl border border-border p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Access model</p><p className="mt-1 font-semibold">Entitlement-based</p></div></div><p className="mt-4 text-sm text-muted-foreground">Payment-provider checkout and lifecycle actions are not represented as local controls unless a provider-backed subscription is available.</p></SectionCard>
+ </div></div></div>
 }
