@@ -3,31 +3,56 @@
 -- security-invoker compatibility wrappers through the public API schema.
 
 create schema if not exists extensions;
+
 alter extension pg_trgm set schema extensions;
 revoke all on schema extensions from public;
 grant usage on schema extensions to authenticated;
 
 create or replace function private.current_company_ids_array()
-returns uuid[] language sql stable security definer set search_path = public, pg_catalog
+returns uuid[]
+language sql
+stable
+security definer
+set search_path = public, pg_catalog
 as $$
   select coalesce(array_agg(m.company_id), '{}'::uuid[])
   from public.company_memberships m
-  where m.user_id = (select auth.uid()) and m.is_active = true;
+  where m.user_id = (select auth.uid())
+    and m.is_active = true;
 $$;
+
 revoke all on function private.current_company_ids_array() from public;
 grant execute on function private.current_company_ids_array() to authenticated;
 
 create or replace function public.current_company_id_array()
-returns uuid[] language sql stable security invoker set search_path = public, pg_catalog
-as $$ select private.current_company_ids_array(); $$;
+returns uuid[]
+language sql
+stable
+security invoker
+set search_path = public, pg_catalog
+as $$
+  select private.current_company_ids_array();
+$$;
 
 create or replace function public.current_company_ids_array()
-returns uuid[] language sql stable security invoker set search_path = public, pg_catalog
-as $$ select private.current_company_ids_array(); $$;
+returns uuid[]
+language sql
+stable
+security invoker
+set search_path = public, pg_catalog
+as $$
+  select private.current_company_ids_array();
+$$;
 
 create or replace function public.current_company_ids()
-returns setof uuid language sql stable security invoker set search_path = public, pg_catalog
-as $$ select unnest(private.current_company_ids_array()); $$;
+returns setof uuid
+language sql
+stable
+security invoker
+set search_path = public, pg_catalog
+as $$
+  select unnest(private.current_company_ids_array());
+$$;
 
 revoke execute on function public.current_company_id_array() from anon;
 revoke execute on function public.current_company_ids() from anon;
@@ -37,7 +62,11 @@ grant execute on function public.current_company_ids() to authenticated;
 grant execute on function public.current_company_ids_array() to authenticated;
 
 create or replace function private.get_company_counts(p_company_id uuid)
-returns jsonb language plpgsql stable security definer set search_path = public, pg_catalog
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public, pg_catalog
 as $$
 declare result jsonb;
 begin
@@ -78,15 +107,26 @@ begin
   return result;
 end;
 $$;
+
 revoke all on function private.get_company_counts(uuid) from public;
 grant execute on function private.get_company_counts(uuid) to authenticated;
 
 create or replace function public.get_company_counts(p_company_id uuid)
-returns jsonb language sql stable security invoker set search_path = public, pg_catalog
-as $$ select private.get_company_counts(p_company_id); $$;
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public, pg_catalog
+as $$
+  select private.get_company_counts(p_company_id);
+$$;
 
 create or replace function private.get_company_analytics(p_company_id uuid)
-returns jsonb language plpgsql stable security definer set search_path = public, pg_catalog
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public, pg_catalog
 as $$
 declare result jsonb;
 begin
@@ -101,23 +141,45 @@ begin
   return result;
 end;
 $$;
+
 revoke all on function private.get_company_analytics(uuid) from public;
 grant execute on function private.get_company_analytics(uuid) to authenticated;
 
 create or replace function public.get_company_analytics(p_company_id uuid)
-returns jsonb language sql stable security invoker set search_path = public, pg_catalog
-as $$ select private.get_company_analytics(p_company_id); $$;
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public, pg_catalog
+as $$
+  select private.get_company_analytics(p_company_id);
+$$;
 
+-- Collapse the team creator + manager insert rules into one policy.
 drop policy if exists team_members_insert_manager on public.team_members;
 drop policy if exists team_members_insert_team_creator on public.team_members;
-create policy team_members_insert_authorized on public.team_members for insert to authenticated with check (
-  exists (select 1 from public.teams t where t.id=team_members.team_id and private.has_company_role(t.company_id,array['admin','hr','manager']::public.membership_role[]))
-  or exists (select 1 from public.teams t where t.id=team_members.team_id and t.created_by=(select auth.uid()) and team_members.user_id=(select auth.uid()) and team_members.role='lead')
+create policy team_members_insert_authorized on public.team_members
+for insert to authenticated
+with check (
+  exists (
+    select 1 from public.teams t
+    where t.id = team_members.team_id
+      and private.has_company_role(t.company_id, array['admin','hr','manager']::public.membership_role[])
+  )
+  or exists (
+    select 1 from public.teams t
+    where t.id = team_members.team_id
+      and t.created_by = (select auth.uid())
+      and team_members.user_id = (select auth.uid())
+      and team_members.role = 'lead'
+  )
 );
 
+-- Remove exact duplicate indexes while retaining the descriptive canonical names.
 drop index if exists public.idx_notifications_unread;
 drop index if exists public.idx_qr_scan_logs_code_scanned;
 
+-- Cover foreign keys reported by the performance advisor.
 create index if not exists idx_qr_codes_created_by on public.qr_codes(created_by) where created_by is not null;
 create index if not exists idx_teams_created_by on public.teams(created_by) where created_by is not null;
 create index if not exists idx_teams_team_lead_id on public.teams(team_lead_id) where team_lead_id is not null;

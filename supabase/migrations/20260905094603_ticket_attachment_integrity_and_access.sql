@@ -5,6 +5,8 @@
 create unique index if not exists ticket_comments_ticket_id_id_key
   on public.ticket_comments(ticket_id, id);
 
+-- Replace the weaker single-column comment FK with a composite FK so an attachment
+-- cannot reference a comment belonging to a different ticket.
 do $$
 begin
   if exists (
@@ -52,6 +54,8 @@ alter table public.ticket_attachments
 create unique index if not exists ticket_attachments_ticket_storage_path_key
   on public.ticket_attachments(ticket_id, storage_path);
 
+-- The metadata table must be writable by authenticated ticket participants who
+-- upload their own files. Storage itself remains private and independently RLS protected.
 drop policy if exists ticket_attachments_insert_member on public.ticket_attachments;
 create policy ticket_attachments_insert_member
   on public.ticket_attachments
@@ -62,6 +66,7 @@ create policy ticket_attachments_insert_member
     and private.can_view_ticket(ticket_id)
   );
 
+-- Ensure authenticated clients can reach the metadata table through PostgREST.
 revoke all on table public.ticket_attachments from anon;
 grant select, insert, delete on table public.ticket_attachments to authenticated;
 
