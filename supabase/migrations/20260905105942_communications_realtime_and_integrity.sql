@@ -1,0 +1,14 @@
+create or replace function private.touch_updated_at() returns trigger language plpgsql security invoker set search_path=public,private as $$ begin new.updated_at=now(); return new; end; $$;
+create trigger conversations_touch_updated_at before update on public.conversations for each row execute function private.touch_updated_at();
+create trigger messages_touch_updated_at before update on public.messages for each row execute function private.touch_updated_at();
+create trigger calls_touch_updated_at before update on public.calls for each row execute function private.touch_updated_at();
+create or replace function private.touch_conversation_from_message() returns trigger language plpgsql security invoker set search_path=public,private as $$ begin update public.conversations set updated_at=now() where id=new.conversation_id; return new; end; $$;
+create trigger messages_touch_conversation after insert or update on public.messages for each row execute function private.touch_conversation_from_message();
+alter publication supabase_realtime add table public.conversations;
+alter publication supabase_realtime add table public.conversation_members;
+alter publication supabase_realtime add table public.messages;
+alter publication supabase_realtime add table public.message_attachments;
+alter publication supabase_realtime add table public.conversation_message_reactions;
+alter publication supabase_realtime add table public.message_read_receipts;
+alter publication supabase_realtime add table public.calls;
+alter publication supabase_realtime add table public.call_participants_v2;
