@@ -1,6 +1,7 @@
 {
   "extends": ["stylelint-config-standard"],
   "rules": {
+    "at-rule-no-unknown": null,
     "declaration-block-no-duplicate-properties": true,
     "declaration-no-important": null,
     "property-no-unknown": true,
