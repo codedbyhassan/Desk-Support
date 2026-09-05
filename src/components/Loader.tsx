@@ -1,91 +1,29 @@
-import React from 'react';
+import React from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface LoaderProps {
-  size?: 'sm' | 'md' | 'lg';
-  fullPage?: boolean;
+  size?: 'sm' | 'md' | 'lg'
+  fullPage?: boolean
 }
 
 const Loader: React.FC<LoaderProps> = ({ size = 'md', fullPage = false }) => {
-  const sizeClasses = {
-    sm: 'h-8 w-8',
-    md: 'h-12 w-12',
-    lg: 'h-16 w-16',
-  };
-
-  const containerClasses = fullPage 
-    ? 'flex items-center justify-center min-h-screen w-full'
-    : 'flex items-center justify-center min-h-60 w-full';
-
+  const rows = size === 'sm' ? 3 : size === 'lg' ? 6 : 5
   return (
-    <div className={containerClasses}>
-      <style>{`
-        @keyframes traffic-spin {
-          100% {
-            transform: rotate(180deg);
-          }
-        }
-
-        @keyframes traffic-pulse {
-          0%, 100% {
-            opacity: 0.7;
-          }
-          50% {
-            opacity: 1;
-          }
-        }
-
-        .traffic-loader {
-          animation: traffic-spin 1s linear infinite;
-        }
-
-        .traffic-loader::before {
-          animation: traffic-pulse 1.5s ease-in-out infinite;
-        }
-      `}</style>
-      
-      <div className={`${sizeClasses[size]} relative traffic-loader`}>
-        {/* Outer rotating ring */}
-        <svg
-          className="absolute inset-0 w-full h-full"
-          viewBox="0 0 50 50"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* Top dot */}
-          <circle cx="25" cy="5" r="3" fill="hsl(var(--chart-blue))" />
-          {/* Right dot */}
-          <circle cx="45" cy="25" r="3" fill="hsl(var(--chart-blue))" />
-          {/* Bottom dot */}
-          <circle cx="25" cy="45" r="3" fill="hsl(var(--chart-blue))" />
-          {/* Left dot */}
-          <circle cx="5" cy="25" r="3" fill="hsl(var(--chart-blue))" />
-        </svg>
-
-        {/* Inner rotating ring */}
-        <div className="absolute inset-0 traffic-loader-inner" style={{
-          animation: 'traffic-spin 1.5s linear infinite reverse'
-        }}>
-          <svg
-            className="absolute inset-0 w-full h-full"
-            viewBox="0 0 50 50"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {/* Conic gradient segments */}
-            <circle
-              cx="25"
-              cy="25"
-              r="18"
-              fill="none"
-              stroke="hsl(var(--chart-blue-light))"
-              strokeWidth="2"
-              strokeDasharray="17 60"
-              opacity="0.8"
-            />
-          </svg>
+    <div className={fullPage ? 'min-h-screen w-full bg-background p-4 sm:p-6 lg:p-8' : 'w-full py-6'} role="status" aria-label="Loading">
+      <div className="mx-auto w-full max-w-[1600px] space-y-4">
+        <Skeleton className="h-7 w-40 rounded-lg" />
+        <Skeleton className="h-4 w-64 max-w-full rounded-lg" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: Math.min(rows, 4) }, (_, index) => <Skeleton key={index} className="h-20 w-full rounded-xl" />)}
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+          <div className="space-y-3">
+            {Array.from({ length: rows }, (_, index) => <div key={index} className="flex items-center gap-3"><Skeleton className="h-10 w-10 shrink-0 rounded-lg" /><div className="min-w-0 flex-1 space-y-2"><Skeleton className="h-3 w-1/3" /><Skeleton className="h-3 w-2/3" /></div></div>)}
+          </div>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Loader;
-
+export default Loader
