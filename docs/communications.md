@@ -22,7 +22,9 @@ Calls are durable rows in `calls` with UUID participants in `call_participants_v
 
 The media path is WebRTC. Supabase Realtime Broadcast is signaling only: SDP offers/answers and ICE candidates. Audio/video bytes never pass through Postgres or Supabase Realtime.
 
-The browser uses a STUN server for direct peer discovery. The current implementation is mesh-based and is appropriate for direct calls and small groups. A production SFU should be introduced before large group calls to avoid O(n²) peer connections.
+The browser uses Google STUN by default. For reliable production connectivity across restrictive NAT/firewalls, configure a TURN service with these Vite environment variables: `VITE_TURN_URL`, `VITE_TURN_USERNAME`, and `VITE_TURN_CREDENTIAL`. TURN credentials should be short-lived where the provider supports ephemeral credentials.
+
+The current implementation is mesh-based and is appropriate for direct calls and small groups. A production SFU should be introduced before large group calls to avoid O(n²) peer connections.
 
 Call state is persisted as `initiating`, `ringing`, `connecting`, `connected`, `ended`, `declined`, `missed`, `failed`, or `disconnected`.
 
