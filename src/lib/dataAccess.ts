@@ -11,6 +11,8 @@ export const DATA_ACCESS = {
 export type ExactCompanyCounts = {
   users_total: number
   users_unique: number
+  users_active: number
+  users_inactive: number
   departments_total: number
   teams_total: number
   ticket_categories_total: number
